@@ -1,26 +1,26 @@
 /**
  * Wex Design Studio — app-level semantic tokens.
- * Extends @wex-design/ui theme; do not duplicate component token hex values here.
+ * Extends @roost-design/ui theme; do not duplicate component token hex values here.
  */
 :root {
-  --wd-color-ground-background: color-mix(in srgb, var(--wd-color-surface) 94%, var(--wd-color-text) 6%);
-  --wd-color-surface-elevated: var(--wd-color-surface);
-  --wd-color-surface-hover: color-mix(in srgb, var(--wd-color-primary) 6%, var(--wd-color-surface));
-  --wd-color-canvas-grid: color-mix(in srgb, var(--wd-color-border) 70%, transparent);
-  --wd-color-primary-soft: color-mix(in srgb, var(--wd-color-primary) 12%, transparent);
-  --wd-color-primary-glow: color-mix(in srgb, var(--wd-color-primary) 25%, transparent);
-  --wd-color-brand-gradient: linear-gradient(
+  --rd-color-ground-background: color-mix(in srgb, var(--rd-color-surface) 94%, var(--rd-color-text) 6%);
+  --rd-color-surface-elevated: var(--rd-color-surface);
+  --rd-color-surface-hover: color-mix(in srgb, var(--rd-color-primary) 6%, var(--rd-color-surface));
+  --rd-color-canvas-grid: color-mix(in srgb, var(--rd-color-border) 70%, transparent);
+  --rd-color-primary-soft: color-mix(in srgb, var(--rd-color-primary) 12%, transparent);
+  --rd-color-primary-glow: color-mix(in srgb, var(--rd-color-primary) 25%, transparent);
+  --rd-color-brand-gradient: linear-gradient(
     135deg,
-    var(--wd-color-primary),
-    color-mix(in srgb, var(--wd-color-info) 55%, var(--wd-color-success))
+    var(--rd-color-primary),
+    color-mix(in srgb, var(--rd-color-info) 55%, var(--rd-color-success))
   );
 }
 
 [data-theme="dark"] {
-  --wd-color-ground-background: color-mix(in srgb, var(--wd-color-surface) 62%, black);
-  --wd-color-surface-elevated: color-mix(in srgb, var(--wd-color-surface) 90%, var(--wd-color-text) 10%);
-  --wd-color-surface-hover: color-mix(in srgb, var(--wd-color-primary) 10%, var(--wd-color-surface));
-  --wd-color-canvas-grid: color-mix(in srgb, var(--wd-color-border) 55%, transparent);
+  --rd-color-ground-background: color-mix(in srgb, var(--rd-color-surface) 62%, black);
+  --rd-color-surface-elevated: color-mix(in srgb, var(--rd-color-surface) 90%, var(--rd-color-text) 10%);
+  --rd-color-surface-hover: color-mix(in srgb, var(--rd-color-primary) 10%, var(--rd-color-surface));
+  --rd-color-canvas-grid: color-mix(in srgb, var(--rd-color-border) 55%, transparent);
 }
 
 html,
@@ -32,9 +32,9 @@ body,
   height: 100%;
   overflow: hidden;
   box-sizing: border-box;
-  font-family: var(--wd-font-sans);
-  color: var(--wd-color-text);
-  background: var(--wd-color-ground-background);
+  font-family: var(--rd-font-sans);
+  color: var(--rd-color-text);
+  background: var(--rd-color-ground-background);
 }
 
 *,

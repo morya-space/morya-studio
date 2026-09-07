@@ -4,12 +4,12 @@
 
 **Wex Design Studio** 是可视化设计平台的 monorepo 脚手架。当前产品需求尚未确定，仓库仅保留空白前端页面与最小 API 壳层。
 
-平台前端使用 npm 包 **[@wex-design/ui](https://www.npmjs.com/package/@wex-design/ui)** Vue 3 组件库。
+平台前端通过本地 link 使用 **[Roost Design UI](https://github.com/roost-design/roost-design-ui)**（同级目录 `../wex-design-ui`）。
 
 | 资源           | 链接                                                                                |
 | -------------- | ----------------------------------------------------------------------------------- |
 | 源码（GitHub） | [wex-design/wex-design-studio](https://github.com/wex-design/wex-design-studio)     |
-| UI 组件库      | [@wex-design/ui](https://www.npmjs.com/package/@wex-design/ui) · [文档站](https://wex-design.github.io/wex-design-ui/) |
+| UI 组件库      | [roost-design/roost-design-ui](https://github.com/roost-design/roost-design-ui) · [文档站](https://roost-design.github.io/roost-design-ui/) |
 | 贡献者文档     | [开发指南](./docs/DEVELOPMENT.zh-CN.md) · [English](./docs/DEVELOPMENT.md)           |
 
 ## 仓库结构

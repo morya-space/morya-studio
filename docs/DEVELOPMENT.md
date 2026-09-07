@@ -2,7 +2,7 @@
 
 [English](./DEVELOPMENT.md) · [中文](./DEVELOPMENT.zh-CN.md)
 
-Internal documentation for contributors working in this monorepo. Public overview: [root README](../README.md). The web app uses [@wex-design/ui](https://www.npmjs.com/package/@wex-design/ui) from npm.
+Internal documentation for contributors working in this monorepo. Public overview: [root README](../README.md). The web app uses [Roost Design UI](https://github.com/roost-design/roost-design-ui) via a local link (see below).
 
 ## Workspace
 
@@ -14,11 +14,11 @@ Internal documentation for contributors working in this monorepo. Public overvie
 
 ## UI library
 
-Install `@wex-design/ui` via `pnpm install` in this repo (declared in `apps/web/package.json`).
+Clone [roost-design/roost-design-ui](https://github.com/roost-design/roost-design-ui) as a **sibling** of this repo (e.g. `../wex-design-ui`), run `pnpm install && pnpm build` once, then `pnpm install` here. `apps/web/package.json` links `@roost-design/ui` to that directory.
 
-- Docs: https://wex-design.github.io/wex-design-ui/
-- Styles: `import '@wex-design/ui/styles.css'`
-- Plugin: `createWexDesign()` from `@wex-design/ui`
+- Docs: https://roost-design.github.io/roost-design-ui/
+- Styles: `import '@roost-design/ui/styles.css'`
+- Plugin: `createRoostDesign()` from `@roost-design/ui`
 
 ## Commands
 

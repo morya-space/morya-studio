@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMotion, WdConfigProvider, WdMessage, WdToast, zhCN } from '@wex-design/ui'
+import { useMotion, RdConfigProvider, RdMessage, RdToast, zhCN } from '@roost-design/ui'
 import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 
@@ -11,13 +11,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <WdConfigProvider :locale="zhCN">
+  <RdConfigProvider :locale="zhCN">
     <div class="app-shell">
       <RouterView />
     </div>
-    <WdMessage placement="top" />
-    <WdToast position="bottom-right" />
-  </WdConfigProvider>
+    <RdMessage placement="top" />
+    <RdToast position="bottom-right" />
+  </RdConfigProvider>
 </template>
 
 <style>

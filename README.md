@@ -4,12 +4,12 @@
 
 **Wex Design Studio** is a monorepo scaffold for a visual design platform. Product requirements are not finalized yet; the repository currently ships an empty frontend page and a minimal API shell.
 
-The web app uses the npm package **[@wex-design/ui](https://www.npmjs.com/package/@wex-design/ui)** Vue 3 component library.
+The web app uses **[Roost Design UI](https://github.com/roost-design/roost-design-ui)** via a local link to the sibling `../wex-design-ui` checkout.
 
 | Resource        | Link                                                                                    |
 | --------------- | --------------------------------------------------------------------------------------- |
 | Source (GitHub) | [wex-design/wex-design-studio](https://github.com/wex-design/wex-design-studio)         |
-| UI library      | [@wex-design/ui](https://www.npmjs.com/package/@wex-design/ui) · [Docs](https://wex-design.github.io/wex-design-ui/) |
+| UI library      | [roost-design/roost-design-ui](https://github.com/roost-design/roost-design-ui) · [Docs](https://roost-design.github.io/roost-design-ui/) |
 | Contributors    | [Development guide](./docs/DEVELOPMENT.md)                                              |
 
 ## Repository layout

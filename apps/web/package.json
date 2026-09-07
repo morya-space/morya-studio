@@ -13,7 +13,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@wex-design/shared": "workspace:*",
-    "@wex-design/ui": "^0.1.1",
+    "@roost-design/ui": "link:../../../wex-design-ui",
     "tailwindcss": "^4.3.3",
     "vue": "^3.5.41",
     "vue-router": "^5.2.0"

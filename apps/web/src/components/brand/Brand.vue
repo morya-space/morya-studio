@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import { WdFlex } from '@wex-design/ui'
+import { RdFlex } from '@roost-design/ui'
 </script>
 
 <template>
-  <WdFlex class="logo-brand" align="center" gap="11px" aria-label="Wex Design Studio">
+  <RdFlex class="logo-brand" align="center" gap="11px" aria-label="Wex Design Studio">
     <div class="brand-mark">
       <span>WD</span><i />
     </div>
@@ -11,7 +11,7 @@ import { WdFlex } from '@wex-design/ui'
       <strong>Wex Design</strong>
       <span>DESIGN STUDIO</span>
     </div>
-  </WdFlex>
+  </RdFlex>
 </template>
 
 <style scoped>
@@ -25,10 +25,10 @@ import { WdFlex } from '@wex-design/ui'
   position: relative;
   display: grid;
   place-items: center;
-  border: var(--wd-border-width) solid var(--wd-color-primary);
-  border-radius: var(--wd-radius-md) var(--wd-radius-md) var(--wd-radius-md) var(--wd-radius-sm);
-  color: var(--wd-color-on-emphasis);
-  background: var(--wd-color-primary);
+  border: var(--rd-border-width) solid var(--rd-color-primary);
+  border-radius: var(--rd-radius-md) var(--rd-radius-md) var(--rd-radius-md) var(--rd-radius-sm);
+  color: var(--rd-color-on-emphasis);
+  background: var(--rd-color-primary);
   transform: rotate(-5deg);
 }
 
@@ -45,7 +45,7 @@ import { WdFlex } from '@wex-design/ui'
   right: -3px;
   bottom: -3px;
   border-radius: 50%;
-  background: var(--wd-color-warning);
+  background: var(--rd-color-warning);
 }
 
 .brand-copy {
@@ -62,6 +62,6 @@ import { WdFlex } from '@wex-design/ui'
 .brand-copy span {
   font-size: 9px;
   letter-spacing: 0.16em;
-  color: var(--wd-color-text-muted);
+  color: var(--rd-color-text-muted);
 }
 </style>

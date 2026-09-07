@@ -10,9 +10,9 @@
       "command": "npx",
       "args": ["-y", "@primevue/mcp"],
     },
-    "wex-design-ui": {
-      "command": "npx",
-      "args": ["-y", "@wex-design/ui-mcp"]
+    "roost-design-ui": {
+      "command": "node",
+      "args": ["../wex-design-ui/packages/ui-mcp/dist/index.js"]
     }
   },
   "format_on_save": "on",

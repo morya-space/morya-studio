@@ -2,7 +2,7 @@
 
 [English](./README.md) · [中文](./README.zh-CN.md)
 
-Maintainer documentation for the Wex Design Studio monorepo. The web app uses [@wex-design/ui](https://www.npmjs.com/package/@wex-design/ui) from npm.
+Maintainer documentation for the Wex Design Studio monorepo. The web app uses [Roost Design UI](https://github.com/roost-design/roost-design-ui) via a local link.
 
 | Document                           | Description                    |
 | ---------------------------------- | ------------------------------ |

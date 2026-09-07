@@ -2,7 +2,7 @@
 
 [English](./README.md) · [中文](./README.zh-CN.md)
 
-Wex Design Studio Monorepo 的维护者文档。平台前端使用 npm 包 [@wex-design/ui](https://www.npmjs.com/package/@wex-design/ui)。
+Wex Design Studio Monorepo 的维护者文档。平台前端通过本地 link 使用 [Roost Design UI](https://github.com/roost-design/roost-design-ui)。
 
 | 文档                                           | 说明               |
 | ---------------------------------------------- | ------------------ |

@@ -26,8 +26,8 @@ import Brand from '../components/brand/Brand.vue'
   height: 100%;
   min-height: 0;
   flex-direction: column;
-  color: var(--wd-color-text);
-  background: var(--wd-color-ground-background, var(--wd-color-surface));
+  color: var(--rd-color-text);
+  background: var(--rd-color-ground-background, var(--rd-color-surface));
 }
 
 .topbar {
@@ -36,7 +36,7 @@ import Brand from '../components/brand/Brand.vue'
   display: flex;
   align-items: center;
   padding: 0 clamp(20px, 5vw, 76px);
-  border-bottom: var(--wd-border-width) solid var(--wd-color-border);
+  border-bottom: var(--rd-border-width) solid var(--rd-color-border);
 }
 
 .home-main {
@@ -51,7 +51,7 @@ import Brand from '../components/brand/Brand.vue'
 
 .eyebrow {
   margin: 0 0 12px;
-  color: var(--wd-color-text-muted);
+  color: var(--rd-color-text-muted);
   font-size: 11px;
   letter-spacing: 0.16em;
 }
@@ -68,7 +68,7 @@ h1 {
 .lead {
   margin: 0;
   max-width: 520px;
-  color: var(--wd-color-text-muted);
+  color: var(--rd-color-text-muted);
   font-size: 15px;
   line-height: 1.7;
 }
