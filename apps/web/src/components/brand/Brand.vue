@@ -1,17 +1,17 @@
 <script lang="ts" setup>
-import { RdFlex } from '@roost-design/ui'
+import { WkFlex } from '@wise-kit/ui'
 </script>
 
 <template>
-  <RdFlex class="logo-brand" align="center" gap="11px" aria-label="Wex Design Studio">
+  <WkFlex class="logo-brand" align="center" gap="11px" aria-label="Wise Kit Studio">
     <div class="brand-mark">
       <span>WD</span><i />
     </div>
     <div class="brand-copy">
-      <strong>Wex Design</strong>
+      <strong>Wise Kit</strong>
       <span>DESIGN STUDIO</span>
     </div>
-  </RdFlex>
+  </WkFlex>
 </template>
 
 <style scoped>

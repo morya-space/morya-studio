@@ -1,5 +1,5 @@
 ---
-description: Wex Design 组件用法与选型（Vue 业务代码）
+description: Wise Kit 组件用法与选型（Vue 业务代码）
 globs: src/**/*.vue
 alwaysApply: false
 ---
@@ -9,17 +9,17 @@ alwaysApply: false
 ## 引入
 
 ```ts
-import { RdButton, RdInput } from '@roost-design/ui'
-// 按需：import { RdButton } from '@roost-design/ui/button'
-//        import '@roost-design/ui/button/style'
+import { WkButton, WkInput } from '@wise-kit/ui'
+// 按需：import { WkButton } from '@wise-kit/ui/button'
+//        import '@wise-kit/ui/button/style'
 ```
 
 ## 必选模式
 
-- 表单：`RdForm` + `RdFormItem` + 字段组件；提交用 `@submit` + `type="submit"`。
-- 表格：`RdTable` 的 `headers` + `items` + `row-key`；单元格用 `#item-{value}` 插槽；分页优先用表格内置页脚（`server-options` + `server-items-length` 服务端模式）。
-- 浮层：详情/编辑 `RdDialog`；侧栏 `RdDrawer`；删除确认 `RdConfirmDialog`。
-- 反馈：操作结果 `RdToast` 或 `RdMessage`。
+- 表单：`WkForm` + `WkFormItem` + 字段组件；提交用 `@submit` + `type="submit"`。
+- 表格：`WkTable` 的 `headers` + `items` + `row-key`；单元格用 `#item-{value}` 插槽；分页优先用表格内置页脚（`server-options` + `server-items-length` 服务端模式）。
+- 浮层：详情/编辑 `WkDialog`；侧栏 `WkDrawer`；删除确认 `WkConfirmDialog`。
+- 反馈：操作结果 `WkToast` 或 `WkMessage`。
 
 ## Props 约定
 
@@ -32,7 +32,7 @@ import { RdButton, RdInput } from '@roost-design/ui'
 ## 禁止
 
 - 同一页面混用其他 UI 库。
-- 用 `RdDropdown` 代替 Select 做枚举选择。
-- 手写 table/modal 替代 `RdTable` / `RdDialog`。
+- 用 `WkDropdown` 代替 Select 做枚举选择。
+- 手写 table/modal 替代 `WkTable` / `WkDialog`。
 
 完整清单：`docs/components.md`

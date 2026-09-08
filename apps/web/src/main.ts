@@ -1,8 +1,8 @@
-import { createRoostDesign } from '@roost-design/ui'
+import { createWiseKit } from '@wise-kit/ui'
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
-import '@roost-design/ui/styles.css'
+import '@wise-kit/ui/styles.css'
 import './styles/index.css'
 
-createApp(App).use(router).use(createRoostDesign()).mount('#app')
+createApp(App).use(router).use(createWiseKit()).mount('#app')

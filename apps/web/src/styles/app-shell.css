@@ -1,6 +1,6 @@
 /**
- * Wex Design Studio — app-level semantic tokens.
- * Extends @roost-design/ui theme; do not duplicate component token hex values here.
+ * Wise Kit Studio — app-level semantic tokens.
+ * Extends @wise-kit/ui theme; do not duplicate component token hex values here.
  */
 :root {
   --rd-color-ground-background: color-mix(in srgb, var(--rd-color-surface) 94%, var(--rd-color-text) 6%);

@@ -1,15 +1,15 @@
-# Wex Design Studio
+# Wise Kit Studio
 
 [English](./README.md) · [中文](./README.zh-CN.md)
 
-**Wex Design Studio** is a monorepo scaffold for a visual design platform. Product requirements are not finalized yet; the repository currently ships an empty frontend page and a minimal API shell.
+**Wise Kit Studio** is a monorepo scaffold for a visual design platform. Product requirements are not finalized yet; the repository currently ships an empty frontend page and a minimal API shell.
 
-The web app uses **[Roost Design UI](https://github.com/roost-design/roost-design-ui)** via a local link to the sibling `../wex-design-ui` checkout.
+The web app uses **[Wise Kit UI](https://github.com/wise-kit/wise-kit-ui)** via a local link to the sibling `../wise-kit-ui` checkout.
 
 | Resource        | Link                                                                                    |
 | --------------- | --------------------------------------------------------------------------------------- |
-| Source (GitHub) | [wex-design/wex-design-studio](https://github.com/wex-design/wex-design-studio)         |
-| UI library      | [roost-design/roost-design-ui](https://github.com/roost-design/roost-design-ui) · [Docs](https://roost-design.github.io/roost-design-ui/) |
+| Source (GitHub) | [wise-kit/wise-kit-studio](https://github.com/wise-kit/wise-kit-studio)         |
+| UI library      | [wise-kit/wise-kit-ui](https://github.com/wise-kit/wise-kit-ui) · [Docs](https://wise-kit.github.io/wise-kit-ui/) |
 | Contributors    | [Development guide](./docs/DEVELOPMENT.md)                                              |
 
 ## Repository layout

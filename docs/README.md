@@ -2,7 +2,7 @@
 
 [English](./README.md) · [中文](./README.zh-CN.md)
 
-Maintainer documentation for the Wex Design Studio monorepo. The web app uses [Roost Design UI](https://github.com/roost-design/roost-design-ui) via a local link.
+Maintainer documentation for the Wise Kit Studio monorepo. The web app uses [Wise Kit UI](https://github.com/wise-kit/wise-kit-ui) via a local link.
 
 | Document                           | Description                    |
 | ---------------------------------- | ------------------------------ |
@@ -12,4 +12,4 @@ Maintainer documentation for the Wex Design Studio monorepo. The web app uses [R
 
 External:
 
-- [Wex Design Studio README](../README.md) · [中文](../README.zh-CN.md)
+- [Wise Kit Studio README](../README.md) · [中文](../README.zh-CN.md)

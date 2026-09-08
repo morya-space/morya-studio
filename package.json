@@ -1,5 +1,5 @@
 {
-  "name": "wex-design-studio",
+  "name": "wise-kit-studio",
   "private": true,
   "packageManager": "pnpm@10.12.4",
   "engines": {
@@ -7,10 +7,10 @@
   },
   "scripts": {
     "prepare": "husky",
-    "dev": "node apps/api/scripts/free-port.mjs 3000 && node apps/api/scripts/free-port.mjs 5181 && pnpm --parallel --filter @wex-design/api --filter @wex-design/web run dev",
-    "dev:web": "pnpm --filter @wex-design/web dev",
-    "dev:api": "pnpm --filter @wex-design/api dev",
-    "build": "pnpm --filter @wex-design/shared --filter @wex-design/web --filter @wex-design/api run build",
+    "dev": "node apps/api/scripts/free-port.mjs 3000 && node apps/api/scripts/free-port.mjs 5181 && pnpm --parallel --filter @wise-kit/api --filter @wise-kit/web run dev",
+    "dev:web": "pnpm --filter @wise-kit/web dev",
+    "dev:api": "pnpm --filter @wise-kit/api dev",
+    "build": "pnpm --filter @wise-kit/shared --filter @wise-kit/web --filter @wise-kit/api run build",
     "test": "pnpm -r test",
     "test:coverage": "pnpm -r test:coverage",
     "typecheck": "pnpm -r typecheck",

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMotion, RdConfigProvider, RdMessage, RdToast, zhCN } from '@roost-design/ui'
+import { useMotion, WkConfigProvider, WkMessage, WkToast, zhCN } from '@wise-kit/ui'
 import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 
@@ -11,19 +11,20 @@ onMounted(() => {
 </script>
 
 <template>
-  <RdConfigProvider :locale="zhCN">
+  <WkConfigProvider class="w-full h-full" :locale="zhCN">
     <div class="app-shell">
       <RouterView />
     </div>
-    <RdMessage placement="top" />
-    <RdToast position="bottom-right" />
-  </RdConfigProvider>
+    <WkMessage placement="top" />
+    <WkToast position="bottom-right" />
+  </WkConfigProvider>
 </template>
 
 <style>
 .app-shell {
   height: 100%;
   min-height: 0;
+  width: 100%;
   overflow: hidden;
 }
 </style>

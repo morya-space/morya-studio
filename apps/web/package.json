@@ -1,5 +1,5 @@
 {
-  "name": "@wex-design/web",
+  "name": "@wise-kit/web",
   "type": "module",
   "private": true,
   "scripts": {
@@ -12,14 +12,15 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
-    "@wex-design/shared": "workspace:*",
-    "@roost-design/ui": "link:../../../wex-design-ui",
+    "@wise-kit/shared": "workspace:*",
+    "@wise-kit/ui": "^0.2.0",
     "tailwindcss": "^4.3.3",
     "vue": "^3.5.41",
     "vue-router": "^5.2.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.8",
+    "sass": "^1.104.0",
     "typescript": "^5.9.3",
     "vite": "^8.2.1",
     "vitest": "^4.1.10",

@@ -2,7 +2,7 @@
 
 [English](./README.md) · [中文](./README.zh-CN.md)
 
-Wex Design Studio Monorepo 的维护者文档。平台前端通过本地 link 使用 [Roost Design UI](https://github.com/roost-design/roost-design-ui)。
+Wise Kit Studio Monorepo 的维护者文档。平台前端通过本地 link 使用 [Wise Kit UI](https://github.com/wise-kit/wise-kit-ui)。
 
 | 文档                                           | 说明               |
 | ---------------------------------------------- | ------------------ |
@@ -12,4 +12,4 @@ Wex Design Studio Monorepo 的维护者文档。平台前端通过本地 link �
 
 对外：
 
-- [Wex Design Studio README（中文）](../README.zh-CN.md) · [English](../README.md)
+- [Wise Kit Studio README（中文）](../README.zh-CN.md) · [English](../README.md)

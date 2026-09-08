@@ -1,15 +1,15 @@
-# Wex Design Studio
+# Wise Kit Studio
 
 [English](./README.md) · [中文](./README.zh-CN.md)
 
-**Wex Design Studio** 是可视化设计平台的 monorepo 脚手架。当前产品需求尚未确定，仓库仅保留空白前端页面与最小 API 壳层。
+**Wise Kit Studio** 是可视化设计平台的 monorepo 脚手架。当前产品需求尚未确定，仓库仅保留空白前端页面与最小 API 壳层。
 
-平台前端通过本地 link 使用 **[Roost Design UI](https://github.com/roost-design/roost-design-ui)**（同级目录 `../wex-design-ui`）。
+平台前端通过本地 link 使用 **[Wise Kit UI](https://github.com/wise-kit/wise-kit-ui)**（同级目录 `../wise-kit-ui`）。
 
 | 资源           | 链接                                                                                |
 | -------------- | ----------------------------------------------------------------------------------- |
-| 源码（GitHub） | [wex-design/wex-design-studio](https://github.com/wex-design/wex-design-studio)     |
-| UI 组件库      | [roost-design/roost-design-ui](https://github.com/roost-design/roost-design-ui) · [文档站](https://roost-design.github.io/roost-design-ui/) |
+| 源码（GitHub） | [wise-kit/wise-kit-studio](https://github.com/wise-kit/wise-kit-studio)     |
+| UI 组件库      | [wise-kit/wise-kit-ui](https://github.com/wise-kit/wise-kit-ui) · [文档站](https://wise-kit.github.io/wise-kit-ui/) |
 | 贡献者文档     | [开发指南](./docs/DEVELOPMENT.zh-CN.md) · [English](./docs/DEVELOPMENT.md)           |
 
 ## 仓库结构

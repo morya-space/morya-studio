@@ -1,4 +1,4 @@
-import type { HealthResponse } from '@wex-design/shared'
+import type { HealthResponse } from '@wise-kit/shared'
 import type { AppBindings } from '../types/context'
 import { Hono } from 'hono'
 

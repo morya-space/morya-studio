@@ -13,7 +13,7 @@ describe('aPI documentation', () => {
     })
     expect(docs.status).toBe(200)
     expect(docs.headers.get('content-type')).toContain('text/html')
-    await expect(docs.text()).resolves.toContain('Wex Design Studio API')
+    await expect(docs.text()).resolves.toContain('Wise Kit Studio API')
   })
 })
 

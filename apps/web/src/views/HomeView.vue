@@ -12,7 +12,7 @@ import Brand from '../components/brand/Brand.vue'
       <p class="eyebrow">
         PLACEHOLDER
       </p>
-      <h1>Wex Design Studio</h1>
+      <h1>Wise Kit Studio</h1>
       <p class="lead">
         项目需求尚未确定。当前为空白占位页面，后续可在此扩展业务功能。
       </p>

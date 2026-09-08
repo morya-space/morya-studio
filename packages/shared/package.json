@@ -1,5 +1,5 @@
 {
-  "name": "@wex-design/shared",
+  "name": "@wise-kit/shared",
   "type": "module",
   "private": true,
   "exports": {

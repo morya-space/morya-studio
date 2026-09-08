@@ -2,7 +2,7 @@
 
 [English](./DEVELOPMENT.md) · [中文](./DEVELOPMENT.zh-CN.md)
 
-本仓库贡献者用的对内文档。对外说明见 [根 README（中文）](../README.zh-CN.md)。平台前端通过本地 link 使用 [Roost Design UI](https://github.com/roost-design/roost-design-ui)（见下方说明）。
+本仓库贡献者用的对内文档。对外说明见 [根 README（中文）](../README.zh-CN.md)。平台前端通过本地 link 使用 [Wise Kit UI](https://github.com/wise-kit/wise-kit-ui)（见下方说明）。
 
 ## Workspace
 
@@ -14,11 +14,11 @@
 
 ## UI 组件库
 
-将 [roost-design/roost-design-ui](https://github.com/roost-design/roost-design-ui) 克隆为本仓库的**同级目录**（例如 `../wex-design-ui`），执行 `pnpm install && pnpm build` 构建一次，再在本仓库执行 `pnpm install`。`apps/web/package.json` 通过 link 引用 `@roost-design/ui`。
+将 [wise-kit/wise-kit-ui](https://github.com/wise-kit/wise-kit-ui) 克隆为本仓库的**同级目录**（例如 `../wise-kit-ui`），执行 `pnpm install && pnpm build` 构建一次，再在本仓库执行 `pnpm install`。`apps/web/package.json` 通过 link 引用 `@wise-kit/ui`。
 
-- 文档站：https://roost-design.github.io/roost-design-ui/
-- 样式：`import '@roost-design/ui/styles.css'`
-- 插件：`createRoostDesign()`（来自 `@roost-design/ui`）
+- 文档站：https://wise-kit.github.io/wise-kit-ui/
+- 样式：`import '@wise-kit/ui/styles.css'`
+- 插件：`createWiseKit()`（来自 `@wise-kit/ui`）
 
 ## 常用命令
 

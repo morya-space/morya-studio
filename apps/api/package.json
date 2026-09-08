@@ -1,5 +1,5 @@
 {
-  "name": "@wex-design/api",
+  "name": "@wise-kit/api",
   "type": "module",
   "private": true,
   "scripts": {
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
-    "@wex-design/shared": "workspace:*",
+    "@wise-kit/shared": "workspace:*",
     "dotenv": "^17.4.2",
     "hono": "^4.13.2",
     "zod": "^4.4.3"
