@@ -7,10 +7,14 @@ import { errorHandler } from './middleware/error-handler'
 import { requestId } from './middleware/request-id'
 import { createDocsRoutes } from './routes/docs'
 import { createHealthRoutes } from './routes/health'
+import { createAuthRoutes } from './routes/auth'
+import { createAuthService } from './services/auth'
+import { createMySqlAuthStore, createMySqlPool } from './services/auth-store'
 
 export function createApp(config?: AppConfig) {
   const app = new Hono<AppBindings>()
   const resolvedConfig = config ?? getConfig()
+  const auth = createAuthService(config ? createMySqlAuthStore(createMySqlPool(resolvedConfig)) : undefined)
 
   app.use('*', requestId)
   app.use(async (c, next) => {
@@ -20,6 +24,7 @@ export function createApp(config?: AppConfig) {
   app.use('/api/*', cors({ origin: resolvedConfig.APP_ORIGIN, credentials: true }))
   app.route('/health', createHealthRoutes())
   app.route('/', createDocsRoutes())
+  app.route('/api/auth', createAuthRoutes(auth))
 
   app.get('/api/routes', (context) => {
     const routes = Array.from(

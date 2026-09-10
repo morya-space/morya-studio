@@ -1,5 +1,5 @@
 {
-  "name": "@wise-kit/api",
+  "name": "@morya-studio/api",
   "type": "module",
   "private": true,
   "scripts": {
@@ -12,9 +12,10 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
-    "@wise-kit/shared": "workspace:*",
+    "@morya-studio/shared": "workspace:*",
     "dotenv": "^17.4.2",
     "hono": "^4.13.2",
+    "mysql2": "^3.24.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {
