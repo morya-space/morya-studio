@@ -2,7 +2,7 @@
 
 [English](./DEVELOPMENT.md) · [中文](./DEVELOPMENT.zh-CN.md)
 
-Internal documentation for contributors working in this monorepo. Public overview: [root README](../README.md). The web app uses [Wise Kit UI](https://github.com/wise-kit/wise-kit-ui) via a local link (see below).
+Internal documentation for contributors working in this monorepo. Public overview: [root README](../README.md). The web app uses **morya-ui** via a local link (see below).
 
 ## Workspace
 
@@ -14,11 +14,10 @@ Internal documentation for contributors working in this monorepo. Public overvie
 
 ## UI library
 
-Clone [wise-kit/wise-kit-ui](https://github.com/wise-kit/wise-kit-ui) as a **sibling** of this repo (e.g. `../wise-kit-ui`), run `pnpm install && pnpm build` once, then `pnpm install` here. `apps/web/package.json` links `@wise-kit/ui` to that directory.
+Clone **morya-ui** as a **sibling** of this repo (e.g. `../morya-ui`), run `pnpm install && pnpm build` once, then `pnpm install` here. `apps/web/package.json` links `morya-ui` to that directory.
 
-- Docs: https://wise-kit.github.io/wise-kit-ui/
-- Styles: `import '@wise-kit/ui/styles.css'`
-- Plugin: `createWiseKit()` from `@wise-kit/ui`
+- Styles: `import 'morya-ui/styles.css'`
+- Plugin: `createMoryaUI()` from `morya-ui`
 
 ## Commands
 

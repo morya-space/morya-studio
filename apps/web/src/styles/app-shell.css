@@ -1,26 +1,31 @@
 /**
- * Wise Kit Studio — app-level semantic tokens.
- * Extends @wise-kit/ui theme; do not duplicate component token hex values here.
+ * Morya Studio — app-level semantic tokens.
+ * Extends morya-ui theme; do not duplicate component token hex values here.
  */
 :root {
-  --rd-color-ground-background: color-mix(in srgb, var(--rd-color-surface) 94%, var(--rd-color-text) 6%);
-  --rd-color-surface-elevated: var(--rd-color-surface);
-  --rd-color-surface-hover: color-mix(in srgb, var(--rd-color-primary) 6%, var(--rd-color-surface));
-  --rd-color-canvas-grid: color-mix(in srgb, var(--rd-color-border) 70%, transparent);
-  --rd-color-primary-soft: color-mix(in srgb, var(--rd-color-primary) 12%, transparent);
-  --rd-color-primary-glow: color-mix(in srgb, var(--rd-color-primary) 25%, transparent);
-  --rd-color-brand-gradient: linear-gradient(
+  --m-color-ground-background: color-mix(in srgb, var(--m-color-surface) 94%, var(--m-color-text) 6%);
+  --m-color-surface-elevated: var(--m-color-surface);
+  --m-color-surface-hover: color-mix(in srgb, var(--m-color-primary) 6%, var(--m-color-surface));
+  --m-color-canvas-grid: color-mix(in srgb, var(--m-color-border) 70%, transparent);
+  --m-color-primary-soft: color-mix(in srgb, var(--m-color-primary) 12%, transparent);
+  --m-color-primary-glow: color-mix(in srgb, var(--m-color-primary) 25%, transparent);
+  --m-color-brand-gradient: linear-gradient(
     135deg,
-    var(--rd-color-primary),
-    color-mix(in srgb, var(--rd-color-info) 55%, var(--rd-color-success))
+    var(--m-color-primary),
+    color-mix(in srgb, var(--m-color-info) 55%, var(--m-color-success))
+  );
+  --m-color-login-accent-gradient: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--m-color-danger) 80%, var(--m-color-warning)),
+    var(--m-color-danger)
   );
 }
 
 [data-theme="dark"] {
-  --rd-color-ground-background: color-mix(in srgb, var(--rd-color-surface) 62%, black);
-  --rd-color-surface-elevated: color-mix(in srgb, var(--rd-color-surface) 90%, var(--rd-color-text) 10%);
-  --rd-color-surface-hover: color-mix(in srgb, var(--rd-color-primary) 10%, var(--rd-color-surface));
-  --rd-color-canvas-grid: color-mix(in srgb, var(--rd-color-border) 55%, transparent);
+  --m-color-ground-background: color-mix(in srgb, var(--m-color-surface) 62%, black);
+  --m-color-surface-elevated: color-mix(in srgb, var(--m-color-surface) 90%, var(--m-color-text) 10%);
+  --m-color-surface-hover: color-mix(in srgb, var(--m-color-primary) 10%, var(--m-color-surface));
+  --m-color-canvas-grid: color-mix(in srgb, var(--m-color-border) 55%, transparent);
 }
 
 html,
@@ -32,9 +37,9 @@ body,
   height: 100%;
   overflow: hidden;
   box-sizing: border-box;
-  font-family: var(--rd-font-sans);
-  color: var(--rd-color-text);
-  background: var(--rd-color-ground-background);
+  font-family: var(--m-font-sans);
+  color: var(--m-color-text);
+  background: var(--m-color-ground-background);
 }
 
 *,

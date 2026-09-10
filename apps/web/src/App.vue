@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMotion, WkConfigProvider, WkMessage, WkToast, zhCN } from '@wise-kit/ui'
+import { MConfigProvider, MMessage, MToast, useMotion, zhCN } from 'morya-ui'
 import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 
@@ -11,13 +11,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <WkConfigProvider class="w-full h-full" :locale="zhCN">
+  <MConfigProvider class="w-full h-full" :locale="zhCN">
     <div class="app-shell">
       <RouterView />
     </div>
-    <WkMessage placement="top" />
-    <WkToast position="bottom-right" />
-  </WkConfigProvider>
+    <MMessage placement="top" />
+    <MToast position="bottom-right" />
+  </MConfigProvider>
 </template>
 
 <style>

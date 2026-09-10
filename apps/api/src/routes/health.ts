@@ -1,4 +1,4 @@
-import type { HealthResponse } from '@wise-kit/shared'
+import type { HealthResponse } from '@morya-studio/shared'
 import type { AppBindings } from '../types/context'
 import { Hono } from 'hono'
 

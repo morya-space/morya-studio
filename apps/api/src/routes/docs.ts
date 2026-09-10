@@ -4,9 +4,9 @@ import { Hono } from 'hono'
 const openApiDocument = {
   openapi: '3.0.3',
   info: {
-    title: 'Wise Kit Studio API',
+    title: 'Morya Studio API',
     version: '0.1.0',
-    description: 'Wise Kit Studio 后端 API 文档',
+    description: 'Morya Studio 后端 API 文档',
   },
   servers: [{ url: 'http://localhost:3000', description: '本地开发环境' }],
   paths: {
@@ -55,7 +55,7 @@ const docsHtml = `<!doctype html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Wise Kit Studio API Docs</title>
+  <title>Morya Studio API Docs</title>
   <style>
     :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172033; background: #f5f7fb; }
     * { box-sizing: border-box; }
@@ -78,7 +78,7 @@ const docsHtml = `<!doctype html>
   </style>
 </head>
 <body>
-  <header><h1>Wise Kit Studio API</h1><p>OpenAPI 3.0.3 · 本地开发文档</p></header>
+  <header><h1>Morya Studio API</h1><p>OpenAPI 3.0.3 · 本地开发文档</p></header>
   <main><div class="toolbar"><input id="search" placeholder="搜索接口、方法或说明" aria-label="搜索接口"></div><section id="endpoints" aria-live="polite"></section></main>
   <script>
     const data = ${JSON.stringify(openApiDocument)};

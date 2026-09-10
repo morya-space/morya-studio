@@ -1,5 +1,5 @@
 {
-  "name": "@wise-kit/shared",
+  "name": "@morya-studio/shared",
   "type": "module",
   "private": true,
   "exports": {

@@ -2,7 +2,7 @@
 
 [English](./README.md) · [中文](./README.zh-CN.md)
 
-Maintainer documentation for the Wise Kit Studio monorepo. The web app uses [Wise Kit UI](https://github.com/wise-kit/wise-kit-ui) via a local link.
+Maintainer documentation for the Morya Studio monorepo. The web app uses **morya-ui** via a local link.
 
 | Document                           | Description                    |
 | ---------------------------------- | ------------------------------ |
@@ -12,4 +12,4 @@ Maintainer documentation for the Wise Kit Studio monorepo. The web app uses [Wis
 
 External:
 
-- [Wise Kit Studio README](../README.md) · [中文](../README.zh-CN.md)
+- [Morya Studio README](../README.md) · [中文](../README.zh-CN.md)

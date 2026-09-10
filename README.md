@@ -1,15 +1,14 @@
-# Wise Kit Studio
+# Morya Studio
 
 [English](./README.md) · [中文](./README.zh-CN.md)
 
-**Wise Kit Studio** is a monorepo scaffold for a visual design platform. Product requirements are not finalized yet; the repository currently ships an empty frontend page and a minimal API shell.
+**Morya Studio** is a monorepo scaffold for a visual design platform. Product requirements are not finalized yet; the repository currently ships an empty frontend page and a minimal API shell.
 
-The web app uses **[Wise Kit UI](https://github.com/wise-kit/wise-kit-ui)** via a local link to the sibling `../wise-kit-ui` checkout.
+The web app uses **morya-ui** via a local link to the sibling `../morya-ui` checkout.
 
-| Resource        | Link                                                                                    |
-| --------------- | --------------------------------------------------------------------------------------- |
-| Source (GitHub) | [wise-kit/wise-kit-studio](https://github.com/wise-kit/wise-kit-studio)         |
-| UI library      | [wise-kit/wise-kit-ui](https://github.com/wise-kit/wise-kit-ui) · [Docs](https://wise-kit.github.io/wise-kit-ui/) |
+| Resource     | Link                          |
+| ------------ | ----------------------------- |
+| UI library   | `morya-ui` (sibling checkout) |
 | Contributors    | [Development guide](./docs/DEVELOPMENT.md)                                              |
 
 ## Repository layout

@@ -2,7 +2,7 @@
 
 [English](./DEVELOPMENT.md) · [中文](./DEVELOPMENT.zh-CN.md)
 
-本仓库贡献者用的对内文档。对外说明见 [根 README（中文）](../README.zh-CN.md)。平台前端通过本地 link 使用 [Wise Kit UI](https://github.com/wise-kit/wise-kit-ui)（见下方说明）。
+本仓库贡献者用的对内文档。对外说明见 [根 README（中文）](../README.zh-CN.md)。平台前端通过本地 link 使用 **morya-ui**（见下方说明）。
 
 ## Workspace
 
@@ -14,11 +14,10 @@
 
 ## UI 组件库
 
-将 [wise-kit/wise-kit-ui](https://github.com/wise-kit/wise-kit-ui) 克隆为本仓库的**同级目录**（例如 `../wise-kit-ui`），执行 `pnpm install && pnpm build` 构建一次，再在本仓库执行 `pnpm install`。`apps/web/package.json` 通过 link 引用 `@wise-kit/ui`。
+将 **morya-ui** 克隆为本仓库的**同级目录**（例如 `../morya-ui`），执行 `pnpm install && pnpm build` 构建一次，再在本仓库执行 `pnpm install`。`apps/web/package.json` 通过 link 引用 `morya-ui`。
 
-- 文档站：https://wise-kit.github.io/wise-kit-ui/
-- 样式：`import '@wise-kit/ui/styles.css'`
-- 插件：`createWiseKit()`（来自 `@wise-kit/ui`）
+- 样式：`import 'morya-ui/styles.css'`
+- 插件：`createMoryaUI()`（来自 `morya-ui`）
 
 ## 常用命令
 

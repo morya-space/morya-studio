@@ -1,17 +1,17 @@
 <script lang="ts" setup>
-import { WkFlex } from '@wise-kit/ui'
+import { MFlex } from 'morya-ui'
 </script>
 
 <template>
-  <WkFlex class="logo-brand" align="center" gap="11px" aria-label="Wise Kit Studio">
+  <MFlex class="logo-brand" align="center" gap="11px" aria-label="Morya Studio">
     <div class="brand-mark">
-      <span>WD</span><i />
+      <span>MS</span><i />
     </div>
     <div class="brand-copy">
-      <strong>Wise Kit</strong>
+      <strong>Morya</strong>
       <span>DESIGN STUDIO</span>
     </div>
-  </WkFlex>
+  </MFlex>
 </template>
 
 <style scoped>
@@ -25,10 +25,10 @@ import { WkFlex } from '@wise-kit/ui'
   position: relative;
   display: grid;
   place-items: center;
-  border: var(--rd-border-width) solid var(--rd-color-primary);
-  border-radius: var(--rd-radius-md) var(--rd-radius-md) var(--rd-radius-md) var(--rd-radius-sm);
-  color: var(--rd-color-on-emphasis);
-  background: var(--rd-color-primary);
+  border: var(--m-border-width) solid var(--m-color-primary);
+  border-radius: var(--m-radius-md) var(--m-radius-md) var(--m-radius-md) var(--m-radius-sm);
+  color: var(--m-color-on-emphasis);
+  background: var(--m-color-primary);
   transform: rotate(-5deg);
 }
 
@@ -45,7 +45,7 @@ import { WkFlex } from '@wise-kit/ui'
   right: -3px;
   bottom: -3px;
   border-radius: 50%;
-  background: var(--rd-color-warning);
+  background: var(--m-color-warning);
 }
 
 .brand-copy {
@@ -62,6 +62,6 @@ import { WkFlex } from '@wise-kit/ui'
 .brand-copy span {
   font-size: 9px;
   letter-spacing: 0.16em;
-  color: var(--rd-color-text-muted);
+  color: var(--m-color-text-muted);
 }
 </style>
