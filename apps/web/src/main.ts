@@ -1,8 +1,11 @@
-import { createWiseKit } from '@wise-kit/ui'
+import { createMoryaUI } from 'morya-ui'
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
-import '@wise-kit/ui/styles.css'
+import { restoreSession } from './services/auth'
+import 'morya-ui/styles.css'
 import './styles/index.css'
+import 'virtual:uno.css'
 
-createApp(App).use(router).use(createWiseKit()).mount('#app')
+await restoreSession()
+createApp(App).use(router).use(createMoryaUI()).mount('#app')

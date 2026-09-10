@@ -1,20 +1,35 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import Brand from '../components/brand/Brand.vue'
+import { logout, useAuth } from '../services/auth'
+
+const router = useRouter()
+const { user } = useAuth()
+
+function handleLogout() {
+  void logout().finally(() => router.replace({ name: 'login' }))
+}
 </script>
 
 <template>
   <div class="home-shell">
     <header class="topbar">
       <Brand />
+      <div class="account-area">
+        <span class="account-name">{{ user?.name }}</span>
+        <button class="logout-button" type="button" @click="handleLogout">
+          退出登录
+        </button>
+      </div>
     </header>
 
     <main class="home-main">
       <p class="eyebrow">
-        PLACEHOLDER
+        WELCOME BACK
       </p>
-      <h1>Wise Kit Studio</h1>
+      <h1>你好，{{ user?.name }}</h1>
       <p class="lead">
-        项目需求尚未确定。当前为空白占位页面，后续可在此扩展业务功能。
+        你的 Morya Studio 工作空间已经准备好了。
       </p>
     </main>
   </div>
@@ -26,8 +41,8 @@ import Brand from '../components/brand/Brand.vue'
   height: 100%;
   min-height: 0;
   flex-direction: column;
-  color: var(--rd-color-text);
-  background: var(--rd-color-ground-background, var(--rd-color-surface));
+  color: var(--m-color-text);
+  background: var(--m-color-ground-background, var(--m-color-surface));
 }
 
 .topbar {
@@ -36,7 +51,33 @@ import Brand from '../components/brand/Brand.vue'
   display: flex;
   align-items: center;
   padding: 0 clamp(20px, 5vw, 76px);
-  border-bottom: var(--rd-border-width) solid var(--rd-color-border);
+  border-bottom: var(--m-border-width) solid var(--m-color-border);
+  justify-content: space-between;
+}
+
+.account-area {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.account-name {
+  color: var(--m-color-text-muted);
+  font-size: 13px;
+}
+
+.logout-button {
+  border: 0;
+  padding: 8px 0;
+  color: var(--m-color-primary);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+
+.logout-button:hover {
+  color: var(--m-color-text);
 }
 
 .home-main {
@@ -51,7 +92,7 @@ import Brand from '../components/brand/Brand.vue'
 
 .eyebrow {
   margin: 0 0 12px;
-  color: var(--rd-color-text-muted);
+  color: var(--m-color-text-muted);
   font-size: 11px;
   letter-spacing: 0.16em;
 }
@@ -61,14 +102,13 @@ h1 {
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(36px, 5vw, 56px);
   font-weight: 400;
-  letter-spacing: -0.04em;
   line-height: 1.05;
 }
 
 .lead {
   margin: 0;
   max-width: 520px;
-  color: var(--rd-color-text-muted);
+  color: var(--m-color-text-muted);
   font-size: 15px;
   line-height: 1.7;
 }
