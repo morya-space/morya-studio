@@ -133,7 +133,7 @@ async function handleSubmit() {
 
 .auth-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+  grid-template-columns: 1fr 520px;
   min-height: 100vh;
 }
 
@@ -187,7 +187,7 @@ async function handleSubmit() {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  width: min(100%, 520px);
+  width: 100%;
   min-height: 100vh;
   padding: clamp(32px, 7vw, 96px);
   background: var(--m-color-surface);

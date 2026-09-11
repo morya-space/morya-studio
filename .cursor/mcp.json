@@ -9,8 +9,8 @@
       "args": ["-y", "@primevue/mcp"]
     },
     "morya-ui": {
-      "command": "node",
-      "args": ["../morya-ui/packages/ui-mcp/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "@morya-ui/mcp"]
     }
   }
 }

@@ -73,8 +73,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       morya-ui:
-        specifier: ^0.1.1
-        version: 0.1.1(vue@3.5.41(typescript@5.9.3))
+        specifier: ^0.2.1
+        version: 0.2.1(vue@3.5.41(typescript@5.9.3))
       vue:
         specifier: ^3.5.41
         version: 3.5.41(typescript@5.9.3)
@@ -2505,8 +2505,8 @@ packages:
   module-replacements@3.3.0:
     resolution: {integrity: sha512-AVZL23uePazQOZlb/QMGwxsUa1oWA62Cfe6ApPzgasUoF4cdCWAiRPVq4KkaQzXbIDAlpLhLG61Jx8Lju4wjTg==}
 
-  morya-ui@0.1.1:
-    resolution: {integrity: sha512-O8qRJzwEcK7Y7L47kM0p05yn4fkt2GtjhvPgh/RsBRZxY79izBu1DpqnaqN40nFML5RH8Y1sQLnq19TElKu+cw==}
+  morya-ui@0.2.1:
+    resolution: {integrity: sha512-QbYs7yKBwGrii4REs2xGgj+0+fHTiGmCL1XYyXqVQzTbLfIeYuqYwrZ3APoTMx3KnFSBxGB/pgu+C3nf3fNBIg==}
     engines: {node: '>=20.19.0'}
     peerDependencies:
       vue: ^3.3.0
@@ -5893,7 +5893,7 @@ snapshots:
 
   module-replacements@3.3.0: {}
 
-  morya-ui@0.1.1(vue@3.5.41(typescript@5.9.3)):
+  morya-ui@0.2.1(vue@3.5.41(typescript@5.9.3)):
     dependencies:
       vue: 3.5.41(typescript@5.9.3)
 
