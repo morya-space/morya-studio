@@ -6,9 +6,17 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: () => import('../views/HomeView.vue'),
+      name: 'layout',
+      redirect: { name: 'dashboard' },
+      component: () => import('../layouts/Layout.vue'),
       meta: { requiresAuth: true },
+      children: [
+        {
+          path: 'dashboard',
+          name: 'dashboard',
+          component: () => import('../views/dashboard/Dashboard.vue')
+        }
+      ]
     },
     {
       path: '/login',
