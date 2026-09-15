@@ -13,7 +13,12 @@ describe('authentication routes', () => {
 
     expect(register.status).toBe(200)
     await expect(register.json()).resolves.toMatchObject({
-      user: { name: 'Ada', email: 'ada@example.com' },
+      user: {
+        name: 'Ada',
+        email: 'ada@example.com',
+        status: 'active',
+        roles: [expect.objectContaining({ name: '访客' })],
+      },
     })
 
     const me = await app.request('/api/auth/me', { headers: { cookie } })

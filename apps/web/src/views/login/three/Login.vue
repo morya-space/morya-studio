@@ -73,8 +73,8 @@ async function handleSubmit() {
       await login(email, form.password)
     }
 
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
-    await router.replace(redirect)
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : undefined
+    await router.replace(redirect && redirect !== '/' ? redirect : { name: 'home' })
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '操作失败，请稍后再试'
   } finally {

@@ -6,11 +6,11 @@ Internal documentation for contributors working in this monorepo. Public overvie
 
 ## Workspace
 
-| Path              | Role                                       |
-| ----------------- | ------------------------------------------ |
-| `apps/web`        | Platform web app (`http://localhost:5181`) |
+| Path              | Role                                            |
+| ----------------- | ----------------------------------------------- |
+| `apps/web`        | Platform web app (`http://localhost:5181`)      |
 | `apps/api`        | Hono + TypeScript API (`http://localhost:3000`) |
-| `packages/shared` | Shared types                               |
+| `packages/shared` | Shared types                                    |
 
 ## UI library
 
@@ -39,6 +39,8 @@ pnpm build
 ## Environment
 
 Copy `apps/api/.env.example` to `apps/api/.env` if you need to override defaults. Do not commit `.env`.
+
+An empty store seeds system roles (super admin / editor / viewer). An empty user table creates `admin@morya.local` / `admin123` with every permission. Public registration gets the viewer role. Unit tests call `createApp()` (in-memory store); do not pass config or the app will connect to MySQL.
 
 ## Related docs
 

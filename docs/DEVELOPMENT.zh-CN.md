@@ -38,7 +38,9 @@ pnpm build
 
 ## 环境变量
 
-如需覆盖默认值，复制 `apps/api/.env.example` 为 `.env`；不要提交 `.env`。
+如需覆盖默认值，复制 `apps/api/.env.example` 为 `apps/api/.env`；不要提交 `.env`。
+
+首次启动空库时会种子系统角色（超级管理员 / 编辑者 / 访客）。用户表为空时自动创建超级管理员 `admin@morya.local` / `admin123`，并授予全部权限。公开注册账号默认获得访客角色。单元测试调用 `createApp()`（内存存储），不要传入配置以免连上 MySQL。
 
 ## 相关文档
 

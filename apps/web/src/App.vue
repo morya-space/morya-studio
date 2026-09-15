@@ -11,7 +11,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <MConfigProvider class="w-full h-full" :locale="zhCN">
+  <MConfigProvider class="app-config" :locale="zhCN">
     <div class="app-shell">
       <RouterView />
     </div>
@@ -21,10 +21,14 @@ onMounted(() => {
 </template>
 
 <style>
+.m-config-provider.app-config,
 .app-shell {
   height: 100%;
   min-height: 0;
   width: 100%;
+}
+
+.app-shell {
   overflow: hidden;
 }
 </style>

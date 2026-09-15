@@ -5,26 +5,35 @@ import { cors } from 'hono/cors'
 import { getConfig } from './config/env'
 import { errorHandler } from './middleware/error-handler'
 import { requestId } from './middleware/request-id'
+import { createAuthRoutes } from './routes/auth'
 import { createDocsRoutes } from './routes/docs'
 import { createHealthRoutes } from './routes/health'
-import { createAuthRoutes } from './routes/auth'
-import { createAuthService } from './services/auth'
-import { createMySqlAuthStore, createMySqlPool } from './services/auth-store'
+import { createPermissionRoutes } from './routes/permissions'
+import { createRoleRoutes } from './routes/roles'
+import { createUserRoutes } from './routes/users'
+import { createIdentityService } from './services/identity'
+import { createMySqlIdentityStore, createMySqlPool } from './services/identity-store'
 
-export function createApp(config?: AppConfig) {
+export function createStudio(config?: AppConfig) {
   const app = new Hono<AppBindings>()
   const resolvedConfig = config ?? getConfig()
-  const auth = createAuthService(config ? createMySqlAuthStore(createMySqlPool(resolvedConfig)) : undefined)
+  const identity = createIdentityService(
+    config ? createMySqlIdentityStore(createMySqlPool(resolvedConfig)) : undefined,
+  )
 
   app.use('*', requestId)
   app.use(async (c, next) => {
     c.set('config', resolvedConfig)
+    c.set('identity', identity)
     await next()
   })
   app.use('/api/*', cors({ origin: resolvedConfig.APP_ORIGIN, credentials: true }))
   app.route('/health', createHealthRoutes())
   app.route('/', createDocsRoutes())
-  app.route('/api/auth', createAuthRoutes(auth))
+  app.route('/api/auth', createAuthRoutes())
+  app.route('/api/users', createUserRoutes())
+  app.route('/api/roles', createRoleRoutes())
+  app.route('/api/permissions', createPermissionRoutes())
 
   app.get('/api/routes', (context) => {
     const routes = Array.from(
@@ -41,5 +50,9 @@ export function createApp(config?: AppConfig) {
 
   app.onError(errorHandler)
 
-  return app
+  return { app, identity }
+}
+
+export function createApp(config?: AppConfig) {
+  return createStudio(config).app
 }
