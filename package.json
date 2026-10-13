@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "check:colors": "node scripts/check-raw-colors.mjs"
+    "check:colors": "node scripts/check-raw-colors.mjs",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest"
   },
   "dependencies": {
     "echarts": "^6.1.0",
@@ -21,12 +23,15 @@
     "@types/echarts": "^5.0.0",
     "@types/node": "^24.13.3",
     "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/test-utils": "^2.5.1",
     "@vue/tsconfig": "^0.9.1",
     "fast-glob": "^3.3.3",
+    "jsdom": "^30.1.2",
     "typescript": "~6.0.2",
     "unocss": "^66.11.0",
     "vite": "^8.3.0",
     "vite-plugin-svg-icons": "^2.0.1",
+    "vitest": "^5.0.4",
     "vue-tsc": "^3.3.11"
   }
 }
