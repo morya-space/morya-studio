@@ -4,6 +4,9 @@ import LoginView from '../views/LoginView.vue'
 import PlaceholderView from '../views/PlaceholderView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import RendererDemoView from '../views/RendererDemoView.vue'
+import PageListView from '../views/PageListView.vue'
+import EditorView from '../views/EditorView.vue'
+import PreviewView from '../views/PreviewView.vue'
 import { navItems } from '../navigation'
 import { useSession } from '../composables/useSession'
 
@@ -35,6 +38,26 @@ const router = createRouter({
       path: '/demo/renderer',
       name: 'renderer-demo',
       component: RendererDemoView,
+    },
+    {
+      path: '/pages',
+      name: 'page-list',
+      component: PageListView,
+    },
+    {
+      path: '/editor',
+      name: 'editor-new',
+      component: EditorView,
+    },
+    {
+      path: '/editor/:id',
+      name: 'editor',
+      component: EditorView,
+    },
+    {
+      path: '/preview/:id',
+      name: 'preview',
+      component: PreviewView,
     },
     ...placeholderRoutes,
     {
