@@ -1,0 +1,185 @@
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { MButton, MConfigProvider, MForm, MFormItem, MInput, MInputPassword, MSpace, message } from 'morya-ui'
+import BrandMark from '../components/common/BrandMark.vue'
+import LocaleSwitch from '../components/common/LocaleSwitch.vue'
+import { studioAccount, useSession } from '../composables/useSession'
+
+const route = useRoute()
+const router = useRouter()
+const { login } = useSession()
+const { t } = useI18n()
+
+const submitting = ref(false)
+const formError = ref('')
+const model = reactive({ email: studioAccount.email, password: studioAccount.password })
+
+function safeRedirect(value: unknown) {
+  if (typeof value !== 'string') return '/'
+  if (!value.startsWith('/') || value.startsWith('//')) return '/'
+  return value
+}
+
+function onForgot() {
+  message.info(t('login.forgotNotReady'))
+}
+
+async function onSubmit(payload: { valid: boolean }) {
+  formError.value = ''
+  if (!payload.valid || !model.email.trim() || !model.password) {
+    formError.value = t('login.errorEmpty')
+    return
+  }
+  submitting.value = true
+  try {
+    if (!login(model.email, model.password)) {
+      formError.value = t('login.errorMismatch')
+      return
+    }
+    message.success(t('login.signedIn'))
+    await router.push(safeRedirect(route.query.redirect))
+  } finally {
+    submitting.value = false
+  }
+}
+</script>
+
+<template>
+  <MConfigProvider input-variant="filled">
+    <div class="login-shell">
+      <aside class="login-brand" aria-label="Morya Studio">
+        <BrandMark :size="52" inverse />
+        <p class="login-brand__mark">{{ t('login.brandMark') }}</p>
+        <h1 class="login-brand__title">{{ t('login.greeting') }}</h1>
+        <p class="login-brand__lead">{{ t('login.brandLead') }}</p>
+      </aside>
+      <main class="login-main">
+        <div class="login-panel">
+          <div class="login-panel__top">
+            <LocaleSwitch />
+          </div>
+          <header class="login-panel__header">
+            <h2>{{ t('login.title') }}</h2>
+            <p>{{ t('login.subtitle') }}</p>
+          </header>
+          <p v-if="formError" class="login-alert" role="alert">{{ formError }}</p>
+          <MForm :model="model" @submit="onSubmit">
+            <MFormItem :label="t('login.email')" name="email" required>
+              <MInput v-model="model.email" type="email" autocomplete="username" fluid />
+            </MFormItem>
+            <MFormItem :label="t('login.password')" name="password" required>
+              <MInputPassword v-model="model.password" fluid />
+            </MFormItem>
+            <MSpace class="login-actions" alignment="center">
+              <MButton html-type="submit" type="primary" :loading="submitting">{{ t('login.submit') }}</MButton>
+              <MButton html-type="button" type="text" @click="onForgot">{{ t('login.forgot') }}</MButton>
+            </MSpace>
+          </MForm>
+          <p class="login-hint">{{ t('login.demoHint', { email: studioAccount.email, password: studioAccount.password }) }}</p>
+        </div>
+      </main>
+    </div>
+  </MConfigProvider>
+</template>
+
+<style scoped>
+.login-shell {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.95fr) minmax(20rem, 1.05fr);
+  min-height: 100vh;
+  background: var(--m-color-page-bg);
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--m-space-4);
+  padding: clamp(2rem, 6vw, 4.5rem);
+  background: linear-gradient(135deg, var(--m-color-primary) 0%, var(--m-color-accent-blue) 100%);
+  color: var(--m-color-surface);
+}
+
+.login-brand__mark {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--m-color-surface) 78%, transparent);
+}
+
+.login-brand__title {
+  margin: 0;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--m-color-surface);
+}
+
+.login-brand__lead {
+  margin: 0;
+  max-width: 28rem;
+  color: color-mix(in srgb, var(--m-color-surface) 80%, transparent);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.login-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--m-space-6);
+}
+
+.login-panel {
+  width: min(100%, 24rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-4);
+  background: var(--m-color-surface);
+  border-radius: var(--m-radius-lg);
+  padding: 28px;
+  box-shadow: var(--m-shadow-card);
+}
+
+.login-panel__top {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.login-panel__header h2 {
+  margin: 0 0 4px;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--m-color-text);
+}
+
+.login-panel__header p,
+.login-hint {
+  margin: 0;
+  color: var(--m-color-text-muted);
+  font-size: 14px;
+}
+
+.login-alert {
+  margin: 0;
+  color: var(--m-color-danger);
+  font-size: 14px;
+}
+
+.login-actions {
+  margin-top: var(--m-space-2);
+}
+
+@media (max-width: 720px) {
+  .login-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .login-brand {
+    min-height: 16rem;
+  }
+}
+</style>

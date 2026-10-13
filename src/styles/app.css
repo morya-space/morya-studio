@@ -1,0 +1,71 @@
+/**
+ * Morya Studio 应用样式
+ * 基于 morya-ui token，主题覆盖匹配 demos/home2.png
+ */
+
+:root {
+  /* 品牌色 — home2.png 紫蓝渐变 */
+  --m-color-primary: #7C6AEF;
+  --m-color-primary-hover: #6B5AE0;
+  --m-color-primary-active: #5A49CF;
+
+  /* 页面背景 */
+  --m-color-page-bg: #F4F5FA;
+
+  /* 圆角 */
+  --m-radius-lg: 20px;
+  --m-radius-md: 12px;
+  --m-radius-sm: 8px;
+
+  /* 阴影 */
+  --m-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --m-shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  /* 辅助色 */
+  --m-color-accent-blue: #5B8DEF;
+  --m-color-accent-orange: #F59E0B;
+  --m-color-accent-pink: #EC4899;
+}
+
+/* 基础重置 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--m-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--m-color-page-bg);
+  color: var(--m-color-text);
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--m-color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--m-color-text-muted);
+}

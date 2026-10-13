@@ -658,8 +658,10 @@ This file is the **offline** mirror for agents without MCP.
 
 **Recipe · props**
 
-- gap / align / justify 按需（或等价 class/prop）
-- 筛选行、工具栏内组优先 Flex
+- size / gap 控制间距（gap 是 size 的别名，优先用 size）
+- align 控制交叉轴对齐（start / center / end / baseline / stretch）
+- justify 控制主轴分布（start / center / end / between / around / evenly）
+- wrap 允许折行；筛选行、工具栏内组优先 Flex
 - 不要用 Flex 代替 PageContent 的页面 padding
 
 **Anti-patterns**
@@ -680,13 +682,16 @@ This file is the **offline** mirror for agents without MCP.
 
 **Recipe · props**
 
-- 包裹 MButton 组
-- 行内操作常用 size="small" text 按钮
-- Dialog #footer 内可用 Space + justify-content:flex-end
+- size 控制间距；默认 wrap 折行
+- align 交叉轴对齐（同 Flex）；没有 justify 语义
+- vertical 垂直堆叠控件组
+- 包裹 MButton 组；行内操作常用 size="small" text 按钮
+- Dialog #footer 内可用 Space + style justify-content:flex-end
 
 **Anti-patterns**
 
 - 标题与主按钮两端对齐只用 Space → PageToolbar / Flex justify
+- 需要精确对齐控制仍用 Space → Flex
 
 
 ### Grid
@@ -1636,3 +1641,1550 @@ This file is the **offline** mirror for agents without MCP.
 **Anti-patterns**
 
 - 无 target 的全局危险确认 → ConfirmDialog
+
+
+---
+
+## `button-icon-choice` — 按钮图标放在哪里
+
+> 按钮需要带图标时，是用 icon prop、#icon 插槽，还是纯图标按钮？
+
+### icon prop
+
+**When**
+
+- 标准图标与文字按钮
+- 图标来自 morya-ui 内置图标名
+
+**Avoid when**
+
+- 需要自定义 SVG / 组件图标
+- loading 时要换不同图标
+
+**Recipe · props**
+
+- icon="plus" 传内置图标名
+- iconPlacement="end" 图标放文字右侧
+- 图标随按钮 size 自动缩放
+- loading 时自动替换为转圈
+
+**Anti-patterns**
+
+- 手动 <MIcon /> 放默认插槽 → icon prop
+- 图标和文字间距手写 margin → 交给组件
+
+
+### #icon slot
+
+**When**
+
+- 自定义 SVG / 组件图标
+- loading 时要用 #loadingicon 换不同图标
+
+**Avoid when**
+
+- 标准内置图标名即可满足
+
+**Recipe · props**
+
+- #icon 放任意 VNode（自定义 SVG / 组件）
+- #loadingicon 自定义 loading 态图标
+- 图标仍随按钮 size 缩放，对齐由组件保证
+
+**Anti-patterns**
+
+- #icon 和默认插槽混放导致间距错乱 → 只用一个
+
+
+### iconOnly
+
+**When**
+
+- 工具栏 / 卡片头部等空间紧张处
+- 图标含义对用户足够明确（如 删除/编辑/关闭）
+
+**Avoid when**
+
+- 用户可能不认识图标含义
+- 表单提交等需要明确文字的操作
+
+**Recipe · props**
+
+- iconOnly + icon="…" 或 #icon
+- 必须配 ariaLabel（无视觉文字，屏幕阅读器依赖）
+- shape="circle" 圆形图标按钮
+- 仍可用 loading 切换转圈
+
+**Anti-patterns**
+
+- iconOnly 把图标放默认插槽 → icon prop 或 #icon
+- iconOnly 不写 ariaLabel → 必填
+- 含义不明确的图标硬用 iconOnly → 加文字
+
+
+---
+
+## `input-addon-choice` — 输入框前后缀如何选择
+
+> 输入框需要带图标、文字前缀或多个控件合并时，用 MIconField 还是 MInputGroup？
+
+### MIconField
+
+**When**
+
+- 输入框内左/右侧放一个图标（搜索、清除提示等）
+
+**Avoid when**
+
+- 需要文字前缀 / 后缀
+- 需要合并多个控件（输入框 + 按钮）
+
+**Recipe · props**
+
+- iconPosition="left"（默认）或 "right"
+- #icon 插槽放 MIcon 或任意图标
+- 默认插槽放 MInput / MTextarea 等控件
+- 图标随控件主题对齐，无需手写定位
+
+**Recipe · slots**
+
+- #icon 图标内容
+- 默认插槽：输入控件
+
+**Anti-patterns**
+
+- 手写 absolute 定位图标 → MIconField
+- 文字前缀用 MIconField → MInputGroup + MInputGroupAddon
+
+
+### MInputGroup
+
+**When**
+
+- 输入框需要文字前缀 / 后缀（如 https://、$、单位）
+- 输入框 + 按钮 / 下拉合并成一个整体
+
+**Avoid when**
+
+- 只是输入框内放一个图标
+
+**Recipe · props**
+
+- MInputGroup 包裹 MInput + MInputGroupAddon
+- MInputGroupAddon 放文字前缀 / 后缀
+- 可混合 MButton 作为后置操作
+
+**Anti-patterns**
+
+- 输入框内单图标用 MInputGroup → MIconField
+- 手写 flex 拼输入框和按钮 → MInputGroup
+
+
+---
+
+## `toggle-input-choice` — 开关、复选框、滑块、标签输入如何选择
+
+> 这个输入是立即生效的设置、表单提交时的勾选、范围调节，还是自由标签输入？
+
+### MSwitch
+
+**When**
+
+- 设置项立即生效，不需要点保存
+- 只有开 / 关两种状态
+
+**Avoid when**
+
+- 表单提交时才确认的勾选协议
+- 需要从多个选项中选
+
+**Recipe · props**
+
+- v-model 布尔值
+- loading 显示转圈并阻止切换
+- checkedText / uncheckedText 自定义状态文案
+- label 或外部 MFormItem 提供可访问名称
+
+**Anti-patterns**
+
+- 协议确认用 MSwitch → MCheckbox
+- 多选需求用多个 MSwitch → MCheckboxGroup / MSelect
+
+
+### MCheckbox
+
+**When**
+
+- 表单提交时才生效的勾选（协议、批量选择）
+- 需要从固定选项中选多个
+
+**Avoid when**
+
+- 设置项需要立即生效
+
+**Recipe · props**
+
+- MCheckboxGroup v-model 数组包多个 MCheckbox
+- 单个勾选用 MCheckbox v-model 布尔值
+- 与 MFormItem 一起用，提交时校验
+
+**Anti-patterns**
+
+- 立即生效设置用 MCheckbox → MSwitch
+
+
+### MSlider
+
+**When**
+
+- 范围调节（音量、价格区间、阈值）
+- 视觉化比例比精确数值更重要
+
+**Avoid when**
+
+- 需要精确输入数值
+- 选项是离散枚举
+
+**Recipe · props**
+
+- v-model 数值或 range 数值数组
+- min / max / step 控制范围
+- marks 显示刻度标签
+- tooltip 拖拽时显示当前值
+
+**Anti-patterns**
+
+- 精确数值输入用 MSlider → MInputNumber
+- 离散枚举选择用 MSlider → MSelect / MSelectButton
+
+
+### MInputTags
+
+**When**
+
+- 自由输入并回车生成标签（关键词、邮箱列表）
+- 标签内容不受固定选项约束
+
+**Avoid when**
+
+- 只能从预定义选项中选
+- 单个值输入
+
+**Recipe · props**
+
+- v-model 字符串数组
+- separator 支持逗号等额外分隔符
+- max 限制标签数量
+- addOnBlur 失焦时自动添加
+
+**Anti-patterns**
+
+- 固定选项多选用 MInputTags → MSelect mode="multiple"
+- 允许创建新选项但要从建议中选 → MSelect mode="tags"
+
+
+---
+
+## `status-display-choice` — 头像、图片、标签、状态如何选择
+
+> 这是用户头像、可预览图片、分类标签、可移除实体，还是行内业务状态？
+
+### MAvatar
+
+**When**
+
+- 展示单个用户 / 实体头像
+- 图片加载失败需要回退到首字母或图标
+
+**Avoid when**
+
+- 需要展示多个用户堆叠
+- 需要点击预览大图
+
+**Recipe · props**
+
+- image 头像图片 URL，优先于 icon 和 label
+- label 回退首字母；icon 回退内置图标
+- shape="circle"（默认）或 "square"
+- size 可选 xlarge 用于个人资料页
+
+**Anti-patterns**
+
+- 多用户堆叠用多个 MAvatar → MAvatarGroup
+- 手写 img 圆形头像 → MAvatar
+
+
+### MAvatarGroup
+
+**When**
+
+- 多个用户头像堆叠展示
+- 超出数量需要 +N 计数
+
+**Avoid when**
+
+- 单个用户头像
+
+**Recipe · props**
+
+- 包裹多个 MAvatar
+- max 控制最多显示几个，超出显示 +N
+- size 统一控制组内头像尺寸
+
+**Anti-patterns**
+
+- 单个头像用 MAvatarGroup → MAvatar
+
+
+### MImage
+
+**When**
+
+- 需要点击预览大图
+- 需要懒加载或 fit 控制
+
+**Avoid when**
+
+- 纯装饰背景图
+- 不需要预览的普通图片
+
+**Recipe · props**
+
+- preview 默认开启，点击放大
+- previewSrc 可指定不同于 src 的大图
+- fit 控制 object-fit（cover / contain / fill…）
+- width / height 显式设置避免布局抖动
+
+**Anti-patterns**
+
+- 需要预览却手写 img → MImage
+- 用户头像用 MImage → MAvatar
+
+
+### MTag
+
+**When**
+
+- 分类、筛选结果或可关闭标签
+- 需要比 Status 更像芯片的表面
+
+**Avoid when**
+
+- 只是一行里的轻量状态
+- 带图片且代表一个可移除实体
+
+**Recipe · props**
+
+- value 或默认插槽文案
+- type 语义色；closable + @close
+- checkable + v-model:checked 可选中切换
+- icon 加内置图标；rounded 圆角
+
+**Recipe · events**
+
+- @close 关闭标签
+
+**Anti-patterns**
+
+- 行内启用/停用状态用 MTag → MStatus
+- 可移除实体（带头像）用 MTag → MChip
+
+
+---
+
+## `nav-pattern-choice` — 页面内导航模式如何选择
+
+> 这是长页面锚点跳转、滚动固定、内容切换、分步流程，还是层级路径？
+
+### MAnchor
+
+**When**
+
+- 长页面右侧锚点导航
+- 内容区块有明确标题层级
+
+**Avoid when**
+
+- 页面很短不需要跳转
+- 需要切换显示不同内容面板
+
+**Recipe · props**
+
+- items 手动指定，或根据标题自动生成
+- 与 MLayoutContent 长页面配合
+- 点击平滑滚动到对应区块
+
+**Anti-patterns**
+
+- 内容切换用 MAnchor → MTabs
+
+
+### MAffix
+
+**When**
+
+- 元素滚动到某位置后固定（操作栏吸顶、侧栏跟随）
+
+**Avoid when**
+
+- 页面顶部固定导航（那是 MLayoutHeader）
+- 元素不需要随滚动变化
+
+**Recipe · props**
+
+- offsetTop 距离顶部多少时固定
+- target 指定滚动容器（默认 window）
+- z-index 按需调整避免被遮挡
+
+**Anti-patterns**
+
+- 页面顶部导航用 MAffix → MLayoutHeader
+
+
+### MTabs
+
+**When**
+
+- 多个内容面板切换显示
+- 标签数量适中且需要全部可见
+
+**Avoid when**
+
+- 选项是表单值（用 MSelectButton）
+- 需要手风琴折叠展开
+
+**Recipe · props**
+
+- v-model:value 控制当前标签
+- closable 可关闭标签（配合 @tab-close）
+- 与路由结合时用 to 或 @tab-click 导航
+
+**Anti-patterns**
+
+- 表单选项用 MTabs → MSelectButton
+- 折叠面板用 MTabs → MAccordion
+
+
+### MStepper
+
+**When**
+
+- 多步表单 / 流程向导
+- 步骤有前后依赖关系
+
+**Avoid when**
+
+- 内容无顺序关系的切换
+- 步骤极少（2 步用对话框即可）
+
+**Recipe · props**
+
+- v-model 当前步骤索引
+- steps 配置每步标题 / 描述 / 图标
+- 线性模式禁止跳步；非线性允许点击跳转
+- 与 MForm 分步校验配合
+
+**Anti-patterns**
+
+- 无顺序内容切换用 MStepper → MTabs
+- 两步确认也用 MStepper → 对话框
+
+
+### MBreadcrumb
+
+**When**
+
+- 展示当前页面在层级中的路径
+- 层级较深（≥3 层）的后台系统
+
+**Avoid when**
+
+- 层级很浅（首页 → 列表页）
+- 移动端空间紧张
+
+**Recipe · props**
+
+- model 数组配置路径项（label + to / icon）
+- 首页项常用 home 图标
+- 与 MPageHeader #breadcrumb 插槽配合
+
+**Anti-patterns**
+
+- 层级浅硬套 MBreadcrumb → 去掉
+- 用 MBreadcrumb 代替 Tabs 切换 → MTabs
+
+
+---
+
+## `date-input-choice` — 日期时间输入如何选择
+
+> 这是表单内选择日期 / 时间，还是整月视图展示与选择？
+
+### MDatePicker
+
+**When**
+
+- 表单内选择日期 / 日期时间 / 月份 / 年份
+- 需要范围选择或快捷选项
+
+**Avoid when**
+
+- 需要整月视图展示事件
+- 只需要选时间
+
+**Recipe · props**
+
+- type="date"（默认）/ daterange / datetime / datetimerange / month / year
+- shortcuts 预设快捷选项（今天 / 最近 7 天…）
+- needConfirm 用于 datetime / time，避免误触提交
+- mask 允许手动输入并自动补分隔符
+- fluid 表单内占满宽度
+
+**Recipe · events**
+
+- @change 提交选择（含 clear 以外的所有变更）
+
+**Anti-patterns**
+
+- 整月事件展示用 MDatePicker → MCalendar
+- 只需要时间用 MDatePicker type="time" → MTimePicker
+
+
+### MTimePicker
+
+**When**
+
+- 只需要选择时间（小时 / 分钟 / 秒）
+
+**Avoid when**
+
+- 需要同时选日期
+- 需要整月视图
+
+**Recipe · props**
+
+- 复用 MDatePicker props，type 固定为 time
+- showSeconds 显示秒
+- needConfirm 推荐开启，避免滚动误触
+
+**Anti-patterns**
+
+- 日期时间混合用 MTimePicker → MDatePicker type="datetime"
+
+
+### MCalendar
+
+**When**
+
+- 整月视图展示事件 / 排班 / 标记日期
+- 需要自定义日期单元格内容
+
+**Avoid when**
+
+- 表单内紧凑选择日期
+- 空间紧张
+
+**Recipe · props**
+
+- v-model 选中日期；mode="month"（默认）或 "year"
+- fullscreen 占满容器；false 为紧凑卡片
+- #dateCell 自定义日期内容（事件标记）
+- disabledDate / validRange 限制可选范围
+
+**Recipe · slots**
+
+- #dateCell 自定义日期单元格
+- #header 自定义头部（含年月切换）
+
+**Recipe · events**
+
+- @panelChange 面板切换（年月 / 模式）
+
+**Anti-patterns**
+
+- 表单内紧凑日期选择用 MCalendar → MDatePicker
+- 简单日期选择也写 #dateCell → 先用默认
+
+
+---
+
+## `media-display-choice` — 轮播、画廊、时间线、评分如何选择
+
+> 这是内容轮播、图片画廊、事件流，还是用户评分？
+
+### MCarousel
+
+**When**
+
+- 内容轮播（不限图片，卡片 / 图文混排）
+- 需要箭头 / 指示点 / 自动播放
+
+**Avoid when**
+
+- 纯图片展示且需要缩略图
+- 垂直滚动列表
+
+**Recipe · props**
+
+- MCarouselItem 包每页内容
+- effect="slide"（默认）/ fade / card
+- autoplay + interval 自动播放；loop 循环
+- slidesPerView 一次显示多页
+
+**Recipe · events**
+
+- @update:currentIndex 切换页码
+
+**Anti-patterns**
+
+- 纯图片展示用 MCarousel → MGallery
+- 垂直滚动列表用 MCarousel direction="vertical" → 普通滚动
+
+
+### MGallery
+
+**When**
+
+- 纯图片展示（产品图 / 相册）
+- 需要缩略图 + 点击预览
+
+**Avoid when**
+
+- 内容不限于图片
+- 需要自动播放
+
+**Recipe · props**
+
+- images 传 URL 数组或 { src, alt, caption } 对象
+- 点击主图进入预览模式
+- 缩略图条自动同步
+
+**Anti-patterns**
+
+- 图文混排轮播用 MGallery → MCarousel
+- 单张图片预览用 MGallery → MImage
+
+
+### MTimeline
+
+**When**
+
+- 事件流 / 物流跟踪 / 操作记录
+- 需要按时间顺序展示状态变化
+
+**Avoid when**
+
+- 静态步骤流程（用 MStepper）
+- 无时间属性的普通列表
+
+**Recipe · props**
+
+- value 数组配置事件（status / content / date / icon / type）
+- layout="vertical"（默认）或 "horizontal"
+- align="alternate" 左右交错
+- pending 显示待续节点
+
+**Recipe · slots**
+
+- #content 自定义事件内容
+
+**Anti-patterns**
+
+- 静态步骤流程用 MTimeline → MStepper
+- 普通列表用 MTimeline → MList
+
+
+### MRating
+
+**When**
+
+- 用户评分（商品 / 服务 / 内容）
+- 需要半星或只读展示
+
+**Avoid when**
+
+- 需要输入精确数值
+- 需要调节设置
+
+**Recipe · props**
+
+- v-model 数值；stars 总星数
+- allowHalf 允许 0.5 步进
+- readonly 只读展示（评价列表）
+- allowClear 允许清除评分
+
+**Anti-patterns**
+
+- 精确数值输入用 MRating → MInputNumber
+- 设置调节用 MRating → MSlider / MKnob
+
+
+---
+
+## `specialized-display-choice` — 水印、二维码、引导、终端如何选择
+
+> 这是防泄露水印、扫码链接、新功能引导，还是日志终端？
+
+### MWatermark
+
+**When**
+
+- 页面或区域需要防泄露水印
+- 内部系统敏感信息保护
+
+**Avoid when**
+
+- 公开营销页面
+- 水印会遮挡核心内容
+
+**Recipe · props**
+
+- content 单行或多行文字水印
+- image 图片水印（logo）
+- rotate / gap / offset 控制布局
+- inherit 子元素继承水印
+
+**Anti-patterns**
+
+- 公开页面加水印 → 去掉
+- 核心内容被水印遮挡 → 调低透明度或局部使用
+
+
+### MQRCode
+
+**When**
+
+- 生成扫码链接 / 分享码
+- 需要展示二维码状态（过期 / 加载）
+
+**Avoid when**
+
+- 需要扫码识别（那是摄像头功能）
+- 需要条形码
+
+**Recipe · props**
+
+- value 二维码内容（URL / 文本）
+- errorLevel="H" 高容错（允许 logo 覆盖）
+- icon 中心 logo
+- status="expired" 过期遮罩 + @refresh 刷新
+
+**Anti-patterns**
+
+- 需要条形码用 MQRCode → 专用条形码库
+
+
+### MTour
+
+**When**
+
+- 新功能引导 / 首次使用教学
+- 需要高亮页面元素并解释
+
+**Avoid when**
+
+- 常规帮助文档
+- 用户已熟悉的功能
+
+**Recipe · props**
+
+- steps 配置每步标题 / 描述 / target 元素
+- v-model:open 控制显示；v-model:current 当前步骤
+- mask 遮罩背景突出聚焦元素
+- @finish 完成引导；@close 提前关闭
+
+**Recipe · events**
+
+- @change 步骤切换
+
+**Anti-patterns**
+
+- 常规帮助用 MTour → 文档 / Tooltip
+- 步骤过多（>5）→ 拆分或改为文档
+
+
+### MTerminal
+
+**When**
+
+- 实时日志展示 / 命令执行回显
+- 需要模拟终端外观
+
+**Avoid when**
+
+- 普通代码展示（用 CodePreview / pre）
+- 需要复杂文本编辑
+
+**Recipe · props**
+
+- content 日志文本；支持 ANSI 颜色
+- readonly 纯展示；非 readonly 可输入命令
+- @command 执行自定义命令处理
+
+**Anti-patterns**
+
+- 普通代码块用 MTerminal → pre / code
+- 复杂编辑用 MTerminal → Monaco / CodeMirror
+
+
+---
+
+## `form-label-choice` — 表单标签样式如何选择
+
+> 这是传统上方标签、紧凑浮动标签，还是无边框内嵌标签？
+
+### MFloatLabel
+
+**When**
+
+- 空间紧张的现代表单
+- 需要输入框 label 浮动效果
+
+**Avoid when**
+
+- 传统后台表单（label 在上更清晰）
+- 需要帮助文本或错误提示常驻
+
+**Recipe · props**
+
+- label 属性设置浮动标签文案
+- 包裹 MInput / MSelect 等控件
+- 与 variant="filled" / "outlined" 控件配合
+
+**Anti-patterns**
+
+- 传统后台表单硬套 MFloatLabel → 默认 label
+- 需要常驻帮助文本仍用 MFloatLabel → 传统 label + helpText
+
+
+### MInplace
+
+**When**
+
+- 详情页点击编辑单字段
+- 浏览模式为主，编辑是例外
+
+**Avoid when**
+
+- 表单页批量编辑
+- 需要校验的必填字段
+
+**Recipe · props**
+
+- display 插槽展示态；content 插槽编辑态
+- closable 编辑态显示关闭按钮
+- @open / @close 控制编辑态切换
+
+**Anti-patterns**
+
+- 表单页批量编辑用 MInplace → MForm
+- 必填校验字段用 MInplace → MFormItem + errorMessage
+
+
+---
+
+## `specialized-input-choice` — 旋钮、进度输入如何选择
+
+> 这是仪表盘式调节、多段进度展示，还是确定进度条？
+
+### MKnob
+
+**When**
+
+- 仪表盘式数值调节（阈值 / 音量 / 参数）
+- 视觉化调节比精确输入更重要
+
+**Avoid when**
+
+- 需要精确数值输入
+- 范围选择
+
+**Recipe · props**
+
+- v-model 数值；min / max / step 控制范围
+- diameter 控制表盘大小
+- valueTemplate="{value}%" 自定义显示格式
+- ariaLabel 提供可访问名称
+
+**Anti-patterns**
+
+- 精确数值输入用 MKnob → MInputNumber
+- 范围选择用 MKnob → MSlider
+
+
+### MMeterGroup
+
+**When**
+
+- 多段进度展示（磁盘分区 / 预算分配）
+- 需要图例 + 百分比标签
+
+**Avoid when**
+
+- 单段进度
+- 需要交互调节
+
+**Recipe · props**
+
+- value 数组配置各段（label / value / color）
+- labelTemplate 自定义标签格式
+- max 总量（默认 100）
+
+**Anti-patterns**
+
+- 单段进度用 MMeterGroup → MProgressBar
+- 交互调节用 MMeterGroup → MSlider / MKnob
+
+
+---
+
+## `segmented-tabs-choice` — 选项切换控件如何选择
+
+> 这是视图/状态切换、内容面板切换，还是表单内选择？
+
+### MSegmented
+
+**When**
+
+- 选项少（≤5）且需要全部露出
+- 切换视图 / 状态 / 密度等即时生效
+
+**Avoid when**
+
+- 选项很多需要滚动
+- 需要表单提交值
+
+**Recipe · props**
+
+- v-model 绑定当前值
+- options 传字符串数组或 { label, value, icon }
+- block 占满容器宽度
+- shape="round" 圆角药丸外观
+
+**Anti-patterns**
+
+- 内容面板切换用 MSegmented → MTabs
+- 表单提交值用 MSegmented → MSelectButton
+
+
+### MTabs
+
+**When**
+
+- 多个内容面板切换显示
+- 标签数量多时可滚动
+
+**Avoid when**
+
+- 选项是表单值
+- 需要手风琴折叠
+
+**Recipe · props**
+
+- v-model:value 控制当前标签
+- closable 可关闭标签
+- 与路由结合用 to 或 @tab-click
+
+**Anti-patterns**
+
+- 表单选项用 MTabs → MSelectButton
+- 视图状态切换用 MTabs → MSegmented
+
+
+### MSelectButton
+
+**When**
+
+- 表单内选择（需要提交值）
+- 选项少且需要全部露出
+
+**Avoid when**
+
+- 选项超过约 5 个
+- 切换视图状态
+
+**Recipe · props**
+
+- v-model 绑定选中值
+- :options 选项数组
+- 与 MFormItem 一起用，参与表单校验
+
+**Anti-patterns**
+
+- >5 个选项仍用 MSelectButton → MSelect
+- 视图切换用 MSelectButton → MSegmented
+
+
+---
+
+## `split-action-choice` — 主操作+更多操作如何选择
+
+> 这是一个主操作配更多操作，还是完全自定义的按钮组？
+
+### MSplitButton
+
+**When**
+
+- 一个高频主操作 + 低频相关操作
+- 如 保存 / 保存并继续 / 另存为
+
+**Avoid when**
+
+- 操作之间无主次关系
+- 需要完全自定义触发器
+
+**Recipe · props**
+
+- label 主操作文案；model 下拉操作项
+- 主按钮 @click 执行主操作
+- @command 执行下拉操作
+- color / variant / size 与 MButton 一致
+
+**Recipe · events**
+
+- @command(item) 下拉操作回调
+
+**Anti-patterns**
+
+- 无主次关系操作用 MSplitButton → MButtonGroup / MSpace
+- 完全自定义触发器用 MSplitButton → MButton + MDropdown
+
+
+### MButton + MDropdown
+
+**When**
+
+- 需要完全自定义按钮组布局
+- 触发器不是标准按钮（图标 / 头像）
+
+**Avoid when**
+
+- 标准主操作+更多操作模式
+
+**Recipe · props**
+
+- MButton 放主操作；MDropdown 放更多操作
+- MDropdown 触发器放默认插槽
+- 危险操作走 MConfirmDialog 确认
+
+**Anti-patterns**
+
+- 标准主操作+更多用 MButton + MDropdown → MSplitButton
+
+
+---
+
+## `detail-display-choice` — 详情数据展示如何选择
+
+> 这是键值对字段展示、行列数据比较，还是自由布局列表？
+
+### MDescriptions
+
+**When**
+
+- 详情页字段展示（label: value 键值对）
+- 需要 bordered / column 控制布局
+
+**Avoid when**
+
+- 需要排序 / 筛选 / 行操作
+- 需要自由布局列表项
+
+**Recipe · props**
+
+- MDescriptions 包裹 MDescriptionsItem
+- column 每行列数；bordered 显示边框
+- layout="horizontal"（默认）或 "vertical"
+- #label 自定义标签内容
+
+**Recipe · slots**
+
+- MDescriptionsItem label 字段名；span 跨列
+
+**Anti-patterns**
+
+- 需要排序筛选用 MDescriptions → MTable
+- 自由布局列表用 MDescriptions → MList
+
+
+### MTable
+
+**When**
+
+- 行列数据比较多条记录
+- 需要排序 / 筛选 / 行操作
+
+**Avoid when**
+
+- 单条记录的字段展示
+- 自由布局列表项
+
+**Recipe · props**
+
+- columns + rows 定义数据结构
+- #cell-{key} 自定义单元格
+- paginator 分页；selectionMode 行选择
+
+**Anti-patterns**
+
+- 单条记录字段展示用 MTable → MDescriptions
+
+
+### MList
+
+**When**
+
+- 自由布局列表项（头像+标题+描述+操作）
+- 需要分页或 grid 布局
+
+**Avoid when**
+
+- 键值对字段展示
+- 需要排序筛选
+
+**Recipe · props**
+
+- MList 包裹 MListItem；MListItemMeta 带头像标题描述
+- pagination 配置分页；grid 配置网格布局
+- #actions 列表项操作按钮
+
+**Recipe · slots**
+
+- MListItem #actions 操作区
+
+**Anti-patterns**
+
+- 键值对字段展示用 MList → MDescriptions
+
+
+---
+
+## `collapse-container-choice` — 折叠容器如何选择
+
+> 这是多面板手风琴、单个可折叠区块，还是独立视觉表面？
+
+### MAccordion
+
+**When**
+
+- 多面板手风琴展开/收起
+- FAQ / 设置分组 / 多段内容
+
+**Avoid when**
+
+- 单个可折叠区块
+- 不需要折叠的独立表面
+
+**Recipe · props**
+
+- tabs 配置每面板（value / header / disabled）
+- v-model 控制展开的面板 key（数组 multiple）
+- multiple 允许多面板同时展开
+
+**Recipe · events**
+
+- @update:modelValue 展开状态变化
+
+**Anti-patterns**
+
+- 单个折叠区块用 MAccordion → MPanel
+- 不需要折叠用 MAccordion → MCard
+
+
+### MPanel
+
+**When**
+
+- 单个可折叠区块
+- 需要标题 + 展开/收起
+
+**Avoid when**
+
+- 多面板手风琴
+- 独立视觉表面
+
+**Recipe · props**
+
+- header 面板标题
+- toggleable 开启折叠功能
+- v-model:collapsed 控制折叠状态
+
+**Recipe · events**
+
+- @update:collapsed 折叠状态变化
+
+**Anti-patterns**
+
+- 多面板手风琴用 MPanel → MAccordion
+- 独立表面用 MPanel → MCard
+
+
+### MCard
+
+**When**
+
+- 独立视觉表面（标题 / 内容 / 页脚）
+- 不一定需要折叠
+
+**Avoid when**
+
+- 多面板手风琴
+- 单个可折叠区块
+
+**Recipe · props**
+
+- title / subtitle 头部信息
+- shadow="always" / "hover" / "never" 控制阴影
+- #header / #footer / #title 自定义区域
+
+**Anti-patterns**
+
+- 需要折叠用 MCard → MPanel / MAccordion
+
+
+---
+
+## `sort-transfer-choice` — 排序和穿梭选择如何实现
+
+> 这是单列表拖拽排序、左右穿梭选择，还是纯展示列表？
+
+### MOrderList
+
+**When**
+
+- 单列表拖拽排序
+- 需要上下移动 / 置顶 / 置底
+
+**Avoid when**
+
+- 左右穿梭选择
+- 纯展示列表
+
+**Recipe · props**
+
+- v-model 绑定排序后的数组
+- dragdrop 开启拖拽（默认 true）
+- v-model:selection 控制选中项
+- @reorder 排序后回调（含 from / to / item）
+
+**Recipe · events**
+
+- @reorder 排序完成回调
+
+**Anti-patterns**
+
+- 左右穿梭用 MOrderList → MPickList
+- 纯展示用 MOrderList → MList
+
+
+### MPickList
+
+**When**
+
+- 左右穿梭选择（从源到目标）
+- 如 权限分配 / 字段选择
+
+**Avoid when**
+
+- 单列表排序
+- 纯展示列表
+
+**Recipe · props**
+
+- v-model:source 源列表；v-model:target 目标列表
+- sourceHeader / targetHeader 列表标题
+- dataKey 唯一标识字段
+
+**Anti-patterns**
+
+- 单列表排序用 MPickList → MOrderList
+- 纯展示用 MPickList → MList
+
+
+### MList
+
+**When**
+
+- 纯展示列表（不支持排序 / 穿梭）
+- 需要分页或 grid 布局
+
+**Avoid when**
+
+- 需要排序
+- 需要穿梭选择
+
+**Recipe · props**
+
+- items / dataSource 数据数组
+- MListItem + MListItemMeta 自定义布局
+- pagination 分页；grid 网格布局
+
+**Anti-patterns**
+
+- 需要排序用 MList → MOrderList
+- 需要穿梭用 MList → MPickList
+
+
+---
+
+## `upload-mode-choice` — 文件上传模式如何选择
+
+> 这是选择即上传、拖拽+预览+进度，还是完全自定义上传？
+
+### MFileUpload mode="basic"
+
+**When**
+
+- 选择文件后立即上传
+- 不需要预览和进度展示
+
+**Avoid when**
+
+- 需要拖拽上传
+- 需要图片预览
+
+**Recipe · props**
+
+- action 上传地址；autoUpload 自动上传
+- accept 限制文件类型；maxSize 限制大小
+- @success / @error 上传结果回调
+
+**Recipe · events**
+
+- @success 上传成功
+
+**Anti-patterns**
+
+- 需要拖拽预览用 basic → mode="advanced"
+
+
+### MFileUpload mode="advanced"
+
+**When**
+
+- 拖拽上传 + 文件预览 + 进度展示
+- 图片上传需要缩略图
+
+**Avoid when**
+
+- 选择即上传的简单场景
+
+**Recipe · props**
+
+- drag 开启拖拽区域
+- listType="picture-card" 图片缩略图卡片
+- v-model:file-list 绑定文件列表
+- autoUpload=false 手动控制；submit() 触发上传
+
+**Recipe · events**
+
+- @progress 上传进度
+- @remove 移除文件
+
+**Anti-patterns**
+
+- 简单选择即上传用 advanced → mode="basic"
+- 完全自定义上传 UI 用 advanced → httpRequest 自定义
+
+
+---
+
+## `suggestion-input-choice` — 带建议的输入如何选择
+
+> 这是自由输入+下拉建议、@人/#话题提及，还是纯文本输入？
+
+### MAutoComplete
+
+**When**
+
+- 自由输入 + 下拉建议（搜索历史 / 邮箱后缀）
+- 输入值本身也有意义
+
+**Avoid when**
+
+- 只能从固定选项选
+- 需要 @人 / #话题
+
+**Recipe · props**
+
+- v-model 绑定输入值
+- suggestions 建议数组（字符串或 { label, value }）
+- @complete 输入时拉取建议（支持远程）
+- loading 建议加载中状态
+
+**Recipe · events**
+
+- @complete 输入变化时拉取建议
+
+**Anti-patterns**
+
+- 固定选项用 MAutoComplete → MSelect
+- @人 / #话题用 MAutoComplete → MMentions
+
+
+### MMentions
+
+**When**
+
+- @人 / #话题触发下拉选择
+- 社交 / 协作场景
+
+**Avoid when**
+
+- 自由输入建议
+- 纯文本输入
+
+**Recipe · props**
+
+- v-model 绑定输入值
+- options 提及选项数组
+- prefix="@" 触发字符（可数组多个）
+- split 插入后追加字符（默认空格）
+
+**Recipe · events**
+
+- @select 选中提及项
+
+**Anti-patterns**
+
+- 自由输入建议用 MMentions → MAutoComplete
+- 纯文本输入用 MMentions → MInput
+
+
+---
+
+## `number-input-choice` — 数值输入方式如何选择
+
+> 这是精确数值输入、范围调节，还是仪表盘式调节？
+
+### MInputNumber
+
+**When**
+
+- 需要精确数值输入
+- 需要 min/max/step 约束
+
+**Avoid when**
+
+- 范围调节
+- 仪表盘式调节
+
+**Recipe · props**
+
+- v-model 绑定数值
+- min / max / step 控制范围步进
+- showButtons 显示加减按钮
+- precision 小数位数
+
+**Anti-patterns**
+
+- 范围调节用 MInputNumber → MSlider
+- 仪表盘调节用 MInputNumber → MKnob
+
+
+### MSlider
+
+**When**
+
+- 范围调节（音量 / 价格区间 / 阈值）
+- 视觉化比例比精确数值更重要
+
+**Avoid when**
+
+- 需要精确输入
+- 单点精确值
+
+**Recipe · props**
+
+- v-model 数值或 range 数组
+- min / max / step 控制范围
+- marks 显示刻度标签
+- tooltip 拖拽时显示当前值
+
+**Anti-patterns**
+
+- 精确输入用 MSlider → MInputNumber
+- 仪表盘调节用 MSlider → MKnob
+
+
+### MKnob
+
+**When**
+
+- 仪表盘式数值调节（阈值 / 参数）
+- 视觉化调节比精确输入更重要
+
+**Avoid when**
+
+- 需要精确输入
+- 范围选择
+
+**Recipe · props**
+
+- v-model 绑定数值
+- min / max / step 控制范围
+- diameter 控制表盘大小
+- valueTemplate="{value}%" 自定义显示
+
+**Anti-patterns**
+
+- 精确输入用 MKnob → MInputNumber
+- 范围选择用 MKnob → MSlider
+
+
+---
+
+## `large-data-choice` — 大数据量列表渲染策略
+
+> 这是万级数据虚拟滚动，还是普通数据量的直接渲染？
+
+### MVirtualScroller
+
+**When**
+
+- 万级以上数据列表
+- 需要固定 itemSize 优化渲染
+
+**Avoid when**
+
+- 数据量小（<1000）
+- 需要复杂动态高度
+
+**Recipe · props**
+
+- items 数据数组；itemSize 固定高度（px）
+- height 可视区域高度
+- buffer 上下缓冲数量（减少白屏）
+- scrollToIndex 编程滚动到指定项
+
+**Recipe · slots**
+
+- #item 自定义列表项内容
+
+**Anti-patterns**
+
+- 小数据量用 MVirtualScroller → 普通 v-for / MList
+- 动态高度列表用 MVirtualScroller → 需要固定 itemSize
+
+
+### 普通 v-for / MList
+
+**When**
+
+- 数据量小（<1000）
+- 需要复杂动态高度布局
+
+**Avoid when**
+
+- 万级以上数据
+- 性能敏感场景
+
+**Recipe · props**
+
+- MList items / dataSource 直接渲染
+- v-for 自定义模板渲染
+- 无需 itemSize 约束
+
+**Anti-patterns**
+
+- 万级数据用普通 v-for → MVirtualScroller
