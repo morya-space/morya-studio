@@ -3,6 +3,7 @@ import DashboardView from '../views/DashboardView.vue'
 import LoginView from '../views/LoginView.vue'
 import PlaceholderView from '../views/PlaceholderView.vue'
 import SettingsView from '../views/SettingsView.vue'
+import RendererDemoView from '../views/RendererDemoView.vue'
 import { navItems } from '../navigation'
 import { useSession } from '../composables/useSession'
 
@@ -29,6 +30,11 @@ const router = createRouter({
       path: '/',
       name: 'dashboard',
       component: DashboardView,
+    },
+    {
+      path: '/demo/renderer',
+      name: 'renderer-demo',
+      component: RendererDemoView,
     },
     ...placeholderRoutes,
     {
