@@ -1,0 +1,151 @@
+# Visual craft (distilled)
+
+Portable craft for morya-ui consumers. Inspired by **Frontend Design**, **Impeccable**, and **UI-UX-Pro-Max** — without requiring those skills. Still honor the morya-ui contract. **No named style-preset catalog.**
+
+## When to lean on craft
+
+| Lane | Craft intensity | Default pass |
+| --- | --- | --- |
+| Ops CRUD | Low — clarity, density, golden structure | **Always** run § Ops polish |
+| Account / Flow / System | Medium — trust, hierarchy, one calm brand cue | **Always** run § Shell recipes when relevant |
+| Express | High — design plan + one signature risk | **Always** run design plan + anti-defaults |
+
+**Style is not fixed to the golden look.** Resolve direction first ([style-presets.md](style-presets.md)): **user reference / description → prompt cues → ask when uncertain**.
+
+## Companion bridge (distilled)
+
+Run companions **after** structure + contract + **resolved style direction**, then remediate with `M*` + `--m-*`.
+
+### Subject first (Frontend Design)
+
+- Name **subject**, **audience**, **single job** before visual choices.
+- Personality from the subject’s world — not a generic “SaaS aurora” board.
+- **One signature** per surface; everything else quieter.
+- Signature = type / layout / product artifact / motion — **not** a default gradient wash.
+
+### Mode (Impeccable)
+
+| Mode | Use when | Craft budget |
+| --- | --- | --- |
+| **Operate** | Ops lists, forms, settings | Clarity, density, resolved direction; no marketing hero |
+| **Persuade** | Landing, pricing | Design plan + signature; controls still `M*` |
+| **Read** | Docs / long detail | Typeset + measure |
+| **Experience** | Gallery / showcase | Artifact leads |
+
+### Design plan (Express & branded Account)
+
+1. **Color** — roles mapped to `--m-*`. Companions may suggest hex — **map** to tokens.
+2. **Type** — Ops stick to theme fonts.
+3. **Layout** — one sentence + hierarchy.
+4. **Signature** — one memorable element that fits the **user’s** direction.
+
+If the plan looks like any-SaaS (purple wash, cream serif, neon glow) and the user did not ask for that, revise. **User reference / words win.**
+
+## Ops polish (baseline)
+
+1. **One primary** filled button in the main viewport.
+2. **Sider icons** on every top-level `MMenu` item.
+3. **Status** → `MStatus`; `MTag` for categories/filters only.
+4. **Row actions** — text / outlined / small.
+5. **Filter rhythm** — search ~`14rem`, selects ~`10–12rem`.
+6. **Empty** — `MEmpty` with domain next-step copy + **one** primary in `#extra`. Prefer `illustration` (`no-content` / `no-result` / `no-message` / `network-error` / …) over a generic icon when the empty is a main region.
+7. **No extra cards** around filters/table “for polish”.
+8. **Domain copy**.
+9. **Density** — follow user cues (`compact` / spacious); don’t invent a second scale.
+10. **Quiet chrome** — no marketing heroes / glow unless the user asked.
+11. **Page alerts** — persistent in-page notices → `MAlert` (not Toast, not `<MMessage>` as markup).
+12. **Detail fields** — attribute grids → `MDescriptions` / `MDescriptionsItem` (not hand-rolled `<dl>`).
+13. **Plain metrics** — numbers without trend chrome → `MStatistic` inside a section/card; KPI strips with trend → keep `MPageStat`.
+14. **Activity / feed rows** — same-shape items without dense columns → `MList` + `MListItem` / `MListItemMeta`; tabular compare → `MTable`.
+
+Ops beauty = alignment + semantics + restraint + the right `M*` for the job, **not** gradients.
+
+## Component craft map (post-library upgrades)
+
+| Need | Prefer | Avoid |
+| --- | --- | --- |
+| Admin KPI with trend | `MPageStat` (`dashboard-kpi-grid`) | Custom stat CSS |
+| Inline / detail number | `MStatistic` | Fake big numbers with raw `<p>` |
+| Detail attribute grid | `MDescriptions` (`detail-descriptions`) | Hand-written `<dl>` / nested tables |
+| Lightweight feed | `MList` + Meta | Forcing a full `MTable` for 3–5 narrative rows |
+| Empty main region | `MEmpty` + `illustration` | “暂无数据” + bare icon only |
+| In-page notice | `MAlert` | Toast for sticky page tips |
+| Auth / form inputs | `MConfigProvider input-variant="filled"` (or filled controls) | Mixing outlined/filled without reason |
+| Brand seed | `themeConfig` / project theme CSS | Page-level hex |
+| Express headings | `MTypography` / `MTitle` / `MParagraph` where it helps hierarchy | Second font kit |
+| First-run teach | `MTour` after empty/onboarding | Modal essay walls |
+
+## Anti-default looks
+
+**Default is restrained.** Unless the user **asks** or a reference **shows** them, do not use:
+
+1. Cream + serif + terracotta  
+2. Acid-green / dual neon on black  
+3. Broadsheet newspaper columns  
+4. Purple aurora / mesh washes (even via `color-mix`)  
+5. Glow stacks, pill clouds, emoji decoration  
+6. Unsolicited glass, neumorph on dense tables, full-page gradients  
+7. Stacked radial + linear “atmosphere” brand panels  
+
+**Token gradients are not a free pass** without user/reference ask.  
+If a **reference shows** frosted cards or a light tinted wash, a tokenized approximation is following the reference — see [reference-visual-map.md](reference-visual-map.md). Do not invent richer atmosphere beyond the reference.
+
+## Shell recipes (token-only — defaults are flat)
+
+Prefer MCP **`get_style_shells`** for pasteable CSS (`account-split`, `account-centered`, `express-hero`, `flow-empty-frame`, `flow-result-hero`, `ops-quiet`). Below are the same defaults for offline use.
+
+### Account — split brand panel (`account-split`)
+
+```css
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--m-space-4);
+  padding: clamp(2rem, 6vw, 4.5rem);
+  background: color-mix(in srgb, var(--m-color-primary) 12%, var(--m-color-surface));
+  border-right: 1px solid var(--m-color-border);
+}
+```
+
+### Express — hero plane (`express-hero`)
+
+```css
+.landing-hero__visual {
+  margin-top: var(--m-space-5);
+  padding: var(--m-space-5);
+  border: 1px solid var(--m-color-border);
+  border-radius: var(--m-radius-md);
+  background: color-mix(in srgb, var(--m-color-primary) 8%, var(--m-color-surface));
+}
+```
+
+### Flow — empty shell (`flow-empty-frame`)
+
+Prefer stock `MEmpty`. Optional light frame:
+
+```css
+.empty-state-shell {
+  border: 1px dashed var(--m-color-border);
+  border-radius: var(--m-radius-md);
+  background: var(--m-color-surface);
+  padding: var(--m-space-6);
+}
+```
+
+If the user asked for glass / gradient / dark-tech, implement **that** request with `--m-*` — do not escalate into AI mesh. Brand palette changes belong in theme overrides (project `DESIGN.md` § 主题覆盖).
+
+## Polish modes (Impeccable-inspired)
+
+| Mode | Intent |
+| --- | --- |
+| `quieter` | Strip competing accents **and unearned gradients/glow/glass** |
+| `bolder` | Strengthen one signature **inside** the user’s direction — do not invent a new face |
+| `polish` / `clarify` / `typeset` / `adapt` / `delight` | As named |
+
+## Quality floor
+
+- Responsive, focus visible, keyboard to primary actions  
+- No raw hex theme colors  
+- Craft pass done; MCP `validate_usage` / `validate_page` when available  
+- No unearned AI atmosphere  

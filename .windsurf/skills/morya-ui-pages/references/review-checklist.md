@@ -1,0 +1,90 @@
+# Review checklist
+
+## Contract (all lanes)
+
+- [ ] Only `morya-ui` UI primitives (no second kit)
+- [ ] `morya-ui/styles.css` imported at app/demo entry
+- [ ] `MConfigProvider` at a sensible root when building a full screen
+- [ ] No invented props / events / slots (MCP `get_component` / docs checked)
+- [ ] MCP **`validate_usage`** run; no unresolved `unknown-prop` / `unknown-event`
+- [ ] Select vs Dropdown roles correct
+- [ ] `MTable` uses `rows` (not `data`)
+- [ ] One-line results use `message`; summary+detail / async use `toast`
+- [ ] Destructive flows use confirm dialogs
+- [ ] MCP **`validate_page`** run when generating a full page — **`ok` must be true** (contract); craft suggestions addressed or consciously waived
+- [ ] Same **`brief`** as `map_reference` / `recommend_page` passed into `validate_page` when a reference exists
+
+## Craft (all lanes — default pass)
+
+- [ ] Style direction resolved: followed user reference/description, or inferred from clear cues, or **asked** when uncertain — never silent invent; **no preset catalog**
+- [ ] Reply states `style:` (and `signature:` when a richer reference exists)
+- [ ] Default stays restrained when there is **no** reference (quiet flat / Ops polish)
+- [ ] Lane craft from [visual-craft.md](visual-craft.md) applied
+- [ ] If companions ran: still only `M*` + `--m-*`; no second kit ([optional-companions.md](optional-companions.md))
+- [ ] At most one primary filled button in the main viewport
+- [ ] Copy is domain-real; empty / error states say what to do next
+- [ ] Numeric table columns use `align: 'end'` + tabular nums when amounts/counts are shown
+- [ ] No **unearned** AI-default look clusters (reference-visible atmosphere is allowed — see [style-presets.md](style-presets.md))
+- [ ] Motion (if any) is 1–3 intentional moments and follows `useMotion` / `data-m-motion`
+- [ ] Brand differences via theme `--m-*` overrides, not page hex
+
+## Reference fidelity (required when user gave a visual reference)
+
+Structure:
+
+- [ ] `map_reference` / `recommend_page({ brief })` mapping blocks present (filters/table/status/… as required)
+- [ ] Same `brief` passed to `validate_page`; contract `ok`
+
+Visual (use [reference-visual-map.md](reference-visual-map.md)):
+
+- [ ] Atmosphere present in the reference was approximated (not stripped “to be safe”)
+- [ ] Decorations **absent** from the reference were not invented
+- [ ] Primary CTA role/shape roughly matches (e.g. round primary when the reference shows a pill)
+- [ ] Density and status treatment roughly match
+- [ ] Delivery notes include `style:` / `signature:` / `approx:` when needed
+
+Screenshot self-check:
+
+1. Start the consumer app locally (Vite / Nuxt preview).
+2. Open the generated route; capture the first viewport.
+3. Compare to the reference on the bullets above — not pixel-perfect chrome or custom illustration art.
+4. If blocks or required atmosphere are missing, fix via snippets/tokens + re-run `validate_page({ brief })`.
+
+If Playwright / `webapp-testing` is available in the project, prefer an automated screenshot; otherwise a manual capture is enough.
+## Ops
+
+- [ ] Matches [page-layouts.md](page-layouts.md) block order (snippets composed; golden page optional check only)
+- [ ] `MPage*` used instead of ad-hoc page chrome where applicable
+- [ ] List height: if this is a full-viewport main data list, consider `MPageContent fill` + `MTable fill`; if embedded/short/document-scroll, skip `fill`
+- [ ] Tables not wrapped in decorative `MCard` solely for borders
+- [ ] Filters / toolbar / form actions follow documented patterns
+- [ ] Sider `MMenu` items have icons; status cells use `MStatus` (not decorative `MTag`)
+- [ ] Empty table uses `MEmpty` (or equivalent next-action empty)
+- [ ] No marketing hero bolted onto a CRUD shell
+
+## Account / Flow / System
+
+- [ ] Primary CTA obvious; escape paths present (back / home / support)
+- [ ] Auth errors stay on the form via field `errorMessage` or a token `role="alert"`
+- [ ] Empty uses `MEmpty`; success / HTTP errors use `MResult`
+- [ ] Brand / empty atmosphere follows the **resolved direction** (defaults are flat token shells)
+- [ ] Wizard steps: one job each; actions labeled clearly
+
+## Express
+
+- [ ] Short design plan existed (subject, palette roles, signature)
+- [ ] First viewport has one job
+- [ ] Controls still `M*`; colors/spacing map to `--m-*`
+- [ ] Avoided AI-default looks unless user/reference requested them
+- [ ] Motion limited and gated by `useMotion` / `data-m-motion`
+
+## Tokens, a11y, responsive
+
+- [ ] No raw hex/rgb theme colors in new CSS (control widths OK inline; `color-mix` from `--m-*` OK)
+- [ ] Labels visible; icon buttons have `aria-label`
+- [ ] Usable on a narrow viewport
+- [ ] Focus visible on interactive elements
+
+When MCP is available, contract checks (**`validate_usage`** / **`validate_page`**) are required.
+
+If the project has `pnpm check:colors`, suggest running it after edits.

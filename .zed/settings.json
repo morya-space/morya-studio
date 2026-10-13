@@ -1,51 +1,11 @@
 {
   "context_servers": {
-    "icons-mcp": {
-      "command": {
-        "path": "npx",
-        "args": ["-y", "icons-mcp"],
-      },
-    },
-    "primevue": {
-      "command": "npx",
-      "args": ["-y", "@primevue/mcp"],
-    },
     "morya-ui": {
-      "command": "node",
-      "args": ["../morya-ui/packages/ui-mcp/dist/index.js"]
+      "command": "npx",
+      "args": [
+        "-y",
+        "@morya-ui/mcp@latest"
+      ]
     }
-  },
-  "format_on_save": "on",
-  "languages": {
-    "Vue.js": {
-      "formatter": [
-        {
-          "code_action": "source.fixAll.eslint",
-        },
-      ],
-      "code_actions_on_format": {
-        "source.fixAll.eslint": true,
-      },
-    },
-    "JavaScript": {
-      "formatter": [
-        {
-          "code_action": "source.fixAll.eslint",
-        },
-      ],
-      "code_actions_on_format": {
-        "source.fixAll.eslint": true,
-      },
-    },
-    "TypeScript": {
-      "formatter": [
-        {
-          "code_action": "source.fixAll.eslint",
-        },
-      ],
-      "code_actions_on_format": {
-        "source.fixAll.eslint": true,
-      },
-    },
-  },
+  }
 }

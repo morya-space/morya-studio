@@ -1,30 +1,24 @@
 {
   "name": "morya-studio",
   "private": true,
-  "packageManager": "pnpm@10.12.4",
-  "engines": {
-    "node": ">=20.19.0"
-  },
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "prepare": "husky",
-    "dev": "node apps/api/scripts/free-port.mjs 3000 && node apps/api/scripts/free-port.mjs 5181 && pnpm --parallel --filter @morya-studio/api --filter @morya-studio/web run dev",
-    "dev:web": "pnpm --filter @morya-studio/web dev",
-    "dev:api": "pnpm --filter @morya-studio/api dev",
-    "build": "pnpm --filter @morya-studio/shared --filter @morya-studio/web --filter @morya-studio/api run build",
-    "test": "pnpm -r test",
-    "test:coverage": "pnpm -r test:coverage",
-    "typecheck": "pnpm -r typecheck",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "check:colors": "node scripts/check-raw-colors.mjs apps/web/src"
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "check:colors": "node scripts/check-raw-colors.mjs"
+  },
+  "dependencies": {
+    "morya-ui": "^0.4.5",
+    "vue": "^3.5.42"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^9.3.0",
-    "@commitlint/cli": "^19.8.1",
-    "@commitlint/config-conventional": "^19.8.1",
-    "@types/node": "^26.2.0",
-    "eslint": "^10.9.1",
-    "husky": "^9.1.7",
-    "typescript": "^5.9.3"
+    "@types/node": "^24.13.3",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/tsconfig": "^0.9.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0",
+    "vue-tsc": "^3.3.11"
   }
 }

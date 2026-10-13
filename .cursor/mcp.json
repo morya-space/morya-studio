@@ -1,16 +1,11 @@
 {
   "mcpServers": {
-    "icons": {
-      "command": "npx",
-      "args": ["-y", "icons-mcp"]
-    },
-    "primevue": {
-      "command": "npx",
-      "args": ["-y", "@primevue/mcp"]
-    },
     "morya-ui": {
       "command": "npx",
-      "args": ["-y", "@morya-ui/mcp"]
+      "args": [
+        "-y",
+        "@morya-ui/mcp@latest"
+      ]
     }
   }
 }

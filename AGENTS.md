@@ -1,62 +1,33 @@
-# AGENTS
+# AGENTS — morya-ui consumer projects
 
-## 项目级 Skills
+Editor-neutral always-on guidance for AI agents (Cursor, VS Code, Zed, Copilot, CLI agents). Cursor also ships `.cursor/rules/`; this file is the portable subset.
 
-本项目所有 Agent Skill 统一存放在：
+## Before generating or editing UI
 
-```text
-.agents/skills/<skill-name>/SKILL.md
-```
+1. Read project-root `DESIGN.md` (design contract).
+2. Prefer skill `.agents/skills/morya-ui-pages/` for page workflows.
+3. Prefer MCP `@morya-ui/mcp` for real Props / Events / snippets — never invent API names.
 
-完整的技能清单、作用、适用场景、加载步骤和新增规范见 [`SKILLS.md`](./SKILLS.md)。
+## Hard rules
 
-## 使用规则
+1. Use only `morya-ui` `M*` components; global styles `morya-ui/styles.css`.
+2. Colors / spacing / radius use `--m-*` CSS variables — no raw hex/rgb in business UI (see `scripts/check-raw-colors.mjs`). Brand differences go in theme overrides (`--m-color-primary`, fonts) per `DESIGN.md`.
+3. **Composition-first**: with a reference, call MCP `map_reference` (or `recommend_page` + `brief` / `density`) → assemble via `get_page_snippet` from `mapping` / `suggestedSnippets`. Use `page-layouts` as a block-order checklist. `get_golden_page` is optional. Account / Express / Flow signature shells: `get_style_shells`.
+4. **Visual direction**: clear reference/description → follow the user; clear cues → infer and say so; unsure → ask (`get_style_direction`). There is no named style-preset table. Do not apply default AI gradients / neon / glass without asking.
+5. Form options: `MSelect` / `MTreeSelect`. Action menus: `MDropdown`.
+6. Uncertain API → docs site or MCP `get_component`. After writing code: `validate_usage`.
+7. Root: `MConfigProvider`. Admin chrome: `MLayout` family.
+8. Feedback defaults to `message` API; use `toast` only for summary + detail or async feel; persistent form errors use field `errorMessage` or token-styled `role="alert"`.
+9. Before delivery: `validate_page` with the same `brief` — contract `ok` must be true; craft suggestions may be waived with a short note.
 
-1. 开始任务前，先判断是否存在匹配的 skill。
-2. 除非用户明确指定要使用某个 skill，否则不要自行加载或调用 skill。
-3. 如果你判断某个任务可能需要 skill，先向用户确认是否使用，再继续。
-4. 支持自动发现的 Agent 会从 `.agents/skills` 读取项目级 skill。
-5. 需要手动加载时，使用：
+## MCP / skills map
 
-   ```bash
-   npx openskills read <skill-name>
-   ```
+| Need | Use |
+| --- | --- |
+| Page plan + snippets | `recommend_page`, `map_reference`, `get_page_snippet` |
+| Signature shells | `get_style_shells` |
+| Tokens / composition | `get_design_rules` |
+| Component pick | `recommend_component`, `get_component`, `get_example` |
+| Offline recipes | skill `references/` under `morya-ui-pages` |
 
-   多个 skill 可以使用逗号分隔：
-
-   ```bash
-   npx openskills read frontend-design,fixing-accessibility
-   ```
-
-6. 不要重复加载当前上下文中已经加载的 skill。
-7. skill 中引用的 `references/`、`scripts/`、`assets/` 等路径，均相对于对应 skill 目录解析。
-8. 项目规则、用户明确要求和安全约束优先于 skill 中的通用建议。
-9. 新增或修改 skill 时，只允许使用 `.agents/skills`，不要再创建 `.claude/skills` 或其他项目级 skill 目录。
-
-## 常用选择
-
-- 页面视觉设计：`frontend-design`
-- Vue3 组件库：`vue3-component-library`
-- Vue3 单元测试：`vue3-unit-testing`
-- Hono 单元与路由测试：`hono-testing`
-- 现有界面只读审计：`improve-ui`
-- 无障碍：`fixing-accessibility`
-- 动画性能：`fixing-motion-performance`
-- SEO 与页面元信息：`fixing-metadata`
-- 本地 Web 测试：`webapp-testing`
-- Word：`docx`
-- PDF：`pdf`
-- Excel/CSV/TSV：`xlsx`
-- PPT/演示文稿：`pptx`
-- Claude/Anthropic API：`claude-api`
-- MCP 服务：`mcp-builder`
-- Skill 开发：`skill-creator`
-
-## 代码与验证
-
-- 修改代码前先读取相关文件和上下文。
-- 优先进行最小范围、根因导向的修改。
-- 修改后运行与变更最相关的诊断、Lint、测试或构建命令。
-- 搜索、读取或检查项目文件时，默认排除前端和后端的所有依赖包目录（包括 `node_modules`、虚拟环境、包管理缓存和 vendor 目录），除非用户明确要求检查依赖包内容。
-- 不要覆盖或回退用户未要求处理的现有改动。
-- 不要提交 Git commit，除非用户明确要求。
+Canonical skills live under `.agents/skills/` (Cursor, Zed, VS Code Copilot). Setup also mirrors them into `.claude/skills`, `.windsurf/skills`, and `.github/skills` for Claude Code / Windsurf / Copilot discovery. MCP configs: Cursor / VS Code / Zed + root `.mcp.json`. Reload MCP after `npx @morya-ui/setup ai`. Zed may require trusting the worktree before project skills load.

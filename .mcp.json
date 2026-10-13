@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "morya-ui": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@morya-ui/mcp@latest"
+      ]
+    }
+  }
+}
