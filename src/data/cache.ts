@@ -123,10 +123,29 @@ function now(): number {
 }
 
 /** 由 dataSource 配置构造稳定缓存 key */
-export function buildCacheKey(config: { id?: string; url?: string; params?: Record<string, unknown> }): string {
-  const base = config.id ?? config.url ?? 'anon'
+export function buildCacheKey(config: {
+  id?: string
+  url?: string
+  params?: Record<string, unknown>
+  staticData?: Record<string, unknown>[]
+}): string {
+  let base = config.id ?? config.url
+  if (!base) {
+    // 内联数据源（无 id/url）：用内容指纹区分，避免不同内联源撞同一个 key
+    base = config.staticData ? `inline:${fingerprint(config.staticData)}` : 'anon'
+  }
   const params = config.params ? stableStringify(config.params) : ''
   return `${base}:${params}`
+}
+
+/** 简单的稳定指纹（非加密，仅用于区分内联数据源内容） */
+function fingerprint(value: unknown): string {
+  const str = JSON.stringify(value) ?? ''
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0
+  }
+  return (hash >>> 0).toString(36)
 }
 
 /** 键排序后的稳定序列化（保证同参同 key） */
