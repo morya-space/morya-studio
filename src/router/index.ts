@@ -48,11 +48,13 @@ const router = createRouter({
       path: '/editor',
       name: 'editor-new',
       component: EditorView,
+      meta: { bare: true },
     },
     {
       path: '/editor/:id',
       name: 'editor',
       component: EditorView,
+      meta: { bare: true },
     },
     {
       path: '/preview/:id',
@@ -87,5 +89,7 @@ export default router
 declare module 'vue-router' {
   interface RouteMeta {
     public?: boolean
+    /** 沉浸式全屏（无侧栏/顶栏），如低代码编辑器 */
+    bare?: boolean
   }
 }

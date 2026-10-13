@@ -135,7 +135,7 @@ async function onTest() {
       </li>
     </ul>
 
-    <MDialog v-model:visible="dialogVisible" title="数据源配置" :style="{ width: '480px' }">
+    <MDialog v-model="dialogVisible" title="数据源配置" width="480px">
       <MForm v-if="editing" :model="editing">
         <MFormItem label="名称" required>
           <MInput v-model="editing.name" placeholder="如：订单 API" fluid />

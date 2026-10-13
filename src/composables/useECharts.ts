@@ -69,8 +69,10 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
   const chart = shallowRef<echarts.ECharts | null>(null)
 
   const palette = (): string[] => config.colors ?? getChartPalette()
-  const axisColor = () => getToken('--m-color-text-muted', '#9ca3af')
-  const splitColor = () => getToken('--m-color-split', '#f0f0f0')
+  const axisColor = () => getToken('--m-chart-axis')
+  const splitColor = () => getToken('--m-chart-split')
+  const surfaceColor = () => getToken('--m-chart-surface')
+  const textColor = () => getToken('--m-chart-text')
 
   /** 按 seriesField 把数据拆成多系列 */
   function groupBySeries(items: Row[]): Map<string, Row[]> {
@@ -170,7 +172,7 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
               value: Number(item[yField] ?? 0),
             })),
             label: { show: false },
-            itemStyle: { borderRadius: 6, borderWidth: 2, borderColor: getToken('--m-color-surface', '#fff') },
+            itemStyle: { borderRadius: 6, borderWidth: 2, borderColor: surfaceColor() },
           }],
         }
         break
@@ -245,7 +247,7 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
             axisLabel: { show: false },
             pointer: { show: false },
             title: { show: false },
-            detail: { valueAnimation: true, fontSize: 24, color: getToken('--m-color-text', '#1f2937'), formatter: '{value}' },
+            detail: { valueAnimation: true, fontSize: 24, color: textColor(), formatter: '{value}' },
             data: [{ value }],
           }],
         }

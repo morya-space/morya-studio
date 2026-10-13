@@ -5,6 +5,7 @@
  */
 
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { MButton, MInput, MTooltip, message } from 'morya-ui'
 import { useEditorStore } from '../store'
 import SvgIcon from '../../components/common/SvgIcon.vue'
@@ -12,6 +13,8 @@ import SvgIcon from '../../components/common/SvgIcon.vue'
 const emit = defineEmits<{
   (e: 'preview'): void
 }>()
+
+const router = useRouter()
 
 const store = useEditorStore()
 
@@ -33,6 +36,11 @@ async function onSave() {
 <template>
   <header class="editor-topbar">
     <div class="topbar-left">
+      <MTooltip content="返回看板列表">
+        <MButton type="text" icon-only aria-label="返回" @click="router.push('/pages')">
+          <SvgIcon name="chevron-left" :px="16" />
+        </MButton>
+      </MTooltip>
       <span class="topbar-logo">Morya</span>
       <div class="topbar-title">
         <MInput v-model="title" placeholder="看板标题" />

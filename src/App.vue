@@ -9,12 +9,13 @@ import AppHeader from './layouts/AppHeader.vue'
 const route = useRoute()
 const { locale } = useI18n()
 const isPublic = computed(() => route.meta.public === true)
+const isBare = computed(() => route.meta.bare === true)
 const moryaLocale = computed(() => locale.value === 'zh-CN' ? zhCN : enUS)
 </script>
 
 <template>
   <MConfigProvider :locale="moryaLocale">
-    <router-view v-if="isPublic" />
+    <router-view v-if="isPublic || isBare" />
     <div v-else class="app-layout">
       <AppSidebar />
       <div class="app-main">

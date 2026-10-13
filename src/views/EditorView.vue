@@ -79,9 +79,9 @@ function onPreview() {
 
     <!-- 预览：用真实 SchemaRenderer 渲染当前 Schema -->
     <MDialog
-      v-model:visible="previewVisible"
+      v-model="previewVisible"
       title="预览"
-      :style="{ width: '90vw', maxWidth: '1400px' }"
+      width="90vw"
     >
       <div class="preview-body">
         <SchemaRenderer :page="editorStore.page" />

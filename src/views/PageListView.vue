@@ -116,7 +116,7 @@ function formatTime(iso?: string): string {
       </MCard>
     </div>
 
-    <MDialog v-model:visible="importVisible" title="导入看板" :style="{ width: '520px' }">
+    <MDialog v-model="importVisible" title="导入看板" width="520px">
       <p class="import-tip">粘贴导出的看板 JSON：</p>
       <MInput
         v-model="importJson"

@@ -1,6 +1,8 @@
 /**
  * 图表调色板 token（供 ECharts 通过 getComputedStyle 读取）
  * 见 docs/DESIGN-DEV.md §12.2
+ * 说明：图表运行在 canvas，无法直接用 CSS 变量，这里统一定义，
+ *       JS 端用 getToken() 读取，避免在业务代码里写死 hex。
  */
 
 :root {
@@ -10,4 +12,10 @@
   --m-chart-4: var(--m-color-accent-pink);
   --m-chart-5: var(--m-color-success, #10b981);
   --m-chart-6: var(--m-color-text-muted);
+
+  /* 图表辅助色：坐标轴文字 / 分隔线 / 表面（饼图描边等） */
+  --m-chart-axis: var(--m-color-text-muted);
+  --m-chart-split: var(--m-color-split);
+  --m-chart-surface: var(--m-color-surface);
+  --m-chart-text: var(--m-color-text);
 }
