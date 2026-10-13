@@ -1,0 +1,13 @@
+/**
+ * 图表调色板 token（供 ECharts 通过 getComputedStyle 读取）
+ * 见 docs/DESIGN-DEV.md §12.2
+ */
+
+:root {
+  --m-chart-1: var(--m-color-primary);
+  --m-chart-2: var(--m-color-accent-blue);
+  --m-chart-3: var(--m-color-accent-orange);
+  --m-chart-4: var(--m-color-accent-pink);
+  --m-chart-5: var(--m-color-success, #10b981);
+  --m-chart-6: var(--m-color-text-muted);
+}

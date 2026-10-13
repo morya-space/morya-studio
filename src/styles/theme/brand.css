@@ -1,0 +1,16 @@
+/**
+ * 品牌 token（渐变 / Banner 阴影）
+ * 风格基准：docs/DESIGN-DEV.md §12 · demos/home2.png
+ *
+ * 本目录（theme/）在 scripts/check-raw-colors.mjs 忽略名单内，
+ * 允许写 hex 作为 token 种子值。业务组件请引用 var(--m-*)，不要直接写 hex。
+ */
+
+:root {
+  /* 品牌渐变 —— KPI Banner / CTA / 主图表高亮专用 */
+  --m-gradient-brand: linear-gradient(135deg, #7C6AEF 0%, #8B5CF6 100%);
+  --m-gradient-brand-blue: linear-gradient(135deg, #7C6AEF 0%, #5B8DEF 100%);
+
+  /* 渐变 Banner 投影（带主色染色） */
+  --m-shadow-banner: 0 8px 24px rgba(124, 106, 239, 0.25);
+}

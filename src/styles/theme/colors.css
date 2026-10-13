@@ -1,0 +1,31 @@
+/**
+ * 品牌色 / 页面级 token 种子值
+ * 主题覆盖入口 —— 见 docs/DESIGN-DEV.md §12 与根 DESIGN.md §3.1
+ *
+ * 本目录（theme/）在 check-raw-colors 忽略名单内，允许 hex 种子。
+ * 业务页面/组件一律引用 var(--m-*)，不要在此之外写 hex。
+ */
+
+:root {
+  /* 品牌色 — home2.png 紫蓝 */
+  --m-color-primary: #7C6AEF;
+  --m-color-primary-hover: #6B5AE0;
+  --m-color-primary-active: #5A49CF;
+
+  /* 页面背景 */
+  --m-color-page-bg: #F4F5FA;
+
+  /* 圆角 */
+  --m-radius-lg: 20px;
+  --m-radius-md: 12px;
+  --m-radius-sm: 8px;
+
+  /* 阴影 */
+  --m-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --m-shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  /* 辅助色 */
+  --m-color-accent-blue: #5B8DEF;
+  --m-color-accent-orange: #F59E0B;
+  --m-color-accent-pink: #EC4899;
+}
