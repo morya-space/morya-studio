@@ -1,0 +1,140 @@
+<script setup lang="ts">
+/**
+ * 模板中心（/reports）
+ * 预置看板模板，一键创建可编辑看板。
+ */
+
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { MButton, MCard, message } from 'morya-ui'
+import WorkspacePage from '../components/shell/WorkspacePage.vue'
+import SvgIcon from '../components/common/SvgIcon.vue'
+import { buildDemoPage, demoDataSources } from '../data/demoBoard'
+import { savePage, genPageId } from '../services/page'
+import { saveDataSource, getDataSource } from '../services/datasource'
+import type { PageSchema } from '../types/schema'
+import { SCHEMA_VERSION } from '../types/schema'
+
+const { t } = useI18n()
+const router = useRouter()
+
+interface Template {
+  key: string
+  title: string
+  description: string
+  icon: string
+  cardCount: number
+  build: () => PageSchema
+}
+
+const templates = computed<Template[]>(() => [
+  {
+    key: 'blank',
+    title: t('templates.blank'),
+    description: t('templates.blankDesc'),
+    icon: 'plus',
+    cardCount: 0,
+    build: () => ({
+      id: genPageId(),
+      title: t('templates.blank'),
+      layout: 'grid',
+      grid: { cols: 12, gap: 24 },
+      cards: [],
+      meta: { version: SCHEMA_VERSION, createdAt: new Date().toISOString() },
+    }),
+  },
+  {
+    key: 'sales',
+    title: '销售分析看板',
+    description: 'KPI + 趋势图 + 品类占比 + 订单表 + 热销榜，开箱即用',
+    icon: 'bar-chart',
+    cardCount: 7,
+    build: () => {
+      const p = buildDemoPage()
+      p.id = genPageId()
+      return p
+    },
+  },
+])
+
+function useTemplate(tpl: Template) {
+  const page = tpl.build()
+  // 模板依赖的数据源一并写入（若不存在）
+  for (const ds of demoDataSources) {
+    if (!getDataSource(ds.id!)) saveDataSource(ds)
+  }
+  savePage(page)
+  message.success(t('templates.used', { title: tpl.title }))
+  router.push(`/editor/${page.id}`)
+}
+</script>
+
+<template>
+  <WorkspacePage :title="t('pages.reports.title')" :summary="t('pages.reports.summary')">
+    <div class="templates__grid">
+      <MCard v-for="tpl in templates" :key="tpl.key" class="template-card" shadow="hover">
+        <div class="template-card__thumb">
+          <SvgIcon :name="tpl.icon" :px="30" />
+        </div>
+        <h4 class="template-card__title">{{ tpl.title }}</h4>
+        <p class="template-card__desc">{{ tpl.description }}</p>
+        <div class="template-card__foot">
+          <span class="template-card__count">{{ t('workbench.cardCount', { n: tpl.cardCount }) }}</span>
+          <MButton type="primary" size="small" @click="useTemplate(tpl)">{{ t('templates.use') }}</MButton>
+        </div>
+      </MCard>
+    </div>
+  </WorkspacePage>
+</template>
+
+<style scoped>
+.templates__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.template-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.template-card__thumb {
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--m-radius-md);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--m-color-primary) 12%, transparent), color-mix(in srgb, var(--m-color-accent-blue) 12%, transparent));
+  color: var(--m-color-primary);
+  margin-bottom: 8px;
+}
+
+.template-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--m-color-text);
+  margin: 0;
+}
+
+.template-card__desc {
+  font-size: 13px;
+  color: var(--m-color-text-muted);
+  margin: 0;
+  flex: 1;
+}
+
+.template-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.template-card__count {
+  font-size: 12px;
+  color: var(--m-color-text-muted);
+}
+</style>

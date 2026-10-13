@@ -1,24 +1,17 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import DashboardView from '../views/DashboardView.vue'
 import LoginView from '../views/LoginView.vue'
-import PlaceholderView from '../views/PlaceholderView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import RendererDemoView from '../views/RendererDemoView.vue'
-import PageListView from '../views/PageListView.vue'
 import EditorView from '../views/EditorView.vue'
 import PreviewView from '../views/PreviewView.vue'
-import { navItems } from '../navigation'
+import WorkbenchView from '../views/WorkbenchView.vue'
+import ComponentGalleryView from '../views/ComponentGalleryView.vue'
+import DataSourceMonitorView from '../views/DataSourceMonitorView.vue'
+import AnalyticsDemoView from '../views/AnalyticsDemoView.vue'
+import TemplateCenterView from '../views/TemplateCenterView.vue'
 import { useSession } from '../composables/useSession'
 
 const { isAuthenticated } = useSession()
-
-const placeholderRoutes = navItems
-  .filter(item => item.key !== 'dashboard' && item.key !== 'settings')
-  .map(item => ({
-    path: item.to,
-    name: item.key,
-    component: PlaceholderView,
-  }))
 
 const router = createRouter({
   history: createWebHistory(),
@@ -29,21 +22,54 @@ const router = createRouter({
       component: LoginView,
       meta: { public: true },
     },
+    // 工作台：看板管理主入口
     {
       path: '/',
       name: 'dashboard',
-      component: DashboardView,
+      component: WorkbenchView,
     },
+    // 组件库画廊
+    {
+      path: '/layers',
+      name: 'layers',
+      component: ComponentGalleryView,
+    },
+    // 数据源管理
+    {
+      path: '/monitor',
+      name: 'monitor',
+      component: DataSourceMonitorView,
+    },
+    // 示例分析看板
+    {
+      path: '/analytics',
+      name: 'analytics',
+      component: AnalyticsDemoView,
+    },
+    // 模板中心
+    {
+      path: '/reports',
+      name: 'reports',
+      component: TemplateCenterView,
+    },
+    // 设置
+    {
+      path: '/settings',
+      name: 'settings',
+      component: SettingsView,
+    },
+    // 引擎演示（保留，作开发参考）
     {
       path: '/demo/renderer',
       name: 'renderer-demo',
       component: RendererDemoView,
     },
+    // 旧路由兼容
     {
       path: '/pages',
-      name: 'page-list',
-      component: PageListView,
+      redirect: '/',
     },
+    // 低代码编辑器（全屏沉浸）
     {
       path: '/editor',
       name: 'editor-new',
@@ -60,12 +86,6 @@ const router = createRouter({
       path: '/preview/:id',
       name: 'preview',
       component: PreviewView,
-    },
-    ...placeholderRoutes,
-    {
-      path: '/settings',
-      name: 'settings',
-      component: SettingsView,
     },
   ],
 })

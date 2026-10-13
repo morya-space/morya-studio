@@ -37,7 +37,7 @@ async function onSave() {
   <header class="editor-topbar">
     <div class="topbar-left">
       <MTooltip content="返回看板列表">
-        <MButton type="text" icon-only aria-label="返回" @click="router.push('/pages')">
+        <MButton type="text" icon-only aria-label="返回" @click="router.push('/')">
           <SvgIcon name="chevron-left" :px="16" />
         </MButton>
       </MTooltip>
