@@ -125,6 +125,8 @@ export default {
     delete: 'Delete',
     deleted: 'Deleted',
     rows: '{n} rows',
+    viewData: 'View',
+    noData: 'No data',
   },
   connectors: {
     fileTab: 'File Upload',

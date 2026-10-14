@@ -125,6 +125,8 @@ export default {
     delete: '删除',
     deleted: '已删除',
     rows: '{n} 行数据',
+    viewData: '查看',
+    noData: '暂无数据',
   },
   connectors: {
     fileTab: '文件上传',
