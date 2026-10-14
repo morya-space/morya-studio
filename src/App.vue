@@ -31,7 +31,8 @@ const moryaLocale = computed(() => locale.value === 'zh-CN' ? zhCN : enUS)
 <style>
 .app-layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: var(--m-color-page-bg);
 }
 
@@ -39,12 +40,16 @@ const moryaLocale = computed(() => locale.value === 'zh-CN' ? zhCN : enUS)
   flex: 1;
   margin-left: 76px;
   min-width: 0;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
+/* header 固定不滚动，仅内容区独立滚动 */
 .app-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 </style>
