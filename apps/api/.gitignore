@@ -1,0 +1,7 @@
+# 后端数据（SQLite 文件，本地运行产物）
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
