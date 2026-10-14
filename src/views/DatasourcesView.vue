@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * 数据源管理（/monitor）
- * 列出全部数据源，支持测试连通性、编辑、删除、新建。
- * 复用编辑器的数据源对话框逻辑（独立视图版）。
+ * 数据源管理（/datasources）
+ * 数据的存储与展示：列出全部数据源，支持测试连通性、编辑、删除、新建。
+ * 也可通过连接器（/connectors）从文件 / 数据库导入。
  */
 
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { MButton, MDialog, MEmpty, MForm, MFormItem, MInput, MInputNumber, MSelect, MTag, MTextarea, message } from 'morya-ui'
@@ -29,9 +29,9 @@ const staticDataText = ref('[]')
 const dialogTesting = ref(false)
 
 const TYPE_OPTIONS = computed(() => [
-  { label: t('monitor.static'), value: 'static' },
-  { label: t('monitor.api'), value: 'api' },
-  { label: t('monitor.mock'), value: 'mock' },
+  { label: t('datasources.static'), value: 'static' },
+  { label: t('datasources.api'), value: 'api' },
+  { label: t('datasources.mock'), value: 'mock' },
 ])
 const METHOD_OPTIONS = [
   { label: 'GET', value: 'GET' },
@@ -45,12 +45,12 @@ function refresh() {
 onMounted(refresh)
 
 function typeLabel(type: DataSourceType): string {
-  return t(`monitor.${type}`)
+  return t(`datasources.${type}`)
 }
 
 function detailOf(ds: DataSourceConfig): string {
   if (ds.type === 'api') return ds.url ?? '-'
-  return t('monitor.rows', { n: ds.staticData?.length ?? 0 })
+  return t('datasources.rows', { n: ds.staticData?.length ?? 0 })
 }
 
 async function onTest(ds: DataSourceConfig) {
@@ -58,10 +58,10 @@ async function onTest(ds: DataSourceConfig) {
   try {
     const adapter = getAdapter(ds.type)
     const result = adapter.test ? await adapter.test(ds) : { ok: true, message: 'OK' }
-    if (result.ok) message.success(t('monitor.testOk', { msg: result.message ?? '' }))
-    else message.error(t('monitor.testFail', { msg: result.message ?? '' }))
+    if (result.ok) message.success(t('datasources.testOk', { msg: result.message ?? '' }))
+    else message.error(t('datasources.testFail', { msg: result.message ?? '' }))
   } catch (e) {
-    message.error(t('monitor.testFail', { msg: e instanceof Error ? e.message : '' }))
+    message.error(t('datasources.testFail', { msg: e instanceof Error ? e.message : '' }))
   } finally {
     testingId.value = null
   }
@@ -84,20 +84,20 @@ function onDelete(ds: DataSourceConfig) {
   deleteDataSource(ds.id)
   dataStore.unregisterDataSource(ds.id)
   refresh()
-  message.success(t('monitor.deleted'))
+  message.success(t('datasources.deleted'))
 }
 
 function onSave() {
   const ds = editing.value
   if (!ds) return
-  if (!ds.name?.trim()) { message.warning(t('monitor.name')); return }
-  if (ds.type === 'api' && !ds.url?.trim()) { message.warning('URL'); return }
+  if (!ds.name?.trim()) { message.warn(t('datasources.name')); return }
+  if (ds.type === 'api' && !ds.url?.trim()) { message.warn('URL'); return }
   if (ds.type === 'static' || ds.type === 'mock') {
     try {
       ds.staticData = JSON.parse(staticDataText.value || '[]')
       if (!Array.isArray(ds.staticData)) throw new Error('not array')
     } catch {
-      message.warning('JSON')
+      message.warn('JSON')
       return
     }
   }
@@ -114,43 +114,42 @@ async function onDialogTest() {
   try {
     const adapter = getAdapter(ds.type)
     const result = adapter.test ? await adapter.test(ds) : { ok: true, message: 'OK' }
-    if (result.ok) message.success(t('monitor.testOk', { msg: result.message ?? '' }))
-    else message.error(t('monitor.testFail', { msg: result.message ?? '' }))
+    if (result.ok) message.success(t('datasources.testOk', { msg: result.message ?? '' }))
+    else message.error(t('datasources.testFail', { msg: result.message ?? '' }))
   } finally {
     dialogTesting.value = false
   }
 }
-
-function goBoards() {
-  router.push('/')
-}
 </script>
 
 <template>
-  <WorkspacePage :title="t('pages.monitor.title')" :summary="t('pages.monitor.summary')">
-    <div class="monitor">
-      <div class="monitor__head">
+  <WorkspacePage :title="t('pages.datasources.title')" :summary="t('pages.datasources.summary')">
+    <div class="datasources">
+      <div class="datasources__head">
+        <MButton type="default" @click="router.push('/connectors')">
+          <SvgIcon name="plug" :px="14" /> {{ t('datasources.importViaConnector') }}
+        </MButton>
         <MButton type="primary" @click="onAdd">
-          <SvgIcon name="plus" :px="14" /> {{ t('monitor.newDs') }}
+          <SvgIcon name="plus" :px="14" /> {{ t('datasources.newDs') }}
         </MButton>
       </div>
 
-      <div v-if="sources.length === 0" class="monitor__empty">
-        <MEmpty :title="t('monitor.empty')">
+      <div v-if="sources.length === 0" class="datasources__empty">
+        <MEmpty :title="t('datasources.empty')">
           <template #extra>
-            <MButton type="primary" @click="onAdd">{{ t('monitor.newDs') }}</MButton>
+            <MButton type="primary" @click="onAdd">{{ t('datasources.newDs') }}</MButton>
           </template>
         </MEmpty>
       </div>
 
-      <div v-else class="monitor__table">
-        <div class="monitor__row monitor__row--head">
-          <span class="col-name">{{ t('monitor.name') }}</span>
-          <span class="col-type">{{ t('monitor.type') }}</span>
-          <span class="col-detail">{{ t('monitor.detail') }}</span>
+      <div v-else class="datasources__table">
+        <div class="datasources__row datasources__row--head">
+          <span class="col-name">{{ t('datasources.name') }}</span>
+          <span class="col-type">{{ t('datasources.type') }}</span>
+          <span class="col-detail">{{ t('datasources.detail') }}</span>
           <span class="col-actions" />
         </div>
-        <div v-for="ds in sources" :key="ds.id" class="monitor__row">
+        <div v-for="ds in sources" :key="ds.id" class="datasources__row">
           <span class="col-name">
             <span class="ds-name">{{ ds.name }}</span>
             <span class="ds-id">{{ ds.id }}</span>
@@ -158,21 +157,21 @@ function goBoards() {
           <span class="col-type"><MTag>{{ typeLabel(ds.type) }}</MTag></span>
           <span class="col-detail">{{ detailOf(ds) }}</span>
           <span class="col-actions">
-            <MButton type="text" size="small" :loading="testingId === ds.id" @click="onTest(ds)">{{ t('monitor.test') }}</MButton>
-            <MButton type="text" size="small" @click="onEdit(ds)">{{ t('monitor.edit') }}</MButton>
-            <MButton type="text" size="small" danger @click="onDelete(ds)">{{ t('monitor.delete') }}</MButton>
+            <MButton type="text" size="small" :loading="testingId === ds.id" @click="onTest(ds)">{{ t('datasources.test') }}</MButton>
+            <MButton type="text" size="small" @click="onEdit(ds)">{{ t('datasources.edit') }}</MButton>
+            <MButton type="text" size="small" danger @click="onDelete(ds)">{{ t('datasources.delete') }}</MButton>
           </span>
         </div>
       </div>
     </div>
 
     <!-- 新建/编辑对话框 -->
-    <MDialog v-model="dialogVisible" :title="t('monitor.newDs')" width="480px">
+    <MDialog v-model="dialogVisible" :title="t('datasources.newDs')" width="480px">
       <MForm v-if="editing" :model="editing">
-        <MFormItem :label="t('monitor.name')" required>
+        <MFormItem :label="t('datasources.name')" required>
           <MInput v-model="editing.name" fluid />
         </MFormItem>
-        <MFormItem :label="t('monitor.type')" required>
+        <MFormItem :label="t('datasources.type')" required>
           <MSelect v-model="editing.type" :options="TYPE_OPTIONS" fluid />
         </MFormItem>
 
@@ -198,7 +197,7 @@ function goBoards() {
         </template>
       </MForm>
       <template #footer>
-        <MButton type="default" :loading="dialogTesting" @click="onDialogTest">{{ t('monitor.test') }}</MButton>
+        <MButton type="default" :loading="dialogTesting" @click="onDialogTest">{{ t('datasources.test') }}</MButton>
         <MButton type="default" @click="dialogVisible = false">{{ t('common.cancel') }}</MButton>
         <MButton type="primary" @click="onSave">{{ t('common.save') }}</MButton>
       </template>
@@ -207,29 +206,30 @@ function goBoards() {
 </template>
 
 <style scoped>
-.monitor {
+.datasources {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.monitor__head {
+.datasources__head {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
 }
 
-.monitor__empty {
+.datasources__empty {
   padding: 40px 0;
 }
 
-.monitor__table {
+.datasources__table {
   background: var(--m-color-surface);
   border-radius: var(--m-radius-lg);
   box-shadow: var(--m-shadow-card);
   overflow: hidden;
 }
 
-.monitor__row {
+.datasources__row {
   display: grid;
   grid-template-columns: 2fr 1fr 2fr 1.6fr;
   align-items: center;
@@ -238,11 +238,11 @@ function goBoards() {
   border-bottom: 1px solid var(--m-color-split);
 }
 
-.monitor__row:last-child {
+.datasources__row:last-child {
   border-bottom: none;
 }
 
-.monitor__row--head {
+.datasources__row--head {
   background: var(--m-color-page-bg);
   font-size: 12px;
   font-weight: 600;

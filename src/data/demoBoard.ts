@@ -1,6 +1,6 @@
 /**
  * 示例看板 Schema + 数据源
- * 供 AnalyticsDemoView 展示引擎能力，也可作为模板中心的模板。
+ * 供组件库演示与模板中心的内置销售模板使用。
  */
 
 import type { DataSourceConfig, PageSchema } from '../types/schema'

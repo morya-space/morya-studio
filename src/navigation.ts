@@ -7,9 +7,11 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { key: 'dashboard', icon: 'grid', labelKey: 'nav.dashboard', to: '/' },
-  { key: 'layers', icon: 'layers', labelKey: 'nav.layers', to: '/layers' },
-  { key: 'monitor', icon: 'activity', labelKey: 'nav.monitor', to: '/monitor' },
-  { key: 'chart', icon: 'chart-bar', labelKey: 'nav.analytics', to: '/analytics' },
-  { key: 'file', icon: 'file', labelKey: 'nav.reports', to: '/reports' },
+  { key: 'panels', icon: 'layout', labelKey: 'nav.panels', to: '/panels' },
+  { key: 'datasources', icon: 'database', labelKey: 'nav.datasources', to: '/datasources' },
+  { key: 'connectors', icon: 'plug', labelKey: 'nav.connectors', to: '/connectors' },
+  { key: 'components', icon: 'layers', labelKey: 'nav.components', to: '/components' },
+  { key: 'analytics', icon: 'bar-chart', labelKey: 'nav.analytics', to: '/analytics' },
+  { key: 'templates', icon: 'file', labelKey: 'nav.templates', to: '/templates' },
   { key: 'settings', icon: 'settings', labelKey: 'nav.settings', to: '/settings' },
 ]

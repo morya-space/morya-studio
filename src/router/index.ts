@@ -5,10 +5,12 @@ import RendererDemoView from '../views/RendererDemoView.vue'
 import EditorView from '../views/EditorView.vue'
 import PreviewView from '../views/PreviewView.vue'
 import WorkbenchView from '../views/WorkbenchView.vue'
-import ComponentGalleryView from '../views/ComponentGalleryView.vue'
-import DataSourceMonitorView from '../views/DataSourceMonitorView.vue'
-import AnalyticsDemoView from '../views/AnalyticsDemoView.vue'
-import TemplateCenterView from '../views/TemplateCenterView.vue'
+import PanelListView from '../views/PanelListView.vue'
+import DatasourcesView from '../views/DatasourcesView.vue'
+import ConnectorsView from '../views/ConnectorsView.vue'
+import ComponentsView from '../views/ComponentsView.vue'
+import AnalyticsView from '../views/AnalyticsView.vue'
+import TemplatesView from '../views/TemplatesView.vue'
 import { useSession } from '../composables/useSession'
 
 const { isAuthenticated } = useSession()
@@ -22,37 +24,49 @@ const router = createRouter({
       component: LoginView,
       meta: { public: true },
     },
-    // 工作台：看板管理主入口
+    // 工作台：项目概况总览
     {
       path: '/',
       name: 'dashboard',
       component: WorkbenchView,
     },
-    // 组件库画廊
+    // 面板：可视化面板列表（CRUD），内容编辑进入编辑器
     {
-      path: '/layers',
-      name: 'layers',
-      component: ComponentGalleryView,
+      path: '/panels',
+      name: 'panels',
+      component: PanelListView,
     },
-    // 数据源管理
+    // 数据源：数据存储与展示（CRUD + 常规操作）
     {
-      path: '/monitor',
-      name: 'monitor',
-      component: DataSourceMonitorView,
+      path: '/datasources',
+      name: 'datasources',
+      component: DatasourcesView,
     },
-    // 示例分析看板
+    // 连接器：上传文件 / 连接数据库导入数据
+    {
+      path: '/connectors',
+      name: 'connectors',
+      component: ConnectorsView,
+    },
+    // 组件库：内置 + 自定义组件（CRUD）
+    {
+      path: '/components',
+      name: 'components',
+      component: ComponentsView,
+    },
+    // 分析：跨面板洞察（占位）
     {
       path: '/analytics',
       name: 'analytics',
-      component: AnalyticsDemoView,
+      component: AnalyticsView,
     },
-    // 模板中心
+    // 模板：面板模板，可从模板创建面板
     {
-      path: '/reports',
-      name: 'reports',
-      component: TemplateCenterView,
+      path: '/templates',
+      name: 'templates',
+      component: TemplatesView,
     },
-    // 设置
+    // 设置：管理后台常规配置
     {
       path: '/settings',
       name: 'settings',
@@ -63,11 +77,6 @@ const router = createRouter({
       path: '/demo/renderer',
       name: 'renderer-demo',
       component: RendererDemoView,
-    },
-    // 旧路由兼容
-    {
-      path: '/pages',
-      redirect: '/',
     },
     // 低代码编辑器（全屏沉浸）
     {

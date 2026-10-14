@@ -11,8 +11,14 @@ const router = useRouter()
 const { t } = useI18n()
 
 const activeKey = computed(() => {
-  const match = navItems.find(item => item.to === route.path)
-  return match?.key ?? 'dashboard'
+  // 精确匹配优先，其次按路径前缀（支持 /editor/:id 等子路由高亮所属模块）
+  const exact = navItems.find(item => item.to === route.path)
+  if (exact) return exact.key
+  const prefix = navItems.find(item => item.to !== '/' && route.path.startsWith(item.to))
+  if (prefix) return prefix.key
+  // 编辑器/预览路由归到面板模块
+  if (route.path.startsWith('/editor') || route.path.startsWith('/preview')) return 'panels'
+  return 'dashboard'
 })
 
 const menuModel = computed(() =>
