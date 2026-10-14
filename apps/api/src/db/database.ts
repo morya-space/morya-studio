@@ -37,8 +37,15 @@ function migrate(d: DatabaseSync): void {
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
+      avatar TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'active',
       created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS workspace_configs (
+      owner_id TEXT PRIMARY KEY,
+      name TEXT NOT NULL DEFAULT '',
+      data TEXT NOT NULL DEFAULT '{}',
+      updated_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS roles (
       id TEXT PRIMARY KEY,
@@ -125,6 +132,16 @@ function migrate(d: DatabaseSync): void {
     );
     CREATE INDEX IF NOT EXISTS idx_components_owner ON components(owner_id);
   `)
+
+  // 轻量列迁移：为已存在的旧库补充后加的列（幂等，忽略「列已存在」错误）
+  ensureColumn(d, 'users', 'avatar', "TEXT NOT NULL DEFAULT ''")
+}
+
+/** 若列不存在则添加（SQLite 无 IF NOT EXISTS 列语法，捕获重复列错误） */
+function ensureColumn(d: DatabaseSync, table: string, column: string, definition: string): void {
+  const cols = d.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]
+  if (cols.some(c => c.name === column)) return
+  d.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`)
 }
 
 // ---------- 查询助手 ----------

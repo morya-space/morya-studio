@@ -16,6 +16,8 @@ import { createPageRoutes, createPageStores, type PageStores } from './routes/pa
 import { createDatasourceRoutes, createDatasourceStores, type DatasourceStores } from './routes/datasources'
 import { createComponentRoutes, createComponentStores, type ComponentStores } from './routes/components'
 import { createTemplateRoutes, createTemplateStores, type TemplateStores } from './routes/templates'
+import { createSettingsRoutes } from './routes/settings'
+import { createConnectorRoutes } from './routes/connectors'
 import { createHealthRoutes } from './routes/health'
 import type { AppBindings } from './types/context'
 
@@ -58,6 +60,8 @@ export function createStudio(config?: AppConfig, db?: DatabaseSync): StudioConte
   app.route('/api/datasources', createDatasourceRoutes(stores))
   app.route('/api/components', createComponentRoutes(stores))
   app.route('/api/templates', createTemplateRoutes(stores))
+  app.route('/api/settings', createSettingsRoutes(database, identity))
+  app.route('/api/connectors', createConnectorRoutes(stores))
 
   app.get('/api/routes', (c) => {
     const routes = Array.from(

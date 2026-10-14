@@ -8,6 +8,7 @@ import type { DatabaseSync } from 'node:sqlite'
 import type { PublicUser, Role, SessionInfo, UserStatus } from '@morya-studio/shared'
 import { all, get, run } from '../db/database'
 import { hashPassword, verifyPassword } from './password'
+import { ApiError } from '../middleware/error-handler'
 import type { AppConfig } from '../config/env'
 
 /** 系统权限码 */
@@ -49,6 +50,8 @@ export interface IdentityService {
   listUsers: () => PublicUser[]
   createUser: (input: { name: string; email: string; password: string; roleIds?: string[] }) => PublicUser
   updateUserStatus: (id: string, status: UserStatus) => void
+  updateProfile: (id: string, patch: { name?: string; avatar?: string }) => PublicUser | null
+  changePassword: (id: string, current: string, next: string) => void
   setUserRoles: (id: string, roleIds: string[]) => void
   deleteUser: (id: string) => void
   // roles
@@ -95,6 +98,7 @@ export function createIdentityService(db: DatabaseSync, config: AppConfig): Iden
       id: row.id,
       name: row.name,
       email: row.email,
+      avatar: (row as UserRow & { avatar?: string }).avatar ?? '',
       status: row.status,
       roles: roleNames,
       permissions: getUserPermissions(row.id),
@@ -219,6 +223,24 @@ export function createIdentityService(db: DatabaseSync, config: AppConfig): Iden
     run(db, 'UPDATE users SET status = ? WHERE id = ?', status, id)
   }
 
+  function updateProfile(id: string, patch: { name?: string; avatar?: string }): PublicUser | null {
+    if (patch.name !== undefined) run(db, 'UPDATE users SET name = ? WHERE id = ?', patch.name, id)
+    if (patch.avatar !== undefined) run(db, 'UPDATE users SET avatar = ? WHERE id = ?', patch.avatar, id)
+    const row = findUserRowById(id)
+    return row ? toPublicUser(row) : null
+  }
+
+  function changePassword(id: string, current: string, next: string): void {
+    const row = findUserRowById(id)
+    if (!row) throw new ApiError(404, 'not_found', '用户不存在')
+    if (!verifyPassword(current, row.password_hash)) {
+      throw new ApiError(400, 'invalid_password', '当前密码不正确')
+    }
+    run(db, 'UPDATE users SET password_hash = ? WHERE id = ?', hashPassword(next), id)
+    // 修改密码后吊销该用户所有会话，需重新登录
+    run(db, 'DELETE FROM sessions WHERE user_id = ?', id)
+  }
+
   function setUserRoles(id: string, roleIds: string[]): void {
     run(db, 'DELETE FROM user_roles WHERE user_id = ?', id)
     for (const roleId of roleIds) {
@@ -288,6 +310,8 @@ export function createIdentityService(db: DatabaseSync, config: AppConfig): Iden
     listUsers,
     createUser,
     updateUserStatus,
+    updateProfile,
+    changePassword,
     setUserRoles,
     deleteUser,
     listRoles,

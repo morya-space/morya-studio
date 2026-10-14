@@ -95,5 +95,11 @@ export function useSession() {
     clearSession()
   }
 
-  return { user, token, isAuthenticated, login, logout, refreshUser }
+  /** 资料更新后直接同步本地用户（含持久化） */
+  function setUser(u: PublicUser): void {
+    user.value = u
+    persist()
+  }
+
+  return { user, token, isAuthenticated, login, logout, refreshUser, setUser }
 }
