@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, h } from 'vue'
 import { useRoute, RouterLink, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MMenu } from 'morya-ui'
 import BrandMark from '../components/common/BrandMark.vue'
+import SvgIcon from '../components/common/SvgIcon.vue'
 import { navItems } from '../navigation'
 
 const route = useRoute()
@@ -25,7 +26,8 @@ const menuModel = computed(() =>
   navItems.map(item => ({
     key: item.key,
     label: t(item.labelKey),
-    icon: item.icon,
+    // MMenu 支持自定义图标组件：用本地 SVG sprite 图标，保持与其余界面一致
+    icon: () => h(SvgIcon, { name: item.icon }),
   })),
 )
 
