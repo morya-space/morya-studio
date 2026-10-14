@@ -14,7 +14,7 @@ const moryaLocale = computed(() => locale.value === 'zh-CN' ? zhCN : enUS)
 </script>
 
 <template>
-  <MConfigProvider :locale="moryaLocale">
+  <MConfigProvider class="w-full h-full" :locale="moryaLocale">
     <router-view v-if="isPublic || isBare" />
     <div v-else class="app-layout">
       <AppSidebar />
@@ -31,7 +31,8 @@ const moryaLocale = computed(() => locale.value === 'zh-CN' ? zhCN : enUS)
 <style>
 .app-layout {
   display: flex;
-  height: 100vh;
+  height: 100%;
+  width: 100%;
   overflow: hidden;
   background: var(--m-color-page-bg);
 }
@@ -40,7 +41,8 @@ const moryaLocale = computed(() => locale.value === 'zh-CN' ? zhCN : enUS)
   flex: 1;
   margin-left: 76px;
   min-width: 0;
-  height: 100vh;
+  height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;

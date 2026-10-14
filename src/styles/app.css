@@ -21,6 +21,8 @@ html {
   font-family: var(--m-font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  height: 100%;
+  width: 100%;
 }
 
 body {
@@ -28,10 +30,13 @@ body {
   padding: 0;
   background: var(--m-color-page-bg);
   color: var(--m-color-text);
+  height: 100%;
+  width: 100%;
 }
 
 #app {
-  min-height: 100vh;
+  height: 100%;
+  width: 100%;
 }
 
 /* 滚动条样式 */
