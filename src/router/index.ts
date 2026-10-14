@@ -14,13 +14,19 @@ import AnalyticsView from '../views/AnalyticsView.vue'
 import TemplatesView from '../views/TemplatesView.vue'
 import { useSession } from '../composables/useSession'
 import { initPages, resetPages } from '../services/page'
+import { initDataSources, resetDataSources } from '../services/datasource'
 
 const { isAuthenticated, token } = useSession()
 
-// 会话建立后拉取面板数据；登出后清空
+// 会话建立后拉取业务数据；登出后清空
 watch(token, (t) => {
-  if (t) void initPages()
-  else resetPages()
+  if (t) {
+    void initPages()
+    void initDataSources()
+  } else {
+    resetPages()
+    resetDataSources()
+  }
 }, { immediate: true })
 
 const router = createRouter({
