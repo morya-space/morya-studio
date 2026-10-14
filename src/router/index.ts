@@ -8,6 +8,7 @@ import PreviewView from '../views/PreviewView.vue'
 import WorkbenchView from '../views/WorkbenchView.vue'
 import PanelListView from '../views/PanelListView.vue'
 import DatasourcesView from '../views/DatasourcesView.vue'
+import DatasourceDetailView from '../views/DatasourceDetailView.vue'
 import ConnectorsView from '../views/ConnectorsView.vue'
 import ComponentsView from '../views/ComponentsView.vue'
 import AnalyticsView from '../views/AnalyticsView.vue'
@@ -61,6 +62,12 @@ const router = createRouter({
       path: '/datasources',
       name: 'datasources',
       component: DatasourcesView,
+    },
+    // 数据源详情：单个数据源的数据预览
+    {
+      path: '/datasources/:id',
+      name: 'datasource-detail',
+      component: DatasourceDetailView,
     },
     // 连接器：上传文件 / 连接数据库导入数据
     {

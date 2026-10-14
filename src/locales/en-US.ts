@@ -127,6 +127,9 @@ export default {
     rows: '{n} rows',
     viewData: 'View',
     noData: 'No data',
+    backToList: 'Back to data sources',
+    dataPreview: 'Data preview',
+    notFound: 'Data source not found',
   },
   connectors: {
     fileTab: 'File Upload',

@@ -127,6 +127,9 @@ export default {
     rows: '{n} 行数据',
     viewData: '查看',
     noData: '暂无数据',
+    backToList: '返回数据源列表',
+    dataPreview: '数据预览',
+    notFound: '数据源不存在',
   },
   connectors: {
     fileTab: '文件上传',
