@@ -5,6 +5,7 @@
  */
 
 import { ref } from 'vue'
+import { MScrollbar } from 'morya-ui'
 import ComponentLibrary from '../panels/ComponentLibrary.vue'
 import DataSourcePanel from '../panels/DataSourcePanel.vue'
 import OutlinePanel from '../panels/OutlinePanel.vue'
@@ -36,11 +37,11 @@ const tabs: { key: TabKey; label: string; icon: string }[] = [
       </button>
     </div>
 
-    <div class="panel-body">
+    <MScrollbar class="panel-body" view-class="panel-body__view">
       <ComponentLibrary v-show="activeTab === 'components'" />
       <DataSourcePanel v-show="activeTab === 'datasource'" />
       <OutlinePanel v-show="activeTab === 'outline'" />
-    </div>
+    </MScrollbar>
   </aside>
 </template>
 
@@ -87,7 +88,10 @@ const tabs: { key: TabKey; label: string; icon: string }[] = [
 
 .panel-body {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
+}
+
+.panel-body__view {
   padding: 16px;
 }
 </style>

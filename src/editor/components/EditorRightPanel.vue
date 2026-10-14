@@ -3,6 +3,7 @@
  * 编辑器右侧属性面板
  */
 
+import { MScrollbar } from 'morya-ui'
 import PropertyForm from '../panels/PropertyForm.vue'
 </script>
 
@@ -11,9 +12,9 @@ import PropertyForm from '../panels/PropertyForm.vue'
     <div class="panel-header">
       <h3 class="panel-title">属性配置</h3>
     </div>
-    <div class="panel-body">
+    <MScrollbar class="panel-body" view-class="panel-body__view">
       <PropertyForm />
-    </div>
+    </MScrollbar>
   </aside>
 </template>
 
@@ -42,7 +43,10 @@ import PropertyForm from '../panels/PropertyForm.vue'
 
 .panel-body {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
+}
+
+.panel-body__view {
   padding: 0 16px 16px;
 }
 </style>

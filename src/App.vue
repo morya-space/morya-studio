@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { MConfigProvider, enUS, zhCN } from 'morya-ui'
+import { MConfigProvider, MScrollbar, enUS, zhCN } from 'morya-ui'
 import AppSidebar from './layouts/AppSidebar.vue'
 import AppHeader from './layouts/AppHeader.vue'
 
@@ -20,9 +20,9 @@ const moryaLocale = computed(() => locale.value === 'zh-CN' ? zhCN : enUS)
       <AppSidebar />
       <div class="app-main">
         <AppHeader />
-        <div class="app-content">
+        <MScrollbar class="app-content" wrap-class="app-content__wrap">
           <router-view />
-        </div>
+        </MScrollbar>
       </div>
     </div>
   </MConfigProvider>
@@ -48,10 +48,10 @@ const moryaLocale = computed(() => locale.value === 'zh-CN' ? zhCN : enUS)
   overflow: hidden;
 }
 
-/* header 固定不滚动，仅内容区独立滚动 */
+/* header 固定不滚动，仅内容区独立滚动（MScrollbar 提供统一滚动条） */
 .app-content {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  height: 100%;
 }
 </style>

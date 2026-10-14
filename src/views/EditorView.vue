@@ -8,7 +8,7 @@
 
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { MDialog } from 'morya-ui'
+import { MDialog, MScrollbar } from 'morya-ui'
 import EditorTopBar from '../editor/components/EditorTopBar.vue'
 import EditorLeftPanel from '../editor/components/EditorLeftPanel.vue'
 import EditorRightPanel from '../editor/components/EditorRightPanel.vue'
@@ -83,9 +83,9 @@ function onPreview() {
       title="预览"
       width="90vw"
     >
-      <div class="preview-body">
+      <MScrollbar class="preview-body" view-class="preview-body__view" fit-content>
         <SchemaRenderer :page="editorStore.page" />
-      </div>
+      </MScrollbar>
     </MDialog>
   </div>
 </template>
@@ -107,9 +107,11 @@ function onPreview() {
 
 .preview-body {
   background: var(--m-color-page-bg);
-  padding: 16px;
   border-radius: var(--m-radius-md);
   max-height: 70vh;
-  overflow-y: auto;
+}
+
+.preview-body__view {
+  padding: 16px;
 }
 </style>

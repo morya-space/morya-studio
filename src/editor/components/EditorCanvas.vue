@@ -5,6 +5,7 @@
  */
 
 import { computed, onMounted, watch } from 'vue'
+import { MScrollbar } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { useDataStore } from '../../data/store'
 import { sortCards } from '../../engine/utils'
@@ -56,8 +57,9 @@ function onCanvasClick() {
 </script>
 
 <template>
-  <div
+  <MScrollbar
     class="editor-canvas"
+    view-class="editor-canvas__view"
     @dragover="onDragOver"
     @drop="onDrop"
     @click="onCanvasClick"
@@ -80,14 +82,17 @@ function onCanvasClick() {
         />
       </div>
     </div>
-  </div>
+  </MScrollbar>
 </template>
 
 <style scoped>
 .editor-canvas {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
   background: var(--m-color-page-bg);
+}
+
+.editor-canvas__view {
   padding: 24px;
 }
 
