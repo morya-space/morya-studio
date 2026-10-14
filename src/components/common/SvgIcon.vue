@@ -13,7 +13,7 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <MIcon :size="size" :style="px ? { width: `${px}px`, height: `${px}px` } : undefined">
+  <MIcon :size="size" :style="px ? { width: `${px}px`, height: `${px}px`, fontSize: `${px}px` } : undefined">
     <svg class="svg-icon" aria-hidden="true">
       <use :href="`#icon-${name}`" />
     </svg>
