@@ -16,7 +16,7 @@
   "dependencies": {
     "@morya-studio/shared": "workspace:*",
     "echarts": "^6.1.0",
-    "morya-ui": "^0.5.0",
+    "morya-ui": "^0.5.1",
     "pinia": "^4.0.3",
     "vue": "^3.5.42",
     "vue-i18n": "^10.0.8",
