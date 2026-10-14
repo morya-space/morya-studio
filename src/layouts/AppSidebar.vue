@@ -27,7 +27,7 @@ const menuModel = computed(() =>
     key: item.key,
     label: t(item.labelKey),
     // MMenu 支持自定义图标组件：用本地 SVG sprite 图标，保持与其余界面一致
-    icon: () => h(SvgIcon, { name: item.icon }),
+    icon: () => h(SvgIcon, { name: item.icon, px: 20 }),
   })),
 )
 
