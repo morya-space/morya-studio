@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import UserMenu from './UserMenu.vue'
-
 defineProps<{
   title: string
   summary?: string
@@ -14,7 +12,6 @@ defineProps<{
         <h1>{{ title }}</h1>
         <p v-if="summary">{{ summary }}</p>
       </div>
-      <UserMenu />
     </header>
     <slot />
   </div>
