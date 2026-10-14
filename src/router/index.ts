@@ -15,6 +15,8 @@ import TemplatesView from '../views/TemplatesView.vue'
 import { useSession } from '../composables/useSession'
 import { initPages, resetPages } from '../services/page'
 import { initDataSources, resetDataSources } from '../services/datasource'
+import { initComponents, resetComponents } from '../services/component'
+import { initTemplates, resetTemplates } from '../services/template'
 
 const { isAuthenticated, token } = useSession()
 
@@ -23,9 +25,13 @@ watch(token, (t) => {
   if (t) {
     void initPages()
     void initDataSources()
+    void initComponents()
+    void initTemplates()
   } else {
     resetPages()
     resetDataSources()
+    resetComponents()
+    resetTemplates()
   }
 }, { immediate: true })
 

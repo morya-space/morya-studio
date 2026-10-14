@@ -14,13 +14,15 @@ import { createAuthRoutes } from './routes/auth'
 import { createIdentityRoutes } from './routes/identity'
 import { createPageRoutes, createPageStores, type PageStores } from './routes/pages'
 import { createDatasourceRoutes, createDatasourceStores, type DatasourceStores } from './routes/datasources'
+import { createComponentRoutes, createComponentStores, type ComponentStores } from './routes/components'
+import { createTemplateRoutes, createTemplateStores, type TemplateStores } from './routes/templates'
 import { createHealthRoutes } from './routes/health'
 import type { AppBindings } from './types/context'
 
 export interface StudioContext {
   app: Hono<AppBindings>
   identity: IdentityService
-  stores: PageStores & DatasourceStores
+  stores: PageStores & DatasourceStores & ComponentStores & TemplateStores
   db: DatabaseSync
 }
 
@@ -29,7 +31,12 @@ export function createStudio(config?: AppConfig, db?: DatabaseSync): StudioConte
   const database = db ?? getDb(resolvedConfig.DB_FILE)
   const identity = createIdentityService(database, resolvedConfig)
   identity.seed()
-  const stores = { ...createPageStores(database), ...createDatasourceStores(database) }
+  const stores = {
+    ...createPageStores(database),
+    ...createDatasourceStores(database),
+    ...createComponentStores(database),
+    ...createTemplateStores(database),
+  }
 
   const app = new Hono<AppBindings>()
 
@@ -49,6 +56,8 @@ export function createStudio(config?: AppConfig, db?: DatabaseSync): StudioConte
   app.route('/api', createIdentityRoutes())
   app.route('/api/pages', createPageRoutes(stores))
   app.route('/api/datasources', createDatasourceRoutes(stores))
+  app.route('/api/components', createComponentRoutes(stores))
+  app.route('/api/templates', createTemplateRoutes(stores))
 
   app.get('/api/routes', (c) => {
     const routes = Array.from(

@@ -1,52 +1,58 @@
 /**
- * 模板本地持久化服务（MVP：localStorage）
+ * 模板持久化服务：后端 API 为权威源，内存缓存提供同步读取。
  * 模板 = 可复用的面板快照（含卡片与数据源配置），创建面板时可直接套用。
- * 后续 Phase 切换为后端 API（接口保持不变）。
  */
 
 import type { PageSchema } from '../types/schema'
 import { SCHEMA_VERSION } from '../types/schema'
-
-const KEY = 'morya-studio:templates'
+import { http } from '../lib/http'
 
 export interface PanelTemplate {
   id: string
   title: string
   description?: string
-  /** 卡片数量（展示用） */
   cardCount: number
-  /** 内置模板不可删除/编辑 */
   builtin?: boolean
-  /** 模板封面图标（SvgIcon name） */
   icon?: string
-  /** 面板快照 */
   page: PageSchema
   meta?: { createdAt?: string; updatedAt?: string }
 }
 
-type TemplateMap = Record<string, PanelTemplate>
+const cache = new Map<string, PanelTemplate>()
+let loaded = false
+let loading: Promise<void> | null = null
 
-function readMap(): TemplateMap {
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return {}
-    return JSON.parse(raw) as TemplateMap
-  } catch {
-    return {}
-  }
+function reportSyncError(e: unknown): void {
+  console.warn('[template service] 后端同步失败，本次变更仅保存在内存', e)
 }
 
-function writeMap(map: TemplateMap): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(map))
-  } catch (e) {
-    console.error('[template service] save failed', e)
-    throw new Error('保存失败：本地存储空间不足')
-  }
+/** 登录后调用：从后端拉取模板填充缓存（幂等） */
+export async function initTemplates(force = false): Promise<void> {
+  if (loaded && !force) return
+  if (loading) return loading
+  loading = (async () => {
+    try {
+      const { items } = await http.get<{ items: PanelTemplate[] }>('/templates')
+      cache.clear()
+      for (const t of items) cache.set(t.id, t)
+      loaded = true
+    } catch (e) {
+      reportSyncError(e)
+    } finally {
+      loading = null
+    }
+  })()
+  return loading
+}
+
+/** 登出/切换账号时清空缓存 */
+export function resetTemplates(): void {
+  cache.clear()
+  loaded = false
 }
 
 export function listTemplates(): PanelTemplate[] {
-  return Object.values(readMap()).sort((a, b) => {
+  return [...cache.values()].sort((a, b) => {
     const ta = a.meta?.updatedAt ?? a.meta?.createdAt ?? ''
     const tb = b.meta?.updatedAt ?? b.meta?.createdAt ?? ''
     return tb.localeCompare(ta)
@@ -54,23 +60,26 @@ export function listTemplates(): PanelTemplate[] {
 }
 
 export function getTemplate(id: string): PanelTemplate | null {
-  return readMap()[id] ?? null
+  return cache.get(id) ?? null
 }
 
 export function saveTemplate(tpl: PanelTemplate): void {
-  const map = readMap()
   const now = new Date().toISOString()
-  map[tpl.id] = {
+  const next: PanelTemplate = {
     ...tpl,
     meta: { createdAt: tpl.meta?.createdAt ?? now, updatedAt: now },
   }
-  writeMap(map)
+  const exists = cache.has(tpl.id)
+  cache.set(tpl.id, next)
+  const req = exists
+    ? http.put(`/templates/${tpl.id}`, next)
+    : http.post('/templates', next)
+  Promise.resolve(req).catch(reportSyncError)
 }
 
 export function deleteTemplate(id: string): void {
-  const map = readMap()
-  delete map[id]
-  writeMap(map)
+  cache.delete(id)
+  http.delete(`/templates/${id}`).catch(reportSyncError)
 }
 
 export function genTemplateId(): string {
