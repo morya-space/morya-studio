@@ -12,6 +12,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@morya-studio/shared": "workspace:*",
     "echarts": "^6.1.0",
     "morya-ui": "^0.5.0",
     "pinia": "^4.0.3",
