@@ -54,4 +54,21 @@ const moryaLocale = computed(() => locale.value === 'zh-CN' ? zhCN : enUS)
   min-height: 0;
   height: 100%;
 }
+
+/* fill 页面（如数据源详情表格撑满剩余高度）：打通 wrap → view → 页面根 的高度链 */
+.app-content__wrap {
+  height: 100%;
+}
+.app-content__wrap:has(> .m-scrollbar__view > .workspace-page--fill) {
+  overflow: hidden;
+}
+.app-content__wrap:has(> .m-scrollbar__view > .workspace-page--fill) > .m-scrollbar__view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.app-content__wrap > .m-scrollbar__view > .workspace-page--fill {
+  flex: 1;
+  min-height: 0;
+}
 </style>

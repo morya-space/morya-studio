@@ -130,6 +130,11 @@ export default {
     backToList: '返回数据源列表',
     dataPreview: '数据预览',
     notFound: '数据源不存在',
+    basicInfo: '基本信息',
+    loadedRows: '加载数据',
+    statusOk: '加载正常',
+    statusLoading: '加载中',
+    statusError: '加载失败',
   },
   connectors: {
     fileTab: '文件上传',

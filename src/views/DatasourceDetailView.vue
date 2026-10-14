@@ -7,7 +7,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { MButton, MEmpty, MTable, MTag } from 'morya-ui'
+import { MButton, MDescriptions, MDescriptionsItem, MEmpty, MStatus, MTable, MTag } from 'morya-ui'
 import WorkspacePage from '../components/shell/WorkspacePage.vue'
 import SvgIcon from '../components/common/SvgIcon.vue'
 import type { DataSourceConfig, DataSourceType } from '../types/schema'
@@ -37,11 +37,31 @@ function typeLabel(type: DataSourceType): string {
   return t(`datasources.${type}`)
 }
 
+const typeTagType = computed<'primary' | 'info' | 'help'>(() => {
+  switch (source.value?.type) {
+    case 'api': return 'primary'
+    case 'mock': return 'help'
+    default: return 'info'
+  }
+})
+
 const endpoint = computed(() => {
   const ds = source.value
   if (!ds) return ''
   if (ds.type === 'api') return ds.url ?? '-'
   return t('datasources.rows', { n: ds.staticData?.length ?? 0 })
+})
+
+const statusType = computed<'success' | 'danger' | 'info'>(() => {
+  if (error.value) return 'danger'
+  if (loading.value) return 'info'
+  return 'success'
+})
+
+const statusLabel = computed(() => {
+  if (error.value) return t('datasources.statusError')
+  if (loading.value) return t('datasources.statusLoading')
+  return t('datasources.statusOk')
 })
 
 async function load() {
@@ -67,9 +87,9 @@ onMounted(load)
 </script>
 
 <template>
-  <WorkspacePage :title="source?.name ?? t('pages.datasources.title')" :summary="source ? `${typeLabel(source.type)} · ${endpoint}` : ''">
-    <div class="dsd__back">
-      <MButton type="default" @click="goBack">
+  <WorkspacePage fill :title="source?.name ?? t('pages.datasources.title')" :summary="source ? `${typeLabel(source.type)} · ${endpoint}` : ''">
+    <div class="dsd__toolbar">
+      <MButton type="text" @click="goBack">
         <SvgIcon name="chevron-left" :px="14" /> {{ t('datasources.backToList') }}
       </MButton>
     </div>
@@ -81,67 +101,127 @@ onMounted(load)
     </MEmpty>
 
     <template v-else>
-      <div class="dsd__meta">
-        <MTag>{{ typeLabel(source.type) }}</MTag>
-        <span class="dsd__id">{{ source.id }}</span>
-        <span class="dsd__count">{{ t('datasources.rows', { n: rows.length }) }}</span>
-      </div>
+      <section class="dsd__panel">
+        <header class="dsd__panel-head">
+          <h2 class="dsd__panel-title">{{ t('datasources.basicInfo') }}</h2>
+          <MStatus :label="statusLabel" :type="statusType" />
+        </header>
+        <MDescriptions bordered :column="3" layout="vertical" size="small">
+          <MDescriptionsItem :label="t('datasources.name')">{{ source.name }}</MDescriptionsItem>
+          <MDescriptionsItem :label="t('datasources.type')">
+            <MTag :type="typeTagType" bordered size="small">{{ typeLabel(source.type) }}</MTag>
+          </MDescriptionsItem>
+          <MDescriptionsItem label="ID">
+            <span class="dsd__mono">{{ source.id }}</span>
+          </MDescriptionsItem>
+          <MDescriptionsItem :label="t('datasources.detail')">
+            <span class="dsd__mono dsd__endpoint">{{ endpoint }}</span>
+          </MDescriptionsItem>
+          <MDescriptionsItem v-if="source.type === 'api'" label="Method">
+            <MTag type="secondary" bordered size="small">{{ source.method ?? 'GET' }}</MTag>
+          </MDescriptionsItem>
+          <MDescriptionsItem v-if="source.type === 'api' && source.dataPath" label="dataPath">
+            <span class="dsd__mono">{{ source.dataPath }}</span>
+          </MDescriptionsItem>
+          <MDescriptionsItem :label="t('datasources.loadedRows')">{{ t('datasources.rows', { n: rows.length }) }}</MDescriptionsItem>
+        </MDescriptions>
+      </section>
 
       <div v-if="error" class="dsd__error" role="alert">{{ error }}</div>
 
-      <div class="dsd__table">
-        <MTable
-          :columns="columns"
-          :rows="rows"
-          :loading="loading"
-          :paginator="true"
-          :rows-per-page="15"
-          :page-sizes="[15, 30, 50, 100]"
-          bordered
-          striped
-          :empty-text="t('datasources.noData')"
-        />
-      </div>
+      <section class="dsd__panel dsd__panel--table">
+        <header class="dsd__panel-head">
+          <h2 class="dsd__panel-title">{{ t('datasources.dataPreview') }}</h2>
+          <span class="dsd__panel-hint">{{ t('datasources.rows', { n: rows.length }) }}</span>
+        </header>
+        <div class="dsd__table">
+          <MTable
+            :columns="columns"
+            :rows="rows"
+            :loading="loading"
+            fill
+            :paginator="true"
+            :rows-per-page="15"
+            :page-sizes="[15, 30, 50, 100]"
+            striped
+            :empty-text="t('datasources.noData')"
+          />
+        </div>
+      </section>
     </template>
   </WorkspacePage>
 </template>
 
 <style scoped>
-.dsd__back {
+.dsd__toolbar {
   display: flex;
+  margin: -12px 0 -16px;
 }
 
-.dsd__meta {
+.dsd__panel {
+  background: var(--m-color-surface);
+  border: 1px solid var(--m-color-border);
+  border-radius: var(--m-radius-lg);
+  box-shadow: var(--m-shadow-card);
+  overflow: hidden;
+}
+
+.dsd__panel-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--m-color-split);
 }
 
-.dsd__id {
+.dsd__panel-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--m-color-text);
+}
+
+.dsd__panel-hint {
   font-size: 12px;
   color: var(--m-color-text-muted);
-  font-family: var(--m-font-mono, monospace);
 }
 
-.dsd__count {
-  margin-left: auto;
-  font-size: 13px;
-  color: var(--m-color-text-muted);
+.dsd__mono {
+  font-family: var(--m-font-mono, monospace);
+  font-size: 12px;
+}
+
+.dsd__endpoint {
+  word-break: break-all;
 }
 
 .dsd__error {
   padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--m-color-danger) 30%, transparent);
   border-radius: var(--m-radius-md);
-  background: var(--m-color-danger-soft, var(--m-color-split));
-  color: var(--m-color-danger, #d03050);
+  background: color-mix(in srgb, var(--m-color-danger) 8%, var(--m-color-surface));
+  color: var(--m-color-danger);
   font-size: 13px;
 }
 
+.dsd__panel--table {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .dsd__table {
-  background: var(--m-color-surface);
-  border-radius: var(--m-radius-lg);
-  box-shadow: var(--m-shadow-card);
-  overflow: hidden;
-  padding: 8px;
+  flex: 1;
+  min-height: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dsd__table > * {
+  flex: 1;
+  min-height: 0;
 }
 </style>

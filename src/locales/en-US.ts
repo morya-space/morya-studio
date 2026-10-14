@@ -130,6 +130,11 @@ export default {
     backToList: 'Back to data sources',
     dataPreview: 'Data preview',
     notFound: 'Data source not found',
+    basicInfo: 'Basic Info',
+    loadedRows: 'Loaded Rows',
+    statusOk: 'Loaded',
+    statusLoading: 'Loading',
+    statusError: 'Load failed',
   },
   connectors: {
     fileTab: 'File Upload',

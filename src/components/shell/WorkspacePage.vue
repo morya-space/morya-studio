@@ -1,12 +1,16 @@
 <script setup lang="ts">
-defineProps<{
+withDefaults(defineProps<{
   title: string
   summary?: string
-}>()
+  /** 撑满视口高度，配合内部 fill 区块（如全视口表格）使用 */
+  fill?: boolean
+}>(), {
+  fill: false,
+})
 </script>
 
 <template>
-  <div class="workspace-page">
+  <div class="workspace-page" :class="{ 'workspace-page--fill': fill }">
     <header class="workspace-page__header">
       <div>
         <h1>{{ title }}</h1>
@@ -25,6 +29,11 @@ defineProps<{
   padding: 24px 32px;
   background: var(--m-color-page-bg);
   min-height: 100%;
+}
+
+.workspace-page--fill {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .workspace-page__header {
