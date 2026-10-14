@@ -1,3 +1,4 @@
+import { watch } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import SettingsView from '../views/SettingsView.vue'
@@ -12,8 +13,15 @@ import ComponentsView from '../views/ComponentsView.vue'
 import AnalyticsView from '../views/AnalyticsView.vue'
 import TemplatesView from '../views/TemplatesView.vue'
 import { useSession } from '../composables/useSession'
+import { initPages, resetPages } from '../services/page'
 
-const { isAuthenticated } = useSession()
+const { isAuthenticated, token } = useSession()
+
+// 会话建立后拉取面板数据；登出后清空
+watch(token, (t) => {
+  if (t) void initPages()
+  else resetPages()
+}, { immediate: true })
 
 const router = createRouter({
   history: createWebHistory(),

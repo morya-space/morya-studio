@@ -1,54 +1,99 @@
+/**
+ * 会话：对接后端鉴权（/api/auth）。
+ * 登录获取 Bearer token，持久化到 localStorage；请求统一经 http 层注入。
+ * 401 时自动清会话并回登录页。
+ */
+
 import { computed, ref } from 'vue'
+import type { PublicUser } from '@morya-studio/shared'
+import { http, setAuthToken, setUnauthorizedHandler } from '../lib/http'
 
-const STORAGE_KEY = 'morya-studio-session'
+const STORAGE_KEY = 'morya-studio-auth'
 
-export const studioAccount = {
-  email: 'grealish@teamdek.com',
-  password: 'studio',
-  name: 'Grealish',
-  plan: 'Free member',
+interface StoredAuth {
+  token: string
+  user: PublicUser
 }
 
-export interface StudioUser {
-  name: string
-  email: string
-  plan: string
-}
-
-function readStored(): StudioUser | null {
+function readStored(): StoredAuth | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<StudioUser>
-    if (!parsed.email || !parsed.name || !parsed.plan) return null
-    return { name: parsed.name, email: parsed.email, plan: parsed.plan }
+    const parsed = JSON.parse(raw) as Partial<StoredAuth>
+    if (!parsed.token || !parsed.user) return null
+    return { token: parsed.token, user: parsed.user }
   } catch {
     return null
   }
 }
 
-const user = ref<StudioUser | null>(readStored())
+const stored = readStored()
+const token = ref<string | null>(stored?.token ?? null)
+const user = ref<PublicUser | null>(stored?.user ?? null)
 
-export function useSession() {
-  const isAuthenticated = computed(() => user.value !== null)
-
-  function login(email: string, password: string) {
-    const matches = email.trim().toLowerCase() === studioAccount.email
-      && password === studioAccount.password
-    if (!matches) return false
-    user.value = {
-      name: studioAccount.name,
-      email: studioAccount.email,
-      plan: studioAccount.plan,
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user.value))
-    return true
+// 启动即注入令牌与 401 处理
+setAuthToken(token.value)
+setUnauthorizedHandler(() => {
+  clearSession()
+  // 避免在登录页重复跳转
+  if (!location.pathname.startsWith('/login')) {
+    const redirect = encodeURIComponent(location.pathname + location.search)
+    location.href = `/login?redirect=${redirect}`
   }
+})
 
-  function logout() {
-    user.value = null
+function persist(): void {
+  if (token.value && user.value) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: token.value, user: user.value }))
+  } else {
     localStorage.removeItem(STORAGE_KEY)
   }
+}
 
-  return { user, isAuthenticated, login, logout }
+function clearSession(): void {
+  token.value = null
+  user.value = null
+  setAuthToken(null)
+  persist()
+}
+
+export function useSession() {
+  const isAuthenticated = computed(() => token.value !== null && user.value !== null)
+
+  /** 登录：成功返回 true，失败返回 false（凭据错误） */
+  async function login(email: string, password: string): Promise<boolean> {
+    try {
+      const result = await http.post<{ token: string; user: PublicUser }>('/auth/login', { email, password })
+      token.value = result.token
+      user.value = result.user
+      setAuthToken(result.token)
+      persist()
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /** 从后端刷新当前用户（权限/资料变更后） */
+  async function refreshUser(): Promise<void> {
+    if (!token.value) return
+    try {
+      const { user: fresh } = await http.get<{ user: PublicUser }>('/auth/me')
+      user.value = fresh
+      persist()
+    } catch {
+      /* 401 由 http 层统一处理 */
+    }
+  }
+
+  async function logout(): Promise<void> {
+    try {
+      await http.post('/auth/logout')
+    } catch {
+      /* 忽略登出接口异常，本地照常清理 */
+    }
+    clearSession()
+  }
+
+  return { user, token, isAuthenticated, login, logout, refreshUser }
 }

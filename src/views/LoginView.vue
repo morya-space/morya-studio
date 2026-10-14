@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { MButton, MConfigProvider, MForm, MFormItem, MInput, MInputPassword, MSpace, message } from 'morya-ui'
 import BrandMark from '../components/common/BrandMark.vue'
 import LocaleSwitch from '../components/common/LocaleSwitch.vue'
-import { studioAccount, useSession } from '../composables/useSession'
+import { useSession } from '../composables/useSession'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,7 +14,9 @@ const { t } = useI18n()
 
 const submitting = ref(false)
 const formError = ref('')
-const model = reactive({ email: studioAccount.email, password: studioAccount.password })
+// 演示账号（与后端种子管理员一致）
+const demoAccount = { email: 'grealish@teamdek.com', password: 'studio' }
+const model = reactive({ email: demoAccount.email, password: demoAccount.password })
 
 function safeRedirect(value: unknown) {
   if (typeof value !== 'string') return '/'
@@ -34,7 +36,8 @@ async function onSubmit(payload: { valid: boolean }) {
   }
   submitting.value = true
   try {
-    if (!login(model.email, model.password)) {
+    const ok = await login(model.email, model.password)
+    if (!ok) {
       formError.value = t('login.errorMismatch')
       return
     }
@@ -77,7 +80,7 @@ async function onSubmit(payload: { valid: boolean }) {
               <MButton html-type="button" type="text" @click="onForgot">{{ t('login.forgot') }}</MButton>
             </MSpace>
           </MForm>
-          <p class="login-hint">{{ t('login.demoHint', { email: studioAccount.email, password: studioAccount.password }) }}</p>
+          <p class="login-hint">{{ t('login.demoHint', { email: demoAccount.email, password: demoAccount.password }) }}</p>
         </div>
       </main>
     </div>
