@@ -8,10 +8,10 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { MButton, MForm, MFormItem, MInput, MSelect, message } from 'morya-ui'
-import WorkspacePage from '../components/shell/WorkspacePage.vue'
-import { useSession } from '../composables/useSession'
-import { setLocale, supportedLocales, type AppLocale } from '../locales'
-import { updateProfile, changePassword, getWorkspace, saveWorkspace } from '../services/settings'
+import WorkspacePage from '../../components/shell/WorkspacePage.vue'
+import { useSession } from '../../composables/useSession'
+import { setLocale, supportedLocales, type AppLocale } from '../../locales'
+import { updateProfile, changePassword, getWorkspace, saveWorkspace } from '../../services/settings'
 
 const { t, locale } = useI18n()
 const router = useRouter()

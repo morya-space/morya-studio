@@ -7,11 +7,11 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { MButton, MEmpty } from 'morya-ui'
-import SchemaRenderer from '../engine/SchemaRenderer.vue'
-import { useDataStore } from '../data/store'
-import { getPage } from '../services/page'
-import { listDataSources } from '../services/datasource'
-import type { PageSchema } from '../types/schema'
+import SchemaRenderer from '../../engine/SchemaRenderer.vue'
+import { useDataStore } from '../../data/store'
+import { getPage } from '../../services/page'
+import { listDataSources } from '../../services/datasource'
+import type { PageSchema } from '../../types/schema'
 
 const route = useRoute()
 const router = useRouter()

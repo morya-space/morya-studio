@@ -10,9 +10,9 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MButton, MFileUpload, MForm, MFormItem, MInput, MSelect, MTabs, message } from 'morya-ui'
-import WorkspacePage from '../components/shell/WorkspacePage.vue'
-import SvgIcon from '../components/common/SvgIcon.vue'
-import { importRowsAsDataSource, importDatabaseAsDataSource, parseFileText } from '../services/connector'
+import WorkspacePage from '../../components/shell/WorkspacePage.vue'
+import SvgIcon from '../../components/common/SvgIcon.vue'
+import { importRowsAsDataSource, importDatabaseAsDataSource, parseFileText } from '../../services/connector'
 
 const router = useRouter()
 const { t } = useI18n()

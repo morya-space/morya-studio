@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 设置路由：个人资料（displayName/avatar/改密码）+ 工作区配置（按 owner 键值存储）。
  */
 
@@ -66,7 +66,7 @@ export function createSettingsRoutes(db: DatabaseSync, identity: IdentityService
     const existing = get<WsRow>(db, 'SELECT * FROM workspace_configs WHERE owner_id = ?', uid)
     const name = parsed.data.name ?? existing?.name ?? ''
     const data = parsed.data.data ?? (existing ? (JSON.parse(existing.data) as Record<string, unknown>) : {})
-    const ts = new Date().toISOString()
+    const ts = new Date().toISOString().slice(0, 19).replace('T', ' ')
     run(
       db,
       `INSERT INTO workspace_configs (owner_id, name, data, updated_at) VALUES (?,?,?,?)

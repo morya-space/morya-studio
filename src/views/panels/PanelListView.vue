@@ -9,11 +9,11 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MButton, MCard, MDialog, MEmpty, MInput, message } from 'morya-ui'
-import WorkspacePage from '../components/shell/WorkspacePage.vue'
-import SvgIcon from '../components/common/SvgIcon.vue'
-import type { PageSchema } from '../types/schema'
-import { listPages, deletePage, exportPage, importPage, genPageId } from '../services/page'
-import { saveTemplate, pageToTemplate } from '../services/template'
+import WorkspacePage from '../../components/shell/WorkspacePage.vue'
+import SvgIcon from '../../components/common/SvgIcon.vue'
+import type { PageSchema } from '../../types/schema'
+import { listPages, deletePage, exportPage, importPage, genPageId } from '../../services/page'
+import { saveTemplate, pageToTemplate } from '../../services/template'
 
 const router = useRouter()
 const { t } = useI18n()

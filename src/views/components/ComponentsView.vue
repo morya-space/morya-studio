@@ -9,13 +9,13 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { MButton, MDialog, MEmpty, MForm, MFormItem, MInput, MSelect, MTag, MTabs, MTextarea, message } from 'morya-ui'
-import WorkspacePage from '../components/shell/WorkspacePage.vue'
-import { getAllRegistrations, getCardComponent, getCardRegistration } from '../engine/registry'
-import type { CardSchema, CardType } from '../types/schema'
+import WorkspacePage from '../../components/shell/WorkspacePage.vue'
+import { getAllRegistrations, getCardComponent, getCardRegistration } from '../../engine/registry'
+import type { CardSchema, CardType } from '../../types/schema'
 import {
   listCustomComponents, saveCustomComponent, deleteCustomComponent, genComponentId,
   type CustomComponent,
-} from '../services/component'
+} from '../../services/component'
 
 const { t } = useI18n()
 const router = useRouter()

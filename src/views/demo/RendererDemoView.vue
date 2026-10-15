@@ -4,9 +4,9 @@
  * 用渲染器渲染一个示例 PageSchema（含 5 种卡片），验证引擎端到端可用。
  */
 
-import SchemaRenderer from '../engine/SchemaRenderer.vue'
-import { useDataStore } from '../data/store'
-import type { PageSchema } from '../types/schema'
+import SchemaRenderer from '../../engine/SchemaRenderer.vue'
+import { useDataStore } from '../../data/store'
+import type { PageSchema } from '../../types/schema'
 
 const dataStore = useDataStore()
 

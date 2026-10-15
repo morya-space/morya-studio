@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 数据源详情路由：提供数据源详情、测试连接、同步操作等真实功能。
  * 从存储的数据源配置 + 实际数据采样生成详情页所需数据。
  */
@@ -374,7 +374,7 @@ export function createDatasourceDetailRoutes(stores: DatasourceStores, db: Datab
         result.ok ? 'success' : 'failed',
         result.sampleRows ?? 0,
         result.message ?? '',
-        new Date().toISOString(),
+        new Date().toISOString().slice(0, 19).replace('T', ' '),
       )
 
       return c.json(result)
@@ -403,7 +403,7 @@ export function createDatasourceDetailRoutes(stores: DatasourceStores, db: Datab
         'success',
         rowCount,
         `同步完成，${rowCount} 行`,
-        new Date().toISOString(),
+        new Date().toISOString().slice(0, 19).replace('T', ' '),
       )
 
       return c.json({ ok: true, message: `同步完成，${rowCount} 行`, rows: rowCount })
@@ -417,7 +417,7 @@ export function createDatasourceDetailRoutes(stores: DatasourceStores, db: Datab
         'failed',
         0,
         msg,
-        new Date().toISOString(),
+        new Date().toISOString().slice(0, 19).replace('T', ' '),
       )
       return c.json({ ok: false, message: msg })
     }

@@ -7,8 +7,8 @@
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { MButton } from 'morya-ui'
-import WorkspacePage from '../components/shell/WorkspacePage.vue'
-import SvgIcon from '../components/common/SvgIcon.vue'
+import WorkspacePage from '../../components/shell/WorkspacePage.vue'
+import SvgIcon from '../../components/common/SvgIcon.vue'
 
 const { t } = useI18n()
 const router = useRouter()
