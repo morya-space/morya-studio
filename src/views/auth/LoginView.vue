@@ -3,9 +3,9 @@ import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MButton, MConfigProvider, MForm, MFormItem, MInput, MInputPassword, MSpace, message } from 'morya-ui'
-import BrandMark from '../components/common/BrandMark.vue'
-import LocaleSwitch from '../components/common/LocaleSwitch.vue'
-import { useSession } from '../composables/useSession'
+import BrandMark from '../../components/common/BrandMark.vue'
+import LocaleSwitch from '../../components/common/LocaleSwitch.vue'
+import { useSession } from '../../composables/useSession'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,7 +25,7 @@ function safeRedirect(value: unknown) {
 }
 
 function onForgot() {
-  message.info(t('login.forgotNotReady'))
+  router.push({ name: 'forgot-password' })
 }
 
 async function onSubmit(payload: { valid: boolean }) {
@@ -81,6 +81,10 @@ async function onSubmit(payload: { valid: boolean }) {
             </MSpace>
           </MForm>
           <p class="login-hint">{{ t('login.demoHint', { email: demoAccount.email, password: demoAccount.password }) }}</p>
+          <p class="login-link">
+            {{ t('login.noAccount') }}
+            <router-link :to="{ name: 'register', query: route.query }">{{ t('login.signUp') }}</router-link>
+          </p>
         </div>
       </main>
     </div>
@@ -174,6 +178,18 @@ async function onSubmit(payload: { valid: boolean }) {
 
 .login-actions {
   margin-top: var(--m-space-2);
+}
+
+.login-link {
+  margin: 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--m-color-text-muted);
+}
+
+.login-link a {
+  color: var(--m-color-primary);
+  text-decoration: none;
 }
 
 @media (max-width: 720px) {

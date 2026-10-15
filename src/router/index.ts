@@ -1,6 +1,8 @@
 import { watch } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/auth/LoginView.vue'
+import RegisterView from '../views/auth/RegisterView.vue'
+import ForgotPasswordView from '../views/auth/ForgotPasswordView.vue'
 import SettingsView from '../views/settings/SettingsView.vue'
 import RendererDemoView from '../views/demo/RendererDemoView.vue'
 import EditorView from '../views/editor/EditorView.vue'
@@ -43,6 +45,18 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
+      meta: { public: true },
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: RegisterView,
+      meta: { public: true },
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: ForgotPasswordView,
       meta: { public: true },
     },
     // 工作台：项目概况总览

@@ -74,6 +74,35 @@ export function useSession() {
     }
   }
 
+  /** 注册：成功返回 true */
+  async function register(name: string, email: string, password: string): Promise<boolean> {
+    try {
+      await http.post<{ user: PublicUser }>('/auth/register', { name, email, password })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /** 请求密码重置：返回 resetToken（MVP 无邮件，直接返回） */
+  async function forgotPassword(email: string): Promise<{ ok: boolean; resetToken?: string }> {
+    try {
+      return await http.post<{ ok: boolean; resetToken?: string }>('/auth/forgot-password', { email })
+    } catch {
+      return { ok: false }
+    }
+  }
+
+  /** 用 token 重置密码 */
+  async function resetPassword(token: string, password: string): Promise<boolean> {
+    try {
+      await http.post('/auth/reset-password', { token, password })
+      return true
+    } catch {
+      return false
+    }
+  }
+
   /** 从后端刷新当前用户（权限/资料变更后） */
   async function refreshUser(): Promise<void> {
     if (!token.value) return
@@ -101,5 +130,5 @@ export function useSession() {
     persist()
   }
 
-  return { user, token, isAuthenticated, login, logout, refreshUser, setUser }
+  return { user, token, isAuthenticated, login, register, forgotPassword, resetPassword, logout, refreshUser, setUser }
 }
