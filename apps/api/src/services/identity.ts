@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 身份服务：用户 / 角色 / 权限 / 会话（SQLite 存储）。
  * 首次启动若无用户，播种默认角色 + 管理员。
  */
@@ -49,6 +49,9 @@ export interface IdentityService {
   // users
   listUsers: () => PublicUser[]
   createUser: (input: { name: string; email: string; password: string; roleIds?: string[] }) => PublicUser
+  register: (input: { name: string; email: string; password: string }) => PublicUser
+  requestPasswordReset: (email: string) => { ok: true; resetToken?: string }
+  resetPassword: (token: string, newPassword: string) => void
   updateUserStatus: (id: string, status: UserStatus) => void
   updateProfile: (id: string, patch: { name?: string; avatar?: string }) => PublicUser | null
   changePassword: (id: string, current: string, next: string) => void
@@ -64,14 +67,15 @@ export interface IdentityService {
 }
 
 function now(): string {
-  return new Date().toISOString()
+  // MySQL TIMESTAMP 兼容格式: YYYY-MM-DD HH:MM:SS
+  return new Date().toISOString().slice(0, 19).replace('T', ' ')
 }
 
 export function createIdentityService(db: DatabaseSync, config: AppConfig): IdentityService {
   // ---------- 内部读取 ----------
 
   function rolePermissions(roleId: string): string[] {
-    return all<{ code: string }>(db, 'SELECT code FROM role_permissions WHERE role_id = ?', roleId).map(r => r.code)
+    return all<{ code: string }>(db, 'SELECT permission_code AS code FROM role_permissions WHERE role_id = ?', roleId).map(r => r.code)
   }
 
   function userRoleIds(userId: string): string[] {
@@ -81,7 +85,7 @@ export function createIdentityService(db: DatabaseSync, config: AppConfig): Iden
   function getUserPermissions(userId: string): string[] {
     const rows = all<{ code: string }>(
       db,
-      `SELECT DISTINCT rp.code FROM role_permissions rp
+      `SELECT DISTINCT rp.permission_code AS code FROM role_permissions rp
        JOIN user_roles ur ON ur.role_id = rp.role_id
        WHERE ur.user_id = ?`,
       userId,
@@ -124,7 +128,7 @@ export function createIdentityService(db: DatabaseSync, config: AppConfig): Iden
       run(db, 'INSERT INTO roles (id, name, description, is_system, created_at) VALUES (?,?,?,1,?)',
         adminRoleId, 'admin', '系统管理员，拥有全部权限', ts)
       for (const code of PERMISSIONS) {
-        run(db, 'INSERT INTO role_permissions (role_id, code) VALUES (?,?)', adminRoleId, code)
+        run(db, 'INSERT INTO role_permissions (role_id, permission_code) VALUES (?,?)', adminRoleId, code)
       }
     }
     if (!get(db, 'SELECT id FROM roles WHERE name = ?', 'member')) {
@@ -139,17 +143,26 @@ export function createIdentityService(db: DatabaseSync, config: AppConfig): Iden
         'template:read', 'template:write',
       ]
       for (const code of memberPerms) {
-        run(db, 'INSERT INTO role_permissions (role_id, code) VALUES (?,?)', memberRoleId, code)
+        run(db, 'INSERT INTO role_permissions (role_id, permission_code) VALUES (?,?)', memberRoleId, code)
       }
     }
-    // 首个用户 → 管理员
-    const count = get<{ c: number }>(db, 'SELECT COUNT(*) AS c FROM users')?.c ?? 0
-    if (count === 0) {
+    // 确保管理员账号始终存在（不限于首个用户）
+    const adminRole = get<RoleRow>(db, 'SELECT * FROM roles WHERE name = ?', 'admin')
+    const existingAdmin = findUserRowByEmail(config.ADMIN_EMAIL)
+    if (!existingAdmin) {
       const userId = randomUUID()
       run(db, 'INSERT INTO users (id, name, email, password_hash, status, created_at) VALUES (?,?,?,?,?,?)',
         userId, config.ADMIN_NAME, config.ADMIN_EMAIL, hashPassword(config.ADMIN_PASSWORD), 'active', ts)
-      const adminRole = get<RoleRow>(db, 'SELECT * FROM roles WHERE name = ?', 'admin')
       if (adminRole) run(db, 'INSERT INTO user_roles (user_id, role_id) VALUES (?,?)', userId, adminRole.id)
+      console.log(`[seed] Admin account created: ${config.ADMIN_EMAIL}`)
+    } else {
+      // 确保管理员有 admin 角色
+      if (adminRole) {
+        const hasRole = get(db, 'SELECT user_id FROM user_roles WHERE user_id = ? AND role_id = ?', existingAdmin.id, adminRole.id)
+        if (!hasRole) {
+          run(db, 'INSERT INTO user_roles (user_id, role_id) VALUES (?,?)', existingAdmin.id, adminRole.id)
+        }
+      }
     }
   }
 
@@ -164,7 +177,7 @@ export function createIdentityService(db: DatabaseSync, config: AppConfig): Iden
 
     const sessionId = randomUUID()
     const ts = now()
-    const expires = new Date(Date.now() + config.SESSION_TTL_MS).toISOString()
+    const expires = new Date(Date.now() + config.SESSION_TTL_MS).toISOString().slice(0, 19).replace('T', ' ')
     run(db, 'INSERT INTO sessions (id, user_id, created_at, last_seen_at, expires_at, ip, user_agent) VALUES (?,?,?,?,?,?,?)',
       sessionId, row.id, ts, ts, expires, meta.ip, meta.userAgent)
     return { token: sessionId, user: toPublicUser(row) }
@@ -217,6 +230,45 @@ export function createIdentityService(db: DatabaseSync, config: AppConfig): Iden
       run(db, 'INSERT INTO user_roles (user_id, role_id) VALUES (?,?)', id, roleId)
     }
     return toPublicUser(findUserRowById(id)!)
+  }
+
+  /** 用户自助注册：分配 member 角色 */
+  function register(input: { name: string; email: string; password: string }): PublicUser {
+    const existing = findUserRowByEmail(input.email)
+    if (existing) throw new ApiError(409, 'email_exists', '该邮箱已被注册')
+    const memberRole = get<RoleRow>(db, 'SELECT * FROM roles WHERE name = ?', 'member')
+    return createUser({
+      name: input.name,
+      email: input.email,
+      password: input.password,
+      roleIds: memberRole ? [memberRole.id] : [],
+    })
+  }
+
+  /** 请求密码重置：生成 token 存入表，返回 token（MVP 无邮件服务，直接返回） */
+  function requestPasswordReset(email: string): { ok: true; resetToken?: string } {
+    const row = findUserRowByEmail(email)
+    if (!row) return { ok: true } // 不泄露用户是否存在
+    const token = randomUUID()
+    const expires = new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ') // 30 分钟
+    run(db, 'INSERT INTO password_resets (id, user_id, token, expires_at, created_at) VALUES (?,?,?,?,?)',
+      randomUUID(), row.id, token, expires, now())
+    return { ok: true, resetToken: token }
+  }
+
+  /** 用 token 重置密码 */
+  function resetPassword(token: string, newPassword: string): void {
+    const row = get<{ id: string; user_id: string; expires_at: string }>(
+      db, 'SELECT id, user_id, expires_at FROM password_resets WHERE token = ?', token)
+    if (!row) throw new ApiError(400, 'invalid_token', '重置链接无效或已过期')
+    if (new Date(row.expires_at).getTime() < Date.now()) {
+      run(db, 'DELETE FROM password_resets WHERE id = ?', row.id)
+      throw new ApiError(400, 'invalid_token', '重置链接已过期')
+    }
+    run(db, 'UPDATE users SET password_hash = ? WHERE id = ?', hashPassword(newPassword), row.user_id)
+    run(db, 'DELETE FROM password_resets WHERE id = ?', row.id)
+    // 吊销该用户所有会话
+    run(db, 'DELETE FROM sessions WHERE user_id = ?', row.user_id)
   }
 
   function updateUserStatus(id: string, status: UserStatus): void {
@@ -274,7 +326,7 @@ export function createIdentityService(db: DatabaseSync, config: AppConfig): Iden
     run(db, 'INSERT INTO roles (id, name, description, is_system, created_at) VALUES (?,?,?,0,?)',
       id, input.name, input.description ?? '', now())
     for (const code of input.permissions) {
-      run(db, 'INSERT INTO role_permissions (role_id, code) VALUES (?,?)', id, code)
+      run(db, 'INSERT INTO role_permissions (role_id, permission_code) VALUES (?,?)', id, code)
     }
     return toRole(get<RoleRow>(db, 'SELECT * FROM roles WHERE id = ?', id)!)
   }
@@ -287,7 +339,7 @@ export function createIdentityService(db: DatabaseSync, config: AppConfig): Iden
     if (patch.permissions !== undefined) {
       run(db, 'DELETE FROM role_permissions WHERE role_id = ?', id)
       for (const code of patch.permissions) {
-        run(db, 'INSERT INTO role_permissions (role_id, code) VALUES (?,?)', id, code)
+        run(db, 'INSERT INTO role_permissions (role_id, permission_code) VALUES (?,?)', id, code)
       }
     }
     return toRole(get<RoleRow>(db, 'SELECT * FROM roles WHERE id = ?', id)!)
@@ -309,6 +361,9 @@ export function createIdentityService(db: DatabaseSync, config: AppConfig): Iden
     listSessions,
     listUsers,
     createUser,
+    register,
+    requestPasswordReset,
+    resetPassword,
     updateUserStatus,
     updateProfile,
     changePassword,

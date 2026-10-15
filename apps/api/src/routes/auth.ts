@@ -13,6 +13,21 @@ const loginSchema = z.object({
   password: z.string().min(1),
 })
 
+const registerSchema = z.object({
+  name: z.string().min(1).max(50),
+  email: z.string().email(),
+  password: z.string().min(6).max(128),
+})
+
+const forgotSchema = z.object({
+  email: z.string().email(),
+})
+
+const resetSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(6).max(128),
+})
+
 export function createAuthRoutes() {
   const app = new Hono<AppBindings>()
 
@@ -27,6 +42,30 @@ export function createAuthRoutes() {
     })
     if (!result) throw new ApiError(401, 'invalid_credentials', '邮箱或密码不正确')
     return c.json(result)
+  })
+
+  app.post('/register', async (c) => {
+    const body = await c.req.json().catch(() => null)
+    const parsed = registerSchema.safeParse(body)
+    if (!parsed.success) throw new ApiError(400, 'invalid_input', '请检查输入格式')
+    const user = c.get('identity').register(parsed.data)
+    return c.json({ user }, 201)
+  })
+
+  app.post('/forgot-password', async (c) => {
+    const body = await c.req.json().catch(() => null)
+    const parsed = forgotSchema.safeParse(body)
+    if (!parsed.success) throw new ApiError(400, 'invalid_input', '邮箱格式不正确')
+    const result = c.get('identity').requestPasswordReset(parsed.data.email)
+    return c.json(result)
+  })
+
+  app.post('/reset-password', async (c) => {
+    const body = await c.req.json().catch(() => null)
+    const parsed = resetSchema.safeParse(body)
+    if (!parsed.success) throw new ApiError(400, 'invalid_input', '请检查输入格式')
+    c.get('identity').resetPassword(parsed.data.token, parsed.data.password)
+    return c.json({ ok: true })
   })
 
   app.get('/me', requireAuth, (c) => {
