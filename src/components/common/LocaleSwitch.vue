@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MDropdown } from 'morya-ui'
+import SvgIcon from './SvgIcon.vue'
 import { setLocale, supportedLocales, type AppLocale } from '../../locales'
 
 const { t, locale } = useI18n()
@@ -21,9 +22,7 @@ function onSelect(item: { value?: string }) {
     <template #trigger>
       <button class="locale-switch" type="button" :aria-label="t('language.switch')">
         <span class="locale-label">{{ current }}</span>
-        <svg class="locale-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <SvgIcon name="chevron-down" :px="12" class="locale-chevron" />
       </button>
     </template>
   </MDropdown>
