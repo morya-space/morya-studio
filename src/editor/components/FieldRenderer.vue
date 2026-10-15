@@ -44,7 +44,7 @@ const selectOptions = computed(() => {
     />
     <MSelect
       v-else-if="field.component === 'MSelect'"
-      v-model="value"
+      v-model="(value as string | number | undefined)"
       :options="selectOptions"
       fluid
       allow-clear

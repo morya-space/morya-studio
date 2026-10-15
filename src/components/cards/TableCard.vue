@@ -20,9 +20,9 @@ const tableConfig = computed(() => props.schema.table)
 const columns = computed(() =>
   (tableConfig.value?.columns ?? []).map(col => ({
     key: col.key,
-    title: col.title,
-    width: col.width,
-    align: col.align ?? 'left',
+    label: col.title,
+    width: typeof col.width === 'number' ? col.width : undefined,
+    align: (col.align === 'left' ? 'start' : col.align === 'right' ? 'end' : 'center') as 'start' | 'center' | 'end',
   })),
 )
 

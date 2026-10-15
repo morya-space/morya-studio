@@ -1,7 +1,7 @@
 ﻿import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { listPages, getPage, savePage, deletePage, exportPage, importPage, genPageId } from '../index'
 import { listDataSources, saveDataSource, deleteDataSource, genDataSourceId, getDataSource } from '../../datasource'
-import type { PageSchema } from '../../types/schema'
+import type { PageSchema } from '../../../types/schema'
 
 function makePage(id: string, title = 'T'): PageSchema {
   return { id, title, layout: 'grid', grid: { cols: 12 }, cards: [] }

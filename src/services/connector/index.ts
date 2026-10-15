@@ -7,7 +7,7 @@
  */
 
 import type { DataSourceConfig } from '../../types/schema'
-import { saveDataSource, genDataSourceId } from './datasource'
+import { saveDataSource, genDataSourceId } from '../datasource'
 
 // ==================== CSV / JSON 解析 ====================
 

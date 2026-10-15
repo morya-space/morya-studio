@@ -9,14 +9,14 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MButton, MEmpty } from 'morya-ui'
-import SvgIcon from '../components/common/SvgIcon.vue'
-import type { PageSchema } from '../types/schema'
-import { listPages, genPageId } from '../services/page'
-import { listDataSources } from '../services/datasource'
-import { listCustomComponents } from '../services/component'
-import { listTemplates } from '../services/template'
-import { getAllCardTypes } from '../engine/registry'
-import { useSession } from '../composables/useSession'
+import SvgIcon from '../../components/common/SvgIcon.vue'
+import type { PageSchema } from '../../types/schema'
+import { listPages, genPageId } from '../../services/page'
+import { listDataSources } from '../../services/datasource'
+import { listCustomComponents } from '../../services/component'
+import { listTemplates } from '../../services/template'
+import { getAllCardTypes } from '../../engine/registry'
+import { useSession } from '../../composables/useSession'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -99,6 +99,7 @@ function formatTime(iso?: string): string {
   if (!iso) return '-'
   return new Date(iso).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
+void formatTime
 
 function fmtDate(iso?: string): string {
   if (!iso) return ''
@@ -216,7 +217,7 @@ function fmtDate(iso?: string): string {
         <span class="wb-side__avatar">{{ (user?.name ?? 'M').slice(0, 1) }}</span>
         <div class="wb-side__user-meta">
           <span class="wb-side__user-name">{{ user?.name ?? 'Member' }}</span>
-          <span class="wb-side__user-plan">{{ user?.plan ?? t('user.freeMember') }}</span>
+          <span class="wb-side__user-plan">{{ t('user.freeMember') }}</span>
         </div>
       </section>
 

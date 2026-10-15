@@ -9,12 +9,12 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { MButton, MDialog, MEmpty, MForm, MFormItem, MInput, MInputNumber, MSelect, MTag, MTextarea, message } from 'morya-ui'
-import WorkspacePage from '../components/shell/WorkspacePage.vue'
-import SvgIcon from '../components/common/SvgIcon.vue'
-import type { DataSourceConfig, DataSourceType } from '../types/schema'
-import { listDataSources, saveDataSource, deleteDataSource, genDataSourceId } from '../services/datasource'
-import { getAdapter } from '../data/adapters'
-import { useDataStore } from '../data/store'
+import WorkspacePage from '../../components/shell/WorkspacePage.vue'
+import SvgIcon from '../../components/common/SvgIcon.vue'
+import type { DataSourceConfig, DataSourceType } from '../../types/schema'
+import { listDataSources, saveDataSource, deleteDataSource, genDataSourceId } from '../../services/datasource'
+import { getAdapter } from '../../data/adapters'
+import { useDataStore } from '../../data/store'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -25,6 +25,8 @@ const testingId = ref<string | null>(null)
 
 const dialogVisible = ref(false)
 const editing = ref<DataSourceConfig | null>(null)
+/** 类型守卫：确保 editing 非 null 时模板可安全访问 */
+const e = computed(() => editing.value!)
 const staticDataText = ref('[]')
 const dialogTesting = ref(false)
 
@@ -170,28 +172,28 @@ async function onDialogTest() {
     <MDialog v-model="dialogVisible" :title="t('datasources.newDs')" width="480px">
       <MForm v-if="editing" :model="editing">
         <MFormItem :label="t('datasources.name')" required>
-          <MInput v-model="editing.name" fluid />
+          <MInput v-model="e.name" fluid />
         </MFormItem>
         <MFormItem :label="t('datasources.type')" required>
-          <MSelect v-model="editing.type" :options="TYPE_OPTIONS" fluid />
+          <MSelect v-model="e.type" :options="TYPE_OPTIONS" fluid />
         </MFormItem>
 
-        <template v-if="editing.type === 'api'">
+        <template v-if="e.type === 'api'">
           <MFormItem label="URL" required>
-            <MInput v-model="editing.url" placeholder="https://api.example.com/data" fluid />
+            <MInput v-model="e.url" placeholder="https://api.example.com/data" fluid />
           </MFormItem>
           <MFormItem label="Method">
-            <MSelect v-model="editing.method" :options="METHOD_OPTIONS" fluid />
+            <MSelect v-model="e.method" :options="METHOD_OPTIONS" fluid />
           </MFormItem>
           <MFormItem label="dataPath">
-            <MInput v-model="editing.dataPath" placeholder="data.list" fluid />
+            <MInput v-model="e.dataPath" placeholder="data.list" fluid />
           </MFormItem>
           <MFormItem label="pollInterval(ms)">
-            <MInputNumber v-model="editing.pollInterval" :min="0" fluid />
+            <MInputNumber v-model="e.pollInterval" :min="0" fluid />
           </MFormItem>
         </template>
 
-        <template v-else-if="editing.type === 'static' || editing.type === 'mock'">
+        <template v-else-if="e.type === 'static' || e.type === 'mock'">
           <MFormItem label="Data (JSON)" required>
             <MTextarea v-model="staticDataText" :rows="8" fluid placeholder='[{"x":"1月","y":100}]' />
           </MFormItem>

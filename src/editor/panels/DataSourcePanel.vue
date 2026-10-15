@@ -1,11 +1,11 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 数据源面板
  * 列出已保存数据源，新建/编辑/删除/测试。
  * MVP：static/api/mock 表单；sql 占位提示。
  */
 
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { MButton, MDialog, MForm, MFormItem, MInput, MInputNumber, MSelect, MTextarea, message } from 'morya-ui'
 import type { DataSourceConfig, DataSourceType } from '../../types/schema'
 import { listDataSources, saveDataSource, deleteDataSource, genDataSourceId } from '../../services/datasource'
@@ -17,6 +17,8 @@ const sources = ref<DataSourceConfig[]>([])
 
 const dialogVisible = ref(false)
 const editing = ref<DataSourceConfig | null>(null)
+/** 类型守卫：确保 editing 非 null 时模板可安全访问 */
+const e = computed(() => editing.value!)
 const staticDataText = ref('[]')
 const testing = ref(false)
 
@@ -138,28 +140,28 @@ async function onTest() {
     <MDialog v-model="dialogVisible" title="数据源配置" width="480px">
       <MForm v-if="editing" :model="editing">
         <MFormItem label="名称" required>
-          <MInput v-model="editing.name" placeholder="如：订单 API" fluid />
+          <MInput v-model="e.name" placeholder="如：订单 API" fluid />
         </MFormItem>
         <MFormItem label="类型" required>
-          <MSelect v-model="editing.type" :options="TYPE_OPTIONS" fluid />
+          <MSelect v-model="e.type" :options="TYPE_OPTIONS" fluid />
         </MFormItem>
 
-        <template v-if="editing.type === 'api'">
+        <template v-if="e.type === 'api'">
           <MFormItem label="请求地址" required>
-            <MInput v-model="editing.url" placeholder="https://api.example.com/data" fluid />
+            <MInput v-model="e.url" placeholder="https://api.example.com/data" fluid />
           </MFormItem>
           <MFormItem label="请求方法">
-            <MSelect v-model="editing.method" :options="METHOD_OPTIONS" fluid />
+            <MSelect v-model="e.method" :options="METHOD_OPTIONS" fluid />
           </MFormItem>
           <MFormItem label="数据路径" help="如 data.list，留空取整个响应">
-            <MInput v-model="editing.dataPath" placeholder="data.list" fluid />
+            <MInput v-model="e.dataPath" placeholder="data.list" fluid />
           </MFormItem>
           <MFormItem label="轮询间隔(ms)" help="0 表示不轮询">
-            <MInputNumber v-model="editing.pollInterval" :min="0" fluid />
+            <MInputNumber v-model="e.pollInterval" :min="0" fluid />
           </MFormItem>
         </template>
 
-        <template v-else-if="editing.type === 'static' || editing.type === 'mock'">
+        <template v-else-if="e.type === 'static' || e.type === 'mock'">
           <MFormItem label="静态数据(JSON)" required>
             <MTextarea v-model="staticDataText" :rows="8" fluid placeholder='[{"x":"1月","y":100}]' />
           </MFormItem>

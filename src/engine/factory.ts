@@ -35,7 +35,7 @@ export class ComponentFactory {
 export { sortCards }
 
 /** @deprecated CSS Grid 下用 getCardGridStyle 替代 */
-export function getGridStyle(span: number = 12, cols: number = 12, gap: number = 24): Record<string, string> {
+export function getGridStyle(span: number = 12, cols: number = 12, _gap: number = 24): Record<string, string> {
   return getCardGridStyle({ id: '', type: 'custom', span }, cols)
 }
 

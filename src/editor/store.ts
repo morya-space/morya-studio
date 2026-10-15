@@ -91,12 +91,11 @@ export const useEditorStore = defineStore('editor', () => {
     const defaults = reg?.defaultConfig?.() ?? {}
     const id = genCardId(type)
     const card: CardSchema = {
+      ...defaults,
       id,
       type,
       span: 6,
       order: page.value.cards.length,
-      ...defaults,
-      id, // 确保 genCardId 不被 defaultConfig 覆盖
     } as CardSchema
 
     updateSchema(draft => {
@@ -160,7 +159,7 @@ export const useEditorStore = defineStore('editor', () => {
     updateSchema(draft => {
       const card = draft.cards.find(c => c.id === cardId)
       if (!card) return
-      setByPath(card as Record<string, unknown>, path, value)
+      setByPath(card as unknown as Record<string, unknown>, path, value)
     })
   }
 

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 图表卡（chart）
  * 用 useECharts 渲染 schema.chart 配置的图表。
@@ -14,6 +14,7 @@ const emit = defineEmits<CardEmits>()
 
 const chartConfig = computed(() => props.schema.chart ?? { chartType: 'bar' as const })
 const { containerRef } = useECharts(chartConfig.value, toRef(props, 'data'))
+void containerRef // template ref usage
 
 const height = computed(() => {
   const h = props.schema.chart?.height ?? props.schema.height ?? 280

@@ -9,11 +9,11 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { MButton, MEmpty, MInput, MTable, MTabs, MTag, message } from 'morya-ui'
-import SvgIcon from '../components/common/SvgIcon.vue'
-import type { DataSourceDetail } from '../services/datasource/detail'
-import { getDataSourceDetail, testDataSourceConnection, syncDataSource } from '../services/datasource/detail'
-import { useECharts } from '../composables/useECharts'
-import type { ChartConfig } from '../types/schema'
+import SvgIcon from '../../components/common/SvgIcon.vue'
+import type { DataSourceDetail } from '../../services/datasource/detail'
+import { getDataSourceDetail, testDataSourceConnection, syncDataSource } from '../../services/datasource/detail'
+import { useECharts } from '../../composables/useECharts'
+import type { ChartConfig } from '../../types/schema'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -21,6 +21,8 @@ const router = useRouter()
 
 // ---------- 数据源详情 ----------
 const detail = ref<DataSourceDetail | null>(null)
+/** 类型守卫：确保 detail 非 null 时模板可安全访问 */
+const d = computed(() => detail.value!)
 const loading = ref(true)
 const activeTab = ref('overview')
 const fieldSearch = ref('')
@@ -80,6 +82,7 @@ const chartConfig = computed<ChartConfig>(() => ({
 }))
 
 const { containerRef: chartRef, setOption: setChartOption } = useECharts(chartConfig.value, chartData)
+void chartRef // template ref usage
 
 // 数据变化时更新图表
 watch(chartData, () => {
@@ -215,17 +218,17 @@ function iconSvg(icon: string): string {
       <!-- 页头 -->
       <div class="dsd-header">
         <div class="dsd-header__icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" v-html="iconSvg(detail.icon)" />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" v-html="iconSvg(d.icon)" />
         </div>
         <div class="dsd-header__info">
           <div class="dsd-header__title-row">
-            <span class="dsd-header__name">{{ detail.name }}</span>
-            <MTag size="small">{{ detail.type }}</MTag>
+            <span class="dsd-header__name">{{ d.name }}</span>
+            <MTag size="small">{{ d.type }}</MTag>
             <span class="dsd-pill dsd-pill--success">
               <span class="dsd-pill__dot" />{{ t('dsd.connected') }}
             </span>
           </div>
-          <div class="dsd-header__desc">{{ detail.desc }}</div>
+          <div class="dsd-header__desc">{{ d.desc }}</div>
         </div>
         <div class="dsd-header__actions">
           <MButton :loading="testing" @click="onTest">{{ t('dsd.testConn') }}</MButton>
@@ -240,7 +243,7 @@ function iconSvg(icon: string): string {
 
       <!-- KPI 指标条 -->
       <div class="dsd-kpi-row">
-        <div v-for="(kpi, i) in detail.kpis" :key="i" class="dsd-card dsd-kpi">
+        <div v-for="(kpi, i) in d.kpis" :key="i" class="dsd-card dsd-kpi">
           <div class="dsd-kpi__label">{{ kpi[0] }}</div>
           <div class="dsd-kpi__value" :class="{ 'dsd-kpi__value--pos': kpi[3] === 'pos' }">{{ kpi[1] }}</div>
           <div class="dsd-kpi__sub">{{ kpi[2] }}</div>
@@ -256,8 +259,8 @@ function iconSvg(icon: string): string {
               <!-- 图表卡片 -->
               <div class="dsd-card">
                 <div class="dsd-card__head">
-                  <span class="dsd-card__title">{{ detail.chart.title }}</span>
-                  <MTag size="small">{{ detail.chart.tag }}</MTag>
+                  <span class="dsd-card__title">{{ d.chart.title }}</span>
+                  <MTag size="small">{{ d.chart.tag }}</MTag>
                 </div>
                 <div class="dsd-chart">
                   <div ref="chartRef" class="dsd-chart__echart" />
@@ -266,10 +269,10 @@ function iconSvg(icon: string): string {
               <!-- 连接信息 -->
               <div class="dsd-card">
                 <div class="dsd-card__head">
-                  <span class="dsd-card__title">{{ detail.connTitle }}</span>
+                  <span class="dsd-card__title">{{ d.connTitle }}</span>
                 </div>
                 <div class="dsd-conn-grid">
-                  <div v-for="(c, i) in detail.conn" :key="i">
+                  <div v-for="(c, i) in d.conn" :key="i">
                     <div class="dsd-conn__label">{{ c[0] }}</div>
                     <div class="dsd-conn__value dsd-mono">{{ c[1] }}</div>
                   </div>
@@ -283,7 +286,7 @@ function iconSvg(icon: string): string {
                   <span class="dsd-card__title">{{ t('dsd.quality') }}</span>
                 </div>
                 <div class="dsd-quality-list">
-                  <div v-for="(q, i) in detail.quality" :key="i" class="dsd-quality-item">
+                  <div v-for="(q, i) in d.quality" :key="i" class="dsd-quality-item">
                     <div class="dsd-quality-item__row">
                       <span class="dsd-quality-item__label">{{ q[0] }}</span>
                       <span class="dsd-quality-item__value dsd-num">{{ q[1] }}%</span>
@@ -303,7 +306,7 @@ function iconSvg(icon: string): string {
                   <span class="dsd-card__title">{{ t('dsd.tags') }}</span>
                 </div>
                 <div class="dsd-tag-row">
-                  <span v-for="(tag, i) in detail.tags" :key="i" class="dsd-chip">{{ tag }}</span>
+                  <span v-for="(tag, i) in d.tags" :key="i" class="dsd-chip">{{ tag }}</span>
                 </div>
               </div>
               <!-- 生成看板 -->
@@ -327,7 +330,7 @@ function iconSvg(icon: string): string {
                 </template>
               </MInput>
               <span class="dsd-fields__count">
-                {{ t('dsd.fieldCount', { n: filteredFields.length, total: detail.fields.length }) }}
+                {{ t('dsd.fieldCount', { n: filteredFields.length, total: d.fields.length }) }}
               </span>
               <span style="flex:1" />
               <MButton size="small" @click="onExportDict">{{ t('dsd.exportDict') }}</MButton>
@@ -375,7 +378,7 @@ function iconSvg(icon: string): string {
           <!-- 预览 -->
           <div v-else-if="activeValue === 'preview'" class="dsd-preview">
             <div class="dsd-preview__info">
-              <MTag size="small" class="dsd-mono">{{ detail.preview[0] }}</MTag>
+              <MTag size="small" class="dsd-mono">{{ d.preview[0] }}</MTag>
               <span class="dsd-preview__hint">{{ t('dsd.previewHint') }}</span>
             </div>
             <div class="dsd-card dsd-card--table">
@@ -392,7 +395,7 @@ function iconSvg(icon: string): string {
           <div v-else-if="activeValue === 'sync'" class="dsd-sync">
             <div class="dsd-card dsd-card--list">
               <div
-                v-for="(s, i) in detail.syncs" :key="i"
+                v-for="(s, i) in d.syncs" :key="i"
                 class="dsd-sync-row"
               >
                 <span class="dsd-sync-row__time dsd-num">{{ s[0] }}</span>
@@ -412,7 +415,7 @@ function iconSvg(icon: string): string {
           <!-- 关联看板 -->
           <div v-else-if="activeValue === 'boards'" class="dsd-boards">
             <div class="dsd-boards__grid">
-              <div v-for="(b, i) in detail.boards" :key="i" class="dsd-card dsd-board-card">
+              <div v-for="(b, i) in d.boards" :key="i" class="dsd-card dsd-board-card">
                 <div class="dsd-board-card__head">
                   <span class="dsd-board-card__icon">
                     <SvgIcon name="bar-chart" :px="18" />
