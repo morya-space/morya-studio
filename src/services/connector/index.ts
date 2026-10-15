@@ -96,13 +96,13 @@ export function parseFileText(fileName: string, text: string): Record<string, un
 // ==================== 生成数据源 ====================
 
 /** 文件导入 → static 数据源 */
-export function importFileAsDataSource(name: string, fileName: string, text: string): DataSourceConfig {
+export async function importFileAsDataSource(name: string, fileName: string, text: string): Promise<DataSourceConfig> {
   const rows = parseFileText(fileName, text)
   return importRowsAsDataSource(name || fileName.replace(/\.[^.]+$/, ''), rows)
 }
 
 /** 已解析的行数据 → static 数据源 */
-export function importRowsAsDataSource(name: string, rows: Record<string, unknown>[]): DataSourceConfig {
+export async function importRowsAsDataSource(name: string, rows: Record<string, unknown>[]): Promise<DataSourceConfig> {
   if (rows.length === 0) throw new Error('未解析到任何数据行，请检查文件内容')
   const ds: DataSourceConfig = {
     id: genDataSourceId(),
@@ -110,7 +110,7 @@ export function importRowsAsDataSource(name: string, rows: Record<string, unknow
     type: 'static',
     staticData: rows,
   }
-  saveDataSource(ds)
+  await saveDataSource(ds)
   return ds
 }
 
@@ -128,7 +128,7 @@ export interface DbConnectInput {
  * 数据库导入 → api 数据源（MVP 经 REST 桥接）。
  * 直连数据库需后端代理，这里把连接配置落成 api 数据源，运行时经桥接拉取。
  */
-export function importDatabaseAsDataSource(input: DbConnectInput): DataSourceConfig {
+export async function importDatabaseAsDataSource(input: DbConnectInput): Promise<DataSourceConfig> {
   if (!input.url?.trim()) throw new Error('请填写连接地址（REST 桥接 URL）')
   const ds: DataSourceConfig = {
     id: genDataSourceId(),
@@ -138,6 +138,6 @@ export function importDatabaseAsDataSource(input: DbConnectInput): DataSourceCon
     method: input.method ?? 'GET',
     dataPath: input.dataPath?.trim() || undefined,
   }
-  saveDataSource(ds)
+  await saveDataSource(ds)
   return ds
 }
