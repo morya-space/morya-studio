@@ -1,10 +1,14 @@
 /**
  * MySQL 数据库层：用 mysql2/promise 连接池模拟 node:sqlite 的同步接口。
- * 通过 deasync 风格的 Atomics.wait 实现同步阻塞查询，保持上层代码零改动。
+ * 通过 worker_threads 在独立线程执行查询，主线程用 Atomics.wait 等待结果。
+ * 这样不会阻塞主线程事件循环，避免死锁。
  *
  * 生产建议：逐步将上层迁移到 async/await，移除此同步桥接。
  */
 
+import { Worker, MessageChannel, receiveMessageOnPort } from 'node:worker_threads'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import mysql from 'mysql2/promise'
 
 export type SqlValue = string | number | bigint | null
@@ -21,67 +25,53 @@ export interface PreparedStatement {
   run(...params: SqlValue[]): void
 }
 
-let pool: mysql.Pool | null = null
+// ---------- Worker 线程同步查询 ----------
 
-export function getPool(): mysql.Pool {
-  if (!pool) {
-    pool = mysql.createPool({
-      host: process.env.MYSQL_HOST ?? 'mysql6.sqlpub.com',
-      port: Number(process.env.MYSQL_PORT ?? 3311),
-      database: process.env.MYSQL_DATABASE ?? 'morya_data',
-      user: process.env.MYSQL_USER ?? 'morya_admin',
-      password: process.env.MYSQL_PASSWORD ?? '',
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-      charset: 'utf8mb4',
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const WORKER_PATH = path.join(__dirname, 'worker-query.cjs')
+
+let worker: Worker | null = null
+
+function getWorker(): Worker {
+  if (!worker) {
+    worker = new Worker(WORKER_PATH, {
+      workerData: {
+        host: process.env.MYSQL_HOST ?? 'mysql6.sqlpub.com',
+        port: Number(process.env.MYSQL_PORT ?? 3311),
+        database: process.env.MYSQL_DATABASE ?? 'morya_data',
+        user: process.env.MYSQL_USER ?? 'morya_admin',
+        password: process.env.MYSQL_PASSWORD ?? 'bh4ZGrXLTBY8x9vJ',
+      },
     })
   }
-  return pool
+  return worker
 }
 
-/** 同步执行 SQL（阻塞当前线程直到完成） */
+/** 同步执行 SQL：发送给 worker 线程，用 Atomics.wait + receiveMessageOnPort 等待结果 */
 function syncQuery(sql: string, params: SqlValue[]): { rows: Record<string, unknown>[]; fields: unknown[] } {
-  const p = getPool()
+  const w = getWorker()
   const sab = new SharedArrayBuffer(4)
   const int32 = new Int32Array(sab)
-  let result: { rows: Record<string, unknown>[]; fields: unknown[] } | null = null
-  let error: Error | null = null
+  Atomics.store(int32, 0, 0)
 
-  p.query(sql, params).then(([rows, fields]) => {
-    result = { rows: rows as Record<string, unknown>[], fields: fields as unknown[] }
-    Atomics.store(int32, 0, 1)
-    Atomics.notify(int32, 0)
-  }).catch((e: Error) => {
-    error = e
-    Atomics.store(int32, 0, 1)
-    Atomics.notify(int32, 0)
-  })
+  const { port1: mainPort, port2: workerPort } = new MessageChannel()
+  w.postMessage({ sab, port: workerPort, sql, params }, [workerPort as never])
 
-  // 阻塞等待
+  // 主线程阻塞等待 worker 完成（worker 在不同线程，不会被阻塞）
   Atomics.wait(int32, 0, 0)
-  if (error) throw error
-  return result!
+
+  const msg = receiveMessageOnPort(mainPort)
+  mainPort.close()
+
+  if (!msg) throw new Error('Worker did not respond')
+  const result = msg.message as { ok: boolean; rows?: Record<string, unknown>[]; error?: string }
+  if (!result.ok) throw new Error(result.error ?? 'Unknown worker error')
+  return { rows: result.rows ?? [], fields: [] }
 }
 
 /** 同步执行写操作 */
 function syncRun(sql: string, params: SqlValue[]): void {
-  const p = getPool()
-  const sab = new SharedArrayBuffer(4)
-  const int32 = new Int32Array(sab)
-  let error: Error | null = null
-
-  p.query(sql, params).then(() => {
-    Atomics.store(int32, 0, 1)
-    Atomics.notify(int32, 0)
-  }).catch((e: Error) => {
-    error = e
-    Atomics.store(int32, 0, 1)
-    Atomics.notify(int32, 0)
-  })
-
-  Atomics.wait(int32, 0, 0)
-  if (error) throw error
+  syncQuery(sql, params)
 }
 
 class MysqlPreparedStatement implements PreparedStatement {
@@ -133,7 +123,7 @@ function migrate(d: DatabaseSync): void {
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) NOT NULL UNIQUE,
       password_hash VARCHAR(255) NOT NULL,
-      avatar TEXT NOT NULL DEFAULT '',
+      avatar TEXT,
       status VARCHAR(20) NOT NULL DEFAULT 'active',
       created_at VARCHAR(30) NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -142,7 +132,7 @@ function migrate(d: DatabaseSync): void {
     CREATE TABLE IF NOT EXISTS workspace_configs (
       owner_id VARCHAR(36) PRIMARY KEY,
       name VARCHAR(255) NOT NULL DEFAULT '',
-      data TEXT NOT NULL DEFAULT '{}',
+      data TEXT,
       updated_at VARCHAR(30) NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `)
@@ -150,7 +140,7 @@ function migrate(d: DatabaseSync): void {
     CREATE TABLE IF NOT EXISTS roles (
       id VARCHAR(36) PRIMARY KEY,
       name VARCHAR(255) NOT NULL UNIQUE,
-      description TEXT NOT NULL DEFAULT '',
+      description TEXT,
       is_system TINYINT NOT NULL DEFAULT 0,
       created_at VARCHAR(30) NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -199,11 +189,23 @@ function migrate(d: DatabaseSync): void {
   ensureIndex(d, 'idx_login_events_user', 'login_events', 'user_id')
 
   d.exec(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id VARCHAR(36) PRIMARY KEY,
+      user_id VARCHAR(36) NOT NULL,
+      token VARCHAR(64) NOT NULL UNIQUE,
+      expires_at VARCHAR(30) NOT NULL,
+      created_at VARCHAR(30) NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `)
+  ensureIndex(d, 'idx_password_resets_token', 'password_resets', 'token')
+
+  d.exec(`
     CREATE TABLE IF NOT EXISTS pages (
       id VARCHAR(36) PRIMARY KEY,
       owner_id VARCHAR(36) NOT NULL,
       title VARCHAR(255) NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
+      description TEXT,
       \`schema\` TEXT NOT NULL,
       created_at VARCHAR(30) NOT NULL,
       updated_at VARCHAR(30) NOT NULL,
@@ -231,7 +233,7 @@ function migrate(d: DatabaseSync): void {
       id VARCHAR(36) PRIMARY KEY,
       owner_id VARCHAR(36) NOT NULL,
       title VARCHAR(255) NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
+      description TEXT,
       icon VARCHAR(50) NOT NULL DEFAULT 'layout',
       page TEXT NOT NULL,
       created_at VARCHAR(30) NOT NULL,
@@ -247,7 +249,7 @@ function migrate(d: DatabaseSync): void {
       owner_id VARCHAR(36) NOT NULL,
       name VARCHAR(255) NOT NULL,
       base_type VARCHAR(50) NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
+      description TEXT,
       icon VARCHAR(50) NOT NULL DEFAULT 'layers',
       config TEXT NOT NULL,
       created_at VARCHAR(30) NOT NULL,
@@ -271,7 +273,7 @@ function migrate(d: DatabaseSync): void {
   ensureIndex(d, 'idx_sync_logs_ds', 'sync_logs', 'datasource_id')
 
   // 轻量列迁移：为已存在的旧库补充后加的列（幂等，忽略「列已存在」错误）
-  ensureColumn(d, 'users', 'avatar', "TEXT NOT NULL DEFAULT ''")
+  ensureColumn(d, 'users', 'avatar', "TEXT")
 }
 
 /** 若索引不存在则创建（MySQL 无 CREATE INDEX IF NOT EXISTS） */
@@ -315,8 +317,8 @@ export function run(d: DatabaseSync, sql: string, ...params: SqlValue[]): void {
 
 /** 关闭连接池（测试/迁移用） */
 export async function closePool(): Promise<void> {
-  if (pool) {
-    await pool.end()
-    pool = null
+  if (worker) {
+    worker.terminate()
+    worker = null
   }
 }

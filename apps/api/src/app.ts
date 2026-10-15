@@ -6,6 +6,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { getConfig, type AppConfig } from './config/env'
 import { getDb } from './db/database'
+import { backupDatabase } from './db/backup'
 import type { DatabaseSync } from './db/mysql'
 import { errorHandler } from './middleware/error-handler'
 import { requestId } from './middleware/request-id'
@@ -34,6 +35,15 @@ export function createStudio(config?: AppConfig, db?: DatabaseSync): StudioConte
   const database = db ?? getDb()
   const identity = createIdentityService(database, resolvedConfig)
   identity.seed()
+
+  // 启动后异步备份数据库到本地文件夹（不阻塞服务启动）
+  setImmediate(() => {
+    try {
+      backupDatabase(database)
+    } catch (e) {
+      console.error('[backup] Startup backup failed:', e)
+    }
+  })
   const stores = {
     ...createPageStores(database),
     ...createDatasourceStores(database),

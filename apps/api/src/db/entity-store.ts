@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 业务实体存储工厂：pages / datasources / templates / components 共用一套
  * 按 owner 隔离的 CRUD 逻辑。负载以 JSON 文本存储，标量列单独提取以便查询/约束。
  */
@@ -44,7 +44,7 @@ export interface EntityStore<TPayload = unknown> {
 }
 
 function now(): string {
-  return new Date().toISOString()
+  return new Date().toISOString().slice(0, 19).replace('T', ' ')
 }
 
 export function createEntityStore<TPayload>(
