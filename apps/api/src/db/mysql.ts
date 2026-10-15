@@ -206,7 +206,7 @@ function migrate(d: DatabaseSync): void {
       owner_id VARCHAR(36) NOT NULL,
       title VARCHAR(255) NOT NULL,
       description TEXT,
-      \`schema\` TEXT NOT NULL,
+      \`schema\` LONGTEXT NOT NULL,
       created_at VARCHAR(30) NOT NULL,
       updated_at VARCHAR(30) NOT NULL,
       FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
@@ -220,7 +220,7 @@ function migrate(d: DatabaseSync): void {
       owner_id VARCHAR(36) NOT NULL,
       name VARCHAR(255) NOT NULL,
       type VARCHAR(20) NOT NULL,
-      config TEXT NOT NULL,
+      config LONGTEXT NOT NULL,
       created_at VARCHAR(30) NOT NULL,
       updated_at VARCHAR(30) NOT NULL,
       FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
@@ -235,7 +235,7 @@ function migrate(d: DatabaseSync): void {
       title VARCHAR(255) NOT NULL,
       description TEXT,
       icon VARCHAR(50) NOT NULL DEFAULT 'layout',
-      page TEXT NOT NULL,
+      page LONGTEXT NOT NULL,
       created_at VARCHAR(30) NOT NULL,
       updated_at VARCHAR(30) NOT NULL,
       FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
@@ -251,7 +251,7 @@ function migrate(d: DatabaseSync): void {
       base_type VARCHAR(50) NOT NULL,
       description TEXT,
       icon VARCHAR(50) NOT NULL DEFAULT 'layers',
-      config TEXT NOT NULL,
+      config LONGTEXT NOT NULL,
       created_at VARCHAR(30) NOT NULL,
       updated_at VARCHAR(30) NOT NULL,
       FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
@@ -274,6 +274,12 @@ function migrate(d: DatabaseSync): void {
 
   // 轻量列迁移：为已存在的旧库补充后加的列（幂等，忽略「列已存在」错误）
   ensureColumn(d, 'users', 'avatar', "TEXT")
+
+  // 大字段列类型升级：TEXT(64KB) → LONGTEXT(4GB)，面板/数据源/组件 JSON 可能超 64KB
+  ensureLongTextColumn(d, 'pages', 'schema')
+  ensureLongTextColumn(d, 'datasources', 'config')
+  ensureLongTextColumn(d, 'templates', 'page')
+  ensureLongTextColumn(d, 'components', 'config')
 }
 
 /** 若索引不存在则创建（MySQL 无 CREATE INDEX IF NOT EXISTS） */
@@ -297,6 +303,20 @@ function ensureColumn(d: DatabaseSync, table: string, column: string, definition
     d.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`)
   } catch {
     // 列已存在或表不存在，忽略
+  }
+}
+
+/** 若列类型不是 LONGTEXT 则升级（TEXT → LONGTEXT，幂等） */
+function ensureLongTextColumn(d: DatabaseSync, table: string, column: string): void {
+  try {
+    const rows = d.prepare(
+      `SELECT DATA_TYPE AS type FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+    ).all(table, column) as { type: string }[]
+    if (rows.length === 0) return
+    if (rows[0].type === 'longtext') return
+    d.exec(`ALTER TABLE ${table} MODIFY COLUMN ${column} LONGTEXT NOT NULL`)
+  } catch {
+    // 表不存在或已是 LONGTEXT，忽略
   }
 }
 
