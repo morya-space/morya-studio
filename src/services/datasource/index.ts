@@ -1,11 +1,11 @@
-/**
+﻿/**
  * 数据源持久化服务：后端 API 为权威源，内存缓存提供同步读取。
  * 与 page 服务同一模式：写操作同步更新内存 + 异步写后端；读操作走内存；
  * initDataSources() 在登录后拉取后端数据填充缓存。
  */
 
-import type { DataSourceConfig } from '../types/schema'
-import { http } from '../lib/http'
+import type { DataSourceConfig } from '../../types/schema'
+import { http } from '../../lib/http'
 
 const cache = new Map<string, DataSourceConfig>()
 let loaded = false

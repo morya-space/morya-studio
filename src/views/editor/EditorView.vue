@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 低代码编辑器主视图
  * 三栏布局：左（组件/数据源/大纲）+ 中（画布）+ 右（属性）

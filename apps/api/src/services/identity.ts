@@ -4,7 +4,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import type { DatabaseSync } from 'node:sqlite'
+import type { DatabaseSync } from '../db/mysql'
 import type { PublicUser, Role, SessionInfo, UserStatus } from '@morya-studio/shared'
 import { all, get, run } from '../db/database'
 import { hashPassword, verifyPassword } from './password'

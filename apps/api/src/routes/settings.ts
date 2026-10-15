@@ -5,7 +5,7 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import type { WorkspaceConfig } from '@morya-studio/shared'
-import type { DatabaseSync } from 'node:sqlite'
+import type { DatabaseSync } from '../db/mysql'
 import type { AppBindings } from '../types/context'
 import { requireAuth } from '../middleware/auth'
 import { ApiError } from '../middleware/error-handler'
@@ -70,7 +70,7 @@ export function createSettingsRoutes(db: DatabaseSync, identity: IdentityService
     run(
       db,
       `INSERT INTO workspace_configs (owner_id, name, data, updated_at) VALUES (?,?,?,?)
-       ON CONFLICT(owner_id) DO UPDATE SET name = excluded.name, data = excluded.data, updated_at = excluded.updated_at`,
+       ON DUPLICATE KEY UPDATE name = VALUES(name), data = VALUES(data), updated_at = VALUES(updated_at)`,
       uid, name, JSON.stringify(data), ts,
     )
     const config: WorkspaceConfig = { name, data, updatedAt: ts }

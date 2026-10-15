@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 分析（/analytics）
  * 占位页：跨面板的数据洞察、趋势对比与智能解读能力建设中。

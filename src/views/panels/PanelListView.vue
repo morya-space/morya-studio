@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 面板列表（/panels）
  * 可视化面板的增删改查：新建 / 导入 / 编辑 / 预览 / 导出 / 删除 / 存为模板。

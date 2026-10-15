@@ -1,10 +1,10 @@
-/**
+﻿/**
  * 自定义组件持久化服务：后端 API 为权威源，内存缓存提供同步读取。
  * 内置卡片组件来自引擎注册表（engine/registry），不在此服务内。
  */
 
-import { http } from '../lib/http'
-import type { CardSchema } from '../types/schema'
+import { http } from '../../lib/http'
+import type { CardSchema } from '../../types/schema'
 
 export interface CustomComponent {
   id: string

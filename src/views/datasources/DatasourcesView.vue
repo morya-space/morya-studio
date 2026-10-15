@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 数据源管理（/datasources）
  * 数据的存储与展示：列出全部数据源，支持测试连通性、编辑、删除、新建。

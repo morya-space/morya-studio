@@ -1,11 +1,11 @@
-/**
+﻿/**
  * 模板持久化服务：后端 API 为权威源，内存缓存提供同步读取。
  * 模板 = 可复用的面板快照（含卡片与数据源配置），创建面板时可直接套用。
  */
 
-import type { PageSchema } from '../types/schema'
-import { SCHEMA_VERSION } from '../types/schema'
-import { http } from '../lib/http'
+import type { PageSchema } from '../../types/schema'
+import { SCHEMA_VERSION } from '../../types/schema'
+import { http } from '../../lib/http'
 
 export interface PanelTemplate {
   id: string

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useEditorStore } from '../store'
 import { registerBuiltinCards } from '../../components/cards'
-import type { PageSchema } from '../../types/schema'
+import type { PageSchema } from '../../../types/schema'
 
 function makePage(cards: PageSchema['cards'] = []): PageSchema {
   return { id: 'p1', title: 'T', layout: 'grid', grid: { cols: 12, gap: 24 }, cards }

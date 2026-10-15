@@ -6,7 +6,7 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import type { DataSourceConfig } from '@morya-studio/shared'
-import type { DatabaseSync } from 'node:sqlite'
+import type { DatabaseSync } from '../db/mysql'
 import type { AppBindings } from '../types/context'
 import { requireAuth, requirePermission } from '../middleware/auth'
 import { ApiError } from '../middleware/error-handler'

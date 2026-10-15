@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 看板预览页
  * 加载指定 id 的页面 Schema 并用 SchemaRenderer 渲染（最终消费形态）。

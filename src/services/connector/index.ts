@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 连接器服务（MVP：纯前端实现）
  * 连接器 = 把外部数据接入平台，落地为标准数据源（services/datasource）。
  * - 文件连接器：解析 CSV / JSON 文本为行数组，生成 static 数据源。
@@ -6,7 +6,7 @@
  *   直连 MySQL / PostgreSQL 等需后端代理，预留为后续能力。
  */
 
-import type { DataSourceConfig } from '../types/schema'
+import type { DataSourceConfig } from '../../types/schema'
 import { saveDataSource, genDataSourceId } from './datasource'
 
 // ==================== CSV / JSON 解析 ====================

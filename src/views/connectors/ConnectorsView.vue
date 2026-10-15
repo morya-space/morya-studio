@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 连接器（/connectors）
  * 把外部数据接入平台，落地为标准数据源：

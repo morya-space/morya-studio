@@ -4,7 +4,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import type { DatabaseSync } from 'node:sqlite'
+import type { DatabaseSync } from './mysql'
 import { all, get, run } from '../db/database'
 
 export interface EntityRecord<TPayload = unknown> {

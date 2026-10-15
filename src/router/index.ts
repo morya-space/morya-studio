@@ -1,18 +1,18 @@
 import { watch } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
-import LoginView from '../views/LoginView.vue'
-import SettingsView from '../views/SettingsView.vue'
-import RendererDemoView from '../views/RendererDemoView.vue'
-import EditorView from '../views/EditorView.vue'
-import PreviewView from '../views/PreviewView.vue'
-import WorkbenchView from '../views/WorkbenchView.vue'
-import PanelListView from '../views/PanelListView.vue'
-import DatasourcesView from '../views/DatasourcesView.vue'
-import DatasourceDetailView from '../views/DatasourceDetailView.vue'
-import ConnectorsView from '../views/ConnectorsView.vue'
-import ComponentsView from '../views/ComponentsView.vue'
-import AnalyticsView from '../views/AnalyticsView.vue'
-import TemplatesView from '../views/TemplatesView.vue'
+import LoginView from '../views/auth/LoginView.vue'
+import SettingsView from '../views/settings/SettingsView.vue'
+import RendererDemoView from '../views/demo/RendererDemoView.vue'
+import EditorView from '../views/editor/EditorView.vue'
+import PreviewView from '../views/preview/PreviewView.vue'
+import WorkbenchView from '../views/dashboard/WorkbenchView.vue'
+import PanelListView from '../views/panels/PanelListView.vue'
+import DatasourcesView from '../views/datasources/DatasourcesView.vue'
+import DatasourceDetailView from '../views/datasources/DatasourceDetailView.vue'
+import ConnectorsView from '../views/connectors/ConnectorsView.vue'
+import ComponentsView from '../views/components/ComponentsView.vue'
+import AnalyticsView from '../views/analytics/AnalyticsView.vue'
+import TemplatesView from '../views/templates/TemplatesView.vue'
 import { useSession } from '../composables/useSession'
 import { initPages, resetPages } from '../services/page'
 import { initDataSources, resetDataSources } from '../services/datasource'
@@ -63,11 +63,12 @@ const router = createRouter({
       name: 'datasources',
       component: DatasourcesView,
     },
-    // 数据源详情：单个数据源的数据预览
+    // 数据源详情：单个数据源的数据预览（全屏独立页，无侧栏/顶栏）
     {
       path: '/datasources/:id',
       name: 'datasource-detail',
       component: DatasourceDetailView,
+      meta: { bare: true },
     },
     // 连接器：上传文件 / 连接数据库导入数据
     {

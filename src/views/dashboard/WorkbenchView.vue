@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 工作台（/）
  * 金融风三栏布局：左窄图标栏（全局壳）+ 中间主内容 + 右侧信息面板。

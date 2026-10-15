@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 组件库（/components）
  * 内置组件：引擎注册的卡片组件，实时预览（活文档）。

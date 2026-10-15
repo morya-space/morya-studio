@@ -2,11 +2,11 @@
  * 应用组装：中间件 + 路由挂载。
  */
 
-import type { DatabaseSync } from 'node:sqlite'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { getConfig, type AppConfig } from './config/env'
 import { getDb } from './db/database'
+import type { DatabaseSync } from './db/mysql'
 import { errorHandler } from './middleware/error-handler'
 import { requestId } from './middleware/request-id'
 import { createIdentityService, type IdentityService } from './services/identity'
@@ -19,6 +19,7 @@ import { createTemplateRoutes, createTemplateStores, type TemplateStores } from 
 import { createSettingsRoutes } from './routes/settings'
 import { createConnectorRoutes } from './routes/connectors'
 import { createHealthRoutes } from './routes/health'
+import { createDatasourceDetailRoutes } from './routes/datasource-detail'
 import type { AppBindings } from './types/context'
 
 export interface StudioContext {
@@ -30,7 +31,7 @@ export interface StudioContext {
 
 export function createStudio(config?: AppConfig, db?: DatabaseSync): StudioContext {
   const resolvedConfig = config ?? getConfig()
-  const database = db ?? getDb(resolvedConfig.DB_FILE)
+  const database = db ?? getDb()
   const identity = createIdentityService(database, resolvedConfig)
   identity.seed()
   const stores = {
@@ -58,6 +59,7 @@ export function createStudio(config?: AppConfig, db?: DatabaseSync): StudioConte
   app.route('/api', createIdentityRoutes())
   app.route('/api/pages', createPageRoutes(stores))
   app.route('/api/datasources', createDatasourceRoutes(stores))
+  app.route('/api/datasources', createDatasourceDetailRoutes(stores, database))
   app.route('/api/components', createComponentRoutes(stores))
   app.route('/api/templates', createTemplateRoutes(stores))
   app.route('/api/settings', createSettingsRoutes(database, identity))

@@ -1,9 +1,9 @@
-/**
+﻿/**
  * 设置服务：个人资料 / 工作区配置，对接后端 /api/settings。
  */
 
 import type { PublicUser, WorkspaceConfig } from '@morya-studio/shared'
-import { http } from '../lib/http'
+import { http } from '../../lib/http'
 
 export async function updateProfile(patch: { name?: string; avatar?: string }): Promise<PublicUser> {
   const { user } = await http.patch<{ user: PublicUser }>('/settings/profile', patch)

@@ -1,13 +1,13 @@
-/**
+﻿/**
  * 面板持久化服务：后端 API 为权威源，内存缓存提供同步读取。
  * - 写操作（save/delete/import）同步更新内存，异步写后端（fire-and-forget + 错误上报）。
  * - 读操作（list/get/export）读内存缓存；initPages() 在登录后拉取后端数据填充缓存。
  * 这样编辑器/列表/工作台等既有同步调用方无需改动。
  */
 
-import type { PageSchema } from '../types/schema'
-import { SCHEMA_VERSION } from '../types/schema'
-import { http } from '../lib/http'
+import type { PageSchema } from '../../types/schema'
+import { SCHEMA_VERSION } from '../../types/schema'
+import { http } from '../../lib/http'
 
 const cache = new Map<string, PageSchema>()
 let loaded = false

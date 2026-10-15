@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * SchemaRenderer 集成验证页
  * 用渲染器渲染一个示例 PageSchema（含 5 种卡片），验证引擎端到端可用。

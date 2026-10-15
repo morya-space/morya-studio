@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 设置（/settings）
  * 账户资料（可编辑）/ 修改密码 / 工作区 / 偏好（语言等）。

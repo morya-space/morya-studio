@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 /**
  * 模板（/templates）
  * 内置模板：预置看板，一键创建可编辑面板。
