@@ -7,6 +7,10 @@
 import { computed, ref } from 'vue'
 import type { PublicUser } from '@morya-studio/shared'
 import { http, setAuthToken, setUnauthorizedHandler } from '../lib/http'
+import { resetPages } from '../services/page'
+import { resetDataSources } from '../services/datasource'
+import { resetComponents } from '../services/component'
+import { resetTemplates } from '../services/template'
 
 const STORAGE_KEY = 'morya-studio-auth'
 
@@ -55,6 +59,11 @@ function clearSession(): void {
   user.value = null
   setAuthToken(null)
   persist()
+  // 会话失效（登出/401）时清空业务缓存，避免串号；下次进入页面时由各页面重新 init
+  resetPages()
+  resetDataSources()
+  resetComponents()
+  resetTemplates()
 }
 
 export function useSession() {

@@ -6,11 +6,11 @@
 
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { MButton, MEmpty } from 'morya-ui'
+import { MButton, MEmpty, MLoading } from 'morya-ui'
 import SchemaRenderer from '../../engine/SchemaRenderer.vue'
 import { useDataStore } from '../../data/store'
-import { getPage } from '../../services/page'
-import { listDataSources } from '../../services/datasource'
+import { initPages, getPage } from '../../services/page'
+import { initDataSources, listDataSources } from '../../services/datasource'
 import type { PageSchema } from '../../types/schema'
 
 const route = useRoute()
@@ -19,16 +19,24 @@ const dataStore = useDataStore()
 
 const page = ref<PageSchema | null>(null)
 const notFound = ref(false)
+const loading = ref(true)
 
 const title = computed(() => page.value?.title ?? '看板')
 
-onMounted(() => {
-  for (const ds of listDataSources()) dataStore.registerDataSource(ds)
+onMounted(async () => {
+  try {
+    // 缓存就绪后再取页面与数据源（init 幂等）
+    await Promise.all([initPages(), initDataSources()])
 
-  const id = route.params.id as string
-  const found = getPage(id)
-  if (found) page.value = found
-  else notFound.value = true
+    for (const ds of listDataSources()) dataStore.registerDataSource(ds)
+
+    const id = route.params.id as string
+    const found = getPage(id)
+    if (found) page.value = found
+    else notFound.value = true
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
@@ -42,7 +50,11 @@ onMounted(() => {
       <MButton type="default" @click="router.push(`/editor/${page.id}`)">编辑</MButton>
     </header>
 
-    <div v-if="notFound" class="preview-notfound">
+    <div v-if="loading" class="preview-loading">
+      <MLoading text="加载中…" />
+    </div>
+
+    <div v-else-if="notFound" class="preview-notfound">
       <MEmpty title="看板不存在" description="它可能已被删除">
         <template #extra>
           <MButton type="primary" @click="router.push('/pages')">返回列表</MButton>
@@ -61,6 +73,13 @@ onMounted(() => {
   background: var(--m-color-page-bg);
   min-height: 100%;
   padding: 24px 32px;
+}
+
+.preview-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
 }
 
 .preview-header {

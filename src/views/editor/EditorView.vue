@@ -8,7 +8,7 @@
 
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { MDialog, MScrollbar } from 'morya-ui'
+import { MDialog, MLoading, MScrollbar } from 'morya-ui'
 import EditorTopBar from '../../editor/components/EditorTopBar.vue'
 import EditorLeftPanel from '../../editor/components/EditorLeftPanel.vue'
 import EditorRightPanel from '../../editor/components/EditorRightPanel.vue'
@@ -16,29 +16,37 @@ import EditorCanvas from '../../editor/components/EditorCanvas.vue'
 import SchemaRenderer from '../../engine/SchemaRenderer.vue'
 import { useEditorStore } from '../../editor/store'
 import { useDataStore } from '../../data/store'
-import { getPage, genPageId } from '../../services/page'
-import { listDataSources } from '../../services/datasource'
+import { initPages, getPage, genPageId } from '../../services/page'
+import { initDataSources, listDataSources } from '../../services/datasource'
 
 const route = useRoute()
 const editorStore = useEditorStore()
 const dataStore = useDataStore()
 
 const previewVisible = ref(false)
+/** 缓存就绪后再渲染编辑器子面板（子面板同步读 listDataSources） */
+const ready = ref(false)
 
-onMounted(() => {
-  // 注册已保存的数据源，供画布实时预览
-  for (const ds of listDataSources()) dataStore.registerDataSource(ds)
+onMounted(async () => {
+  try {
+    // 缓存就绪后再初始化画布（init 幂等，从列表页进入时秒回）
+    await Promise.all([initPages(), initDataSources()])
 
-  // 加载已有页面或新建
-  const id = route.params.id as string | undefined
-  if (id) {
-    const page = getPage(id)
-    if (page) editorStore.loadPage(page)
-    else editorStore.newPage(id)
-  } else {
-    editorStore.newPage(genPageId())
+    // 注册已保存的数据源，供画布实时预览
+    for (const ds of listDataSources()) dataStore.registerDataSource(ds)
+
+    // 加载已有页面或新建
+    const id = route.params.id as string | undefined
+    if (id) {
+      const page = getPage(id)
+      if (page) editorStore.loadPage(page)
+      else editorStore.newPage(id)
+    } else {
+      editorStore.newPage(genPageId())
+    }
+  } finally {
+    ready.value = true
   }
-
   window.addEventListener('keydown', onKeydown)
 })
 
@@ -71,10 +79,13 @@ function onPreview() {
 <template>
   <div class="editor-view">
     <EditorTopBar @preview="onPreview" />
-    <div class="editor-main">
+    <div v-if="ready" class="editor-main">
       <EditorLeftPanel />
       <EditorCanvas />
       <EditorRightPanel />
+    </div>
+    <div v-else class="editor-loading">
+      <MLoading text="加载中…" />
     </div>
 
     <!-- 预览：用真实 SchemaRenderer 渲染当前 Schema -->
@@ -102,6 +113,14 @@ function onPreview() {
   flex: 1;
   display: flex;
   overflow: hidden;
+  min-height: 0;
+}
+
+.editor-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 0;
 }
 

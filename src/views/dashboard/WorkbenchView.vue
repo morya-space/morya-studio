@@ -8,13 +8,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { MButton, MEmpty } from 'morya-ui'
+import { MButton, MCard, MEmpty, MSkeleton } from 'morya-ui'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 import type { PageSchema } from '../../types/schema'
-import { listPages, genPageId } from '../../services/page'
-import { listDataSources } from '../../services/datasource'
-import { listCustomComponents } from '../../services/component'
-import { listTemplates } from '../../services/template'
+import { initPages, listPages, genPageId } from '../../services/page'
+import { initDataSources, listDataSources } from '../../services/datasource'
+import { initComponents, listCustomComponents } from '../../services/component'
+import { initTemplates, listTemplates } from '../../services/template'
 import { getAllCardTypes } from '../../engine/registry'
 import { useSession } from '../../composables/useSession'
 
@@ -26,6 +26,7 @@ const pages = ref<PageSchema[]>([])
 const dsCount = ref(0)
 const componentCount = ref(0)
 const templateCount = ref(0)
+const loading = ref(true)
 
 // 顶部问候 + 总资产（面板里卡片总数）
 const totalCards = computed(() => pages.value.reduce((n, p) => n + p.cards.length, 0))
@@ -89,7 +90,15 @@ function refresh() {
   templateCount.value = listTemplates().length
 }
 
-onMounted(refresh)
+onMounted(async () => {
+  try {
+    // 四类缓存从后端就绪后再读（init 幂等，重复进入秒回）
+    await Promise.all([initPages(), initDataSources(), initComponents(), initTemplates()])
+    refresh()
+  } finally {
+    loading.value = false
+  }
+})
 
 function onEdit(id: string) {
   router.push(`/editor/${id}`)
@@ -127,7 +136,8 @@ function fmtDate(iso?: string): string {
       </div>
 
       <!-- 紫色资产横幅 -->
-      <section class="wb-banner">
+      <MSkeleton v-if="loading" height="104px" border-radius="var(--m-radius-lg)" />
+      <section v-else class="wb-banner">
         <div v-for="s in bannerStats" :key="s.key" class="wb-banner__item">
           <span class="wb-banner__icon"><SvgIcon :name="s.icon" :px="22" /></span>
           <div class="wb-banner__meta">
@@ -143,13 +153,19 @@ function fmtDate(iso?: string): string {
       <!-- 中部两栏：最近面板 + 数据概览 -->
       <div class="wb-mid">
         <!-- 最近面板（交易列表风） -->
-        <section class="wb-panel wb-panels">
-          <div class="wb-panel__head">
-            <h3 class="wb-panel__title">{{ t('workbench.recentPanels') }}</h3>
-            <MButton type="text" size="small" @click="router.push('/panels')">{{ t('workbench.viewAll') }}</MButton>
+        <MCard class="wb-panels" shadow="always" :bordered="false">
+          <template #header>
+            <div class="wb-panel__head">
+              <h3 class="wb-panel__title">{{ t('workbench.recentPanels') }}</h3>
+              <MButton type="text" size="small" @click="router.push('/panels')">{{ t('workbench.viewAll') }}</MButton>
+            </div>
+          </template>
+
+          <div v-if="loading" class="wb-skeleton-rows">
+            <MSkeleton v-for="i in 4" :key="i" height="52px" border-radius="var(--m-radius-md)" />
           </div>
 
-          <div v-if="recentPages.length === 0" class="wb-panels__empty">
+          <div v-else-if="recentPages.length === 0" class="wb-panels__empty">
             <MEmpty :title="t('workbench.emptyTitle')" :description="t('workbench.emptyDesc')">
               <template #extra>
                 <MButton type="primary" @click="router.push(`/editor/${genPageId()}`)">{{ t('workbench.createNow') }}</MButton>
@@ -174,13 +190,19 @@ function fmtDate(iso?: string): string {
               <SvgIcon name="arrow-up-right" :px="16" class="wb-tx__go" />
             </button>
           </div>
-        </section>
+        </MCard>
 
         <!-- 数据概览（仪表风） -->
-        <section class="wb-panel wb-gauge">
-          <div class="wb-panel__head">
-            <h3 class="wb-panel__title">{{ t('workbench.overview') }}</h3>
+        <MCard class="wb-gauge" shadow="always" :bordered="false">
+          <template #header>
+            <div class="wb-panel__head">
+              <h3 class="wb-panel__title">{{ t('workbench.overview') }}</h3>
+            </div>
+          </template>
+          <div v-if="loading" class="wb-gauge__skeleton">
+            <MSkeleton shape="circle" width="150px" height="150px" />
           </div>
+          <div v-else class="wb-gauge__content">
           <div class="wb-gauge__body">
             <svg class="wb-gauge__svg" viewBox="0 0 180 100" aria-hidden="true">
               <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="var(--m-color-split)" stroke-width="14" stroke-linecap="round" />
@@ -206,24 +228,30 @@ function fmtDate(iso?: string): string {
               <span class="wb-gauge__legend-val">{{ s.value }}</span>
             </li>
           </ul>
-        </section>
+          </div>
+        </MCard>
       </div>
     </div>
 
     <!-- ============ 右侧信息面板 ============ -->
     <aside class="wb-side">
       <!-- 用户卡 -->
-      <section class="wb-side__user">
-        <span class="wb-side__avatar">{{ (user?.name ?? 'M').slice(0, 1) }}</span>
-        <div class="wb-side__user-meta">
-          <span class="wb-side__user-name">{{ user?.name ?? 'Member' }}</span>
-          <span class="wb-side__user-plan">{{ t('user.freeMember') }}</span>
+      <MCard shadow="always" :bordered="false" size="sm">
+        <div class="wb-side__user">
+          <span class="wb-side__avatar">{{ (user?.name ?? 'M').slice(0, 1) }}</span>
+          <div class="wb-side__user-meta">
+            <span class="wb-side__user-name">{{ user?.name ?? 'Member' }}</span>
+            <span class="wb-side__user-plan">{{ t('user.freeMember') }}</span>
+          </div>
         </div>
-      </section>
+      </MCard>
 
       <!-- Active Members -->
-      <section class="wb-card">
-        <h4 class="wb-card__title">{{ t('workbench.activeMembers') }}</h4>
+      <MCard shadow="always" :bordered="false">
+        <template #header>
+          <h4 class="wb-card__title">{{ t('workbench.activeMembers') }}</h4>
+        </template>
+        <div class="wb-card__body">
         <div class="wb-members__bar">
           <span
             v-for="m in members"
@@ -239,11 +267,15 @@ function fmtDate(iso?: string): string {
             <span class="wb-members__pct">{{ m.pct }}%</span>
           </li>
         </ul>
-      </section>
+        </div>
+      </MCard>
 
       <!-- Upgrade -->
-      <section class="wb-card wb-upgrade">
-        <h4 class="wb-card__title">{{ t('workbench.upgradeTitle') }}</h4>
+      <MCard class="wb-upgrade" shadow="always" :bordered="false">
+        <template #header>
+          <h4 class="wb-card__title">{{ t('workbench.upgradeTitle') }}</h4>
+        </template>
+        <div class="wb-card__body">
         <p class="wb-upgrade__desc">{{ t('workbench.upgradeDesc') }}</p>
         <MButton type="primary" class="wb-upgrade__btn" @click="router.push('/settings')">
           {{ t('workbench.upgradeNow') }}
@@ -251,7 +283,8 @@ function fmtDate(iso?: string): string {
         <div class="wb-upgrade__art" aria-hidden="true">
           <SvgIcon name="crown" :px="64" />
         </div>
-      </section>
+        </div>
+      </MCard>
     </aside>
   </div>
 </template>
@@ -307,6 +340,19 @@ function fmtDate(iso?: string): string {
 .wb-top__actions {
   display: flex;
   gap: 8px;
+}
+
+.wb-skeleton-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wb-gauge__skeleton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
 }
 
 /* 紫色横幅 */
@@ -376,20 +422,12 @@ function fmtDate(iso?: string): string {
   align-items: start;
 }
 
-.wb-panel {
-  background: var(--m-color-surface);
-  border-radius: var(--m-radius-lg);
-  box-shadow: var(--m-shadow-card);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
+/* 中部卡片外观由 MCard 承载，这里只留头部布局 */
 .wb-panel__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
 }
 
 .wb-panel__title {
@@ -473,6 +511,12 @@ function fmtDate(iso?: string): string {
 }
 
 /* 数据概览仪表 */
+.wb-gauge__content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .wb-gauge__body {
   position: relative;
   display: flex;
@@ -552,10 +596,6 @@ function fmtDate(iso?: string): string {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
-  background: var(--m-color-surface);
-  border-radius: var(--m-radius-lg);
-  box-shadow: var(--m-shadow-card);
 }
 
 .wb-side__avatar {
@@ -587,11 +627,8 @@ function fmtDate(iso?: string): string {
   color: var(--m-color-text-muted);
 }
 
-.wb-card {
-  background: var(--m-color-surface);
-  border-radius: var(--m-radius-lg);
-  box-shadow: var(--m-shadow-card);
-  padding: 18px;
+/* 右侧卡片外观由 MCard 承载，body 内多元素间距用 wrapper 保持 */
+.wb-card__body {
   display: flex;
   flex-direction: column;
   gap: 14px;

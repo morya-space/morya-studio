@@ -8,13 +8,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { MButton, MCard, MEmpty, MTabs, message } from 'morya-ui'
+import { MButton, MCard, MEmpty, MSkeleton, MTabs, message } from 'morya-ui'
 import WorkspacePage from '../../components/shell/WorkspacePage.vue'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 import { buildDemoPage, demoDataSources } from '../../data/demoBoard'
-import { savePage, genPageId } from '../../services/page'
-import { saveDataSource, getDataSource } from '../../services/datasource'
-import { listTemplates, deleteTemplate, type PanelTemplate } from '../../services/template'
+import { initPages, savePage, genPageId } from '../../services/page'
+import { initDataSources, saveDataSource, getDataSource } from '../../services/datasource'
+import { initTemplates, listTemplates, deleteTemplate, type PanelTemplate } from '../../services/template'
 import type { PageSchema } from '../../types/schema'
 import { SCHEMA_VERSION } from '../../types/schema'
 
@@ -67,12 +67,21 @@ const builtinTemplates = computed<BuiltinTemplate[]>(() => [
 ])
 
 const customs = ref<PanelTemplate[]>([])
+const loading = ref(true)
 
 function refreshCustoms() {
   customs.value = listTemplates()
 }
 
-onMounted(refreshCustoms)
+onMounted(async () => {
+  try {
+    // 读模板列表；「使用模板」会写 page / datasource 缓存，先确保三者就绪（init 幂等）
+    await Promise.all([initPages(), initDataSources(), initTemplates()])
+    refreshCustoms()
+  } finally {
+    loading.value = false
+  }
+})
 
 function persistDemoDataSources() {
   for (const ds of demoDataSources) {
@@ -126,7 +135,10 @@ function onDeleteCustom(tpl: PanelTemplate) {
 
         <!-- 我的模板 -->
         <div v-else>
-          <div v-if="customs.length === 0" class="templates__empty">
+          <div v-if="loading" class="templates__grid">
+            <MSkeleton v-for="i in 3" :key="i" height="220px" border-radius="var(--m-radius-lg)" />
+          </div>
+          <div v-else-if="customs.length === 0" class="templates__empty">
             <MEmpty :title="t('templates.emptyCustom')" />
           </div>
           <div v-else class="templates__grid">

@@ -8,11 +8,12 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { MButton, MDialog, MEmpty, MForm, MFormItem, MInput, MSelect, MTag, MTabs, MTextarea, message } from 'morya-ui'
+import { MButton, MDialog, MEmpty, MForm, MFormItem, MInput, MSelect, MSkeleton, MTag, MTabs, MTextarea, message } from 'morya-ui'
 import WorkspacePage from '../../components/shell/WorkspacePage.vue'
 import { getAllRegistrations, getCardComponent, getCardRegistration } from '../../engine/registry'
 import type { CardSchema, CardType } from '../../types/schema'
 import {
+  initComponents,
   listCustomComponents, saveCustomComponent, deleteCustomComponent, genComponentId,
   type CustomComponent,
 } from '../../services/component'
@@ -106,6 +107,7 @@ function resolve(type: string) {
 // ==================== 自定义组件 ====================
 
 const customs = ref<CustomComponent[]>([])
+const loading = ref(true)
 const dialogVisible = ref(false)
 const editing = ref<CustomComponent | null>(null)
 const configText = ref('{}')
@@ -118,7 +120,14 @@ function refreshCustoms() {
   customs.value = listCustomComponents()
 }
 
-onMounted(refreshCustoms)
+onMounted(async () => {
+  try {
+    await initComponents()
+    refreshCustoms()
+  } finally {
+    loading.value = false
+  }
+})
 
 function onAdd() {
   const firstType = (getAllRegistrations()[0]?.type ?? 'stat') as CardType
@@ -205,7 +214,10 @@ function openDemo() {
 
           <!-- 自定义组件 -->
           <div v-else>
-            <div v-if="customs.length === 0" class="empty">
+            <div v-if="loading" class="grid">
+              <MSkeleton v-for="i in 3" :key="i" height="140px" border-radius="var(--m-radius-lg)" />
+            </div>
+            <div v-else-if="customs.length === 0" class="empty">
               <MEmpty :title="t('components.emptyCustom')">
                 <template #extra>
                   <MButton type="primary" @click="onAdd">{{ t('components.createNow') }}</MButton>
@@ -285,7 +297,6 @@ function openDemo() {
   background: var(--m-color-surface);
   border-radius: var(--m-radius-lg);
   padding: 20px;
-  box-shadow: var(--m-shadow-card);
   display: flex;
   flex-direction: column;
   gap: 8px;

@@ -57,3 +57,12 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--m-color-text-muted);
 }
+
+/* ========== 全局卡片风格（工作台 wb-panel 风格） ========== */
+/* 所有 MCard 统一：无边框 + 大圆角 + 浅阴影 + hover 加深 */
+.m-card {
+  border: none;
+  border-radius: var(--m-radius-lg);
+  box-shadow: var(--m-shadow-card);
+  transition: box-shadow 0.18s ease;
+}

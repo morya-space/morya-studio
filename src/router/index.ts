@@ -1,4 +1,3 @@
-import { watch } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/auth/LoginView.vue'
 import RegisterView from '../views/auth/RegisterView.vue'
@@ -16,27 +15,8 @@ import ComponentsView from '../views/components/ComponentsView.vue'
 import AnalyticsView from '../views/analytics/AnalyticsView.vue'
 import TemplatesView from '../views/templates/TemplatesView.vue'
 import { useSession } from '../composables/useSession'
-import { initPages, resetPages } from '../services/page'
-import { initDataSources, resetDataSources } from '../services/datasource'
-import { initComponents, resetComponents } from '../services/component'
-import { initTemplates, resetTemplates } from '../services/template'
 
-const { isAuthenticated, token } = useSession()
-
-// 会话建立后拉取业务数据；登出后清空
-watch(token, (t) => {
-  if (t) {
-    void initPages()
-    void initDataSources()
-    void initComponents()
-    void initTemplates()
-  } else {
-    resetPages()
-    resetDataSources()
-    resetComponents()
-    resetTemplates()
-  }
-}, { immediate: true })
+const { isAuthenticated } = useSession()
 
 const router = createRouter({
   history: createWebHistory(),

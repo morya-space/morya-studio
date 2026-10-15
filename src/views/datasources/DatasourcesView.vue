@@ -8,11 +8,11 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { MButton, MDialog, MEmpty, MForm, MFormItem, MInput, MInputNumber, MSelect, MTag, MTextarea, message } from 'morya-ui'
+import { MButton, MDialog, MEmpty, MForm, MFormItem, MInput, MInputNumber, MSelect, MSkeleton, MTag, MTextarea, message } from 'morya-ui'
 import WorkspacePage from '../../components/shell/WorkspacePage.vue'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 import type { DataSourceConfig, DataSourceType } from '../../types/schema'
-import { listDataSources, saveDataSource, deleteDataSource, genDataSourceId } from '../../services/datasource'
+import { initDataSources, listDataSources, saveDataSource, deleteDataSource, genDataSourceId } from '../../services/datasource'
 import { getAdapter } from '../../data/adapters'
 import { useDataStore } from '../../data/store'
 
@@ -21,6 +21,7 @@ const router = useRouter()
 const dataStore = useDataStore()
 
 const sources = ref<DataSourceConfig[]>([])
+const loading = ref(true)
 const testingId = ref<string | null>(null)
 
 const dialogVisible = ref(false)
@@ -44,7 +45,14 @@ function refresh() {
   sources.value = listDataSources()
 }
 
-onMounted(refresh)
+onMounted(async () => {
+  try {
+    await initDataSources()
+    refresh()
+  } finally {
+    loading.value = false
+  }
+})
 
 function typeLabel(type: DataSourceType): string {
   return t(`datasources.${type}`)
@@ -136,7 +144,11 @@ async function onDialogTest() {
         </MButton>
       </div>
 
-      <div v-if="sources.length === 0" class="datasources__empty">
+      <div v-if="loading" class="datasources__skeleton">
+        <MSkeleton v-for="i in 4" :key="i" height="52px" border-radius="var(--m-radius-md)" />
+      </div>
+
+      <div v-else-if="sources.length === 0" class="datasources__empty">
         <MEmpty :title="t('datasources.empty')">
           <template #extra>
             <MButton type="primary" @click="onAdd">{{ t('datasources.newDs') }}</MButton>
@@ -221,6 +233,12 @@ async function onDialogTest() {
   gap: 8px;
 }
 
+.datasources__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .datasources__empty {
   padding: 40px 0;
 }
@@ -246,7 +264,7 @@ async function onDialogTest() {
 }
 
 .datasources__row--head {
-  background: var(--m-color-page-bg);
+  background: var(--m-color-fill-light);
   font-size: 12px;
   font-weight: 600;
   color: var(--m-color-text-muted);

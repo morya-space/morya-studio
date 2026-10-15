@@ -8,17 +8,18 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { MButton, MCard, MDialog, MEmpty, MInput, message } from 'morya-ui'
+import { MButton, MCard, MDialog, MEmpty, MInput, MSkeleton, message } from 'morya-ui'
 import WorkspacePage from '../../components/shell/WorkspacePage.vue'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 import type { PageSchema } from '../../types/schema'
-import { listPages, deletePage, exportPage, importPage, genPageId } from '../../services/page'
-import { saveTemplate, pageToTemplate } from '../../services/template'
+import { initPages, listPages, deletePage, exportPage, importPage, genPageId } from '../../services/page'
+import { initTemplates, saveTemplate, pageToTemplate } from '../../services/template'
 
 const router = useRouter()
 const { t } = useI18n()
 
 const pages = ref<PageSchema[]>([])
+const loading = ref(true)
 
 const importVisible = ref(false)
 const importJson = ref('')
@@ -32,7 +33,15 @@ function refresh() {
   pages.value = listPages()
 }
 
-onMounted(refresh)
+onMounted(async () => {
+  try {
+    // 读面板列表；「存为模板」会写 template 缓存，先确保两者就绪（init 幂等）
+    await Promise.all([initPages(), initTemplates()])
+    refresh()
+  } finally {
+    loading.value = false
+  }
+})
 
 function onCreate() {
   router.push(`/editor/${genPageId()}`)
@@ -106,7 +115,11 @@ function formatTime(iso?: string): string {
         </MButton>
       </div>
 
-      <div v-if="pages.length === 0" class="panels__empty">
+      <div v-if="loading" class="panels__grid">
+        <MSkeleton v-for="i in 6" :key="i" height="190px" border-radius="var(--m-radius-lg)" />
+      </div>
+
+      <div v-else-if="pages.length === 0" class="panels__empty">
         <MEmpty :title="t('panels.emptyTitle')" :description="t('panels.emptyDesc')">
           <template #extra>
             <MButton type="primary" @click="onCreate">{{ t('panels.createNow') }}</MButton>
