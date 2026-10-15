@@ -76,8 +76,8 @@ describe('datasource service', () => {
     expect(getDataSource('ds1')?.name).toBe('API')
   })
 
-  it('save requires id', () => {
-    expect(() => saveDataSource({ type: 'api' } as never)).toThrow(/id/)
+  it('save requires id', async () => {
+    await expect(saveDataSource({ type: 'api' } as never)).rejects.toThrow(/id/)
   })
 
   it('delete removes', () => {

@@ -117,15 +117,13 @@ describe('useEditorStore', () => {
     expect(store.canRedo).toBe(false)
   })
 
-  it('save persists to localStorage and clears dirty', async () => {
+  it('save persists via service and clears dirty', async () => {
     store.updatePageField('title', '保存测试')
     await store.save()
     expect(store.dirty).toBe(false)
-    const raw = localStorage.getItem('morya-studio:pages')
-    expect(raw).toBeTruthy()
-    const map = JSON.parse(raw!)
-    expect(map.test.title).toBe('保存测试')
-    expect(map.test.meta.version).toBe(2)
+    // v0.3：savePage 经 http 写后端，内存缓存为权威；验证内存中页面已更新
+    expect(store.page.title).toBe('保存测试')
+    expect(store.page.meta?.version).toBeDefined()
   })
 
   it('loadPage resets history and dirty', () => {

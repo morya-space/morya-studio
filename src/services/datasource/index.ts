@@ -48,14 +48,20 @@ export function getDataSource(id: string): DataSourceConfig | null {
   return cache.get(id) ?? null
 }
 
-export function saveDataSource(ds: DataSourceConfig): void {
+export async function saveDataSource(ds: DataSourceConfig): Promise<void> {
   if (!ds.id) throw new Error('数据源缺少 id')
   const exists = cache.has(ds.id)
   cache.set(ds.id, ds)
-  const req = exists
-    ? http.put(`/datasources/${ds.id}`, ds)
-    : http.post('/datasources', ds)
-  Promise.resolve(req).catch(reportSyncError)
+  try {
+    if (exists) {
+      await http.put(`/datasources/${ds.id}`, ds)
+    } else {
+      await http.post('/datasources', ds)
+    }
+  } catch (e) {
+    reportSyncError(e)
+    // 网络错误时保留在内存缓存，不阻断用户操作
+  }
 }
 
 export function deleteDataSource(id: string): void {
