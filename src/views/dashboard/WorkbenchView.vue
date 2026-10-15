@@ -296,7 +296,8 @@ function fmtDate(iso?: string): string {
   gap: 28px;
   padding: 28px 32px;
   background: var(--m-color-page-bg);
-  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
   align-items: start;
 }
 

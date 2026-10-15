@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { MConfigProvider, MScrollbar, enUS, zhCN } from 'morya-ui'
+import { MConfigProvider, enUS, zhCN } from 'morya-ui'
 import AppSidebar from './layouts/AppSidebar.vue'
 import AppHeader from './layouts/AppHeader.vue'
 
@@ -20,9 +20,9 @@ const moryaLocale = computed(() => locale.value === 'zh-CN' ? zhCN : enUS)
       <AppSidebar />
       <div class="app-main">
         <AppHeader />
-        <MScrollbar class="app-content" wrap-class="app-content__wrap">
+        <main class="app-content">
           <router-view />
-        </MScrollbar>
+        </main>
       </div>
     </div>
   </MConfigProvider>
@@ -48,27 +48,12 @@ const moryaLocale = computed(() => locale.value === 'zh-CN' ? zhCN : enUS)
   overflow: hidden;
 }
 
-/* header 固定不滚动，仅内容区独立滚动（MScrollbar 提供统一滚动条） */
+/* 内容区为固定视口，不滚动；滚动由各路由页面自行决定 */
 .app-content {
   flex: 1;
   min-height: 0;
   height: 100%;
-}
-
-/* fill 页面（如数据源详情表格撑满剩余高度）：打通 wrap → view → 页面根 的高度链 */
-.app-content__wrap {
-  height: 100%;
-}
-.app-content__wrap:has(> .m-scrollbar__view > .workspace-page--fill) {
+  width: 100%;
   overflow: hidden;
-}
-.app-content__wrap:has(> .m-scrollbar__view > .workspace-page--fill) > .m-scrollbar__view {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-.app-content__wrap > .m-scrollbar__view > .workspace-page--fill {
-  flex: 1;
-  min-height: 0;
 }
 </style>

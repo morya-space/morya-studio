@@ -28,11 +28,12 @@ withDefaults(defineProps<{
   gap: 24px;
   padding: 24px 32px;
   background: var(--m-color-page-bg);
-  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .workspace-page--fill {
-  min-height: 0;
+  height: 100%;
   overflow: hidden;
 }
 

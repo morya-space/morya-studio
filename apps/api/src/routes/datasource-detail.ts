@@ -202,7 +202,7 @@ async function buildDetail(
   // 从 pages 中查找引用此数据源的看板
   const pages = all<{ id: string; title: string; schema: string }>(
     db,
-    'SELECT id, title, schema FROM pages WHERE owner_id = ?',
+    'SELECT id, title, `schema` FROM pages WHERE owner_id = ?',
     ownerId,
   )
   const boards: [string, string][] = []

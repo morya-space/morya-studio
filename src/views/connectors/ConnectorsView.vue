@@ -334,27 +334,30 @@ const nextLabel = computed(() =>
     <section class="section">
       <p class="section__title">{{ t('connectors.quickEntry') }}</p>
       <div class="entry-grid">
-        <button class="entry" type="button" @click="openWizard('file')">
+        <MCard class="entry" shadow="always" :bordered="false" role="button" tabindex="0"
+          @click="openWizard('file')" @keydown.enter="openWizard('file')">
           <span class="entry__icon">
             <SvgIcon name="upload" :px="20" />
           </span>
           <span class="entry__name">{{ t('connectors.entryFile') }}</span>
           <span class="entry__desc">{{ t('connectors.entryFileDesc') }}</span>
-        </button>
-        <button class="entry" type="button" @click="openWizard('db')">
+        </MCard>
+        <MCard class="entry" shadow="always" :bordered="false" role="button" tabindex="0"
+          @click="openWizard('db')" @keydown.enter="openWizard('db')">
           <span class="entry__icon">
             <SvgIcon name="database" :px="20" />
           </span>
           <span class="entry__name">{{ t('connectors.entryDb') }}</span>
           <span class="entry__desc">{{ t('connectors.entryDbDesc') }}</span>
-        </button>
-        <button class="entry" type="button" @click="openWizard('api')">
+        </MCard>
+        <MCard class="entry" shadow="always" :bordered="false" role="button" tabindex="0"
+          @click="openWizard('api')" @keydown.enter="openWizard('api')">
           <span class="entry__icon">
             <SvgIcon name="api" :px="20" />
           </span>
           <span class="entry__name">{{ t('connectors.entryApi') }}</span>
           <span class="entry__desc">{{ t('connectors.entryApiDesc') }}</span>
-        </button>
+        </MCard>
       </div>
     </section>
 
@@ -595,7 +598,7 @@ const nextLabel = computed(() =>
   margin: 0 0 12px;
 }
 
-/* 快速接入卡片 — 工作台 wb-panel 卡片风格 */
+/* 快速接入卡片 — 外观由 MCard + 全局 .m-card 承载，这里只留内部布局 */
 .entry-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -607,19 +610,8 @@ const nextLabel = computed(() =>
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  padding: 20px;
-  background: var(--m-color-surface);
-  border: none;
-  border-radius: var(--m-radius-lg);
-  box-shadow: var(--m-shadow-card);
   cursor: pointer;
   text-align: left;
-  transition: box-shadow 0.18s, transform 0.18s;
-}
-
-.entry:hover {
-  box-shadow: var(--m-shadow-card-hover);
-  transform: translateY(-2px);
 }
 
 .entry__icon {

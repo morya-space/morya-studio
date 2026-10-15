@@ -172,6 +172,7 @@ function onCardAction(cardId: string, action: { label: string; action: string })
 .renderer-demo {
   padding: 24px 32px;
   background: var(--m-color-page-bg);
-  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
 }
 </style>

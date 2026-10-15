@@ -71,7 +71,8 @@ onMounted(async () => {
 <style scoped>
 .preview-view {
   background: var(--m-color-page-bg);
-  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
   padding: 24px 32px;
 }
 

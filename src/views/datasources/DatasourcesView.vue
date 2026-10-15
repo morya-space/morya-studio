@@ -8,7 +8,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { MButton, MDialog, MEmpty, MForm, MFormItem, MInput, MInputNumber, MSelect, MSkeleton, MTag, MTextarea, message } from 'morya-ui'
+import { MButton, MDialog, MEmpty, MForm, MFormItem, MInput, MInputNumber, MSelect, MSkeleton, MTable, MTag, MTextarea, message, type TableColumnDefinition } from 'morya-ui'
 import WorkspacePage from '../../components/shell/WorkspacePage.vue'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 import type { DataSourceConfig, DataSourceType } from '../../types/schema'
@@ -40,6 +40,13 @@ const METHOD_OPTIONS = [
   { label: 'GET', value: 'GET' },
   { label: 'POST', value: 'POST' },
 ]
+
+const columns = computed<TableColumnDefinition[]>(() => [
+  { key: 'name', label: t('datasources.name'), minWidth: 200 },
+  { key: 'type', label: t('datasources.type'), width: 120 },
+  { key: 'detail', label: t('datasources.detail'), minWidth: 220, render: (row) => detailOf(row as DataSourceConfig) },
+  { key: 'actions', label: '', width: 280 },
+])
 
 function refresh() {
   sources.value = listDataSources()
@@ -157,26 +164,35 @@ async function onDialogTest() {
       </div>
 
       <div v-else class="datasources__table">
-        <div class="datasources__row datasources__row--head">
-          <span class="col-name">{{ t('datasources.name') }}</span>
-          <span class="col-type">{{ t('datasources.type') }}</span>
-          <span class="col-detail">{{ t('datasources.detail') }}</span>
-          <span class="col-actions" />
-        </div>
-        <div v-for="ds in sources" :key="ds.id" class="datasources__row">
-          <span class="col-name">
-            <span class="ds-name">{{ ds.name }}</span>
-            <span class="ds-id">{{ ds.id }}</span>
-          </span>
-          <span class="col-type"><MTag>{{ typeLabel(ds.type) }}</MTag></span>
-          <span class="col-detail">{{ detailOf(ds) }}</span>
-          <span class="col-actions">
-            <MButton type="text" size="small" @click="router.push(`/datasources/${ds.id}`)">{{ t('datasources.viewData') }}</MButton>
-            <MButton type="text" size="small" :loading="testingId === ds.id" @click="onTest(ds)">{{ t('datasources.test') }}</MButton>
-            <MButton type="text" size="small" @click="onEdit(ds)">{{ t('datasources.edit') }}</MButton>
-            <MButton type="text" size="small" danger @click="onDelete(ds)">{{ t('datasources.delete') }}</MButton>
-          </span>
-        </div>
+        <MTable
+          :columns="columns"
+          :rows="sources"
+          row-key="id"
+          :paginator="true"
+          :rows-per-page="8"
+          :page-sizes="[8, 16, 32]"
+          show-rows-per-page
+          :empty-text="t('datasources.empty')"
+          striped
+        >
+          <template #cell-name="{ row }">
+            <div class="ds-name-cell">
+              <span class="ds-name">{{ row.name }}</span>
+              <span class="ds-id">{{ row.id }}</span>
+            </div>
+          </template>
+          <template #cell-type="{ row }">
+            <MTag>{{ typeLabel(row.type) }}</MTag>
+          </template>
+          <template #cell-actions="{ row }">
+            <div class="ds-actions">
+              <MButton type="text" size="small" @click="router.push(`/datasources/${row.id}`)">{{ t('datasources.viewData') }}</MButton>
+              <MButton type="text" size="small" :loading="testingId === row.id" @click="onTest(row as DataSourceConfig)">{{ t('datasources.test') }}</MButton>
+              <MButton type="text" size="small" @click="onEdit(row as DataSourceConfig)">{{ t('datasources.edit') }}</MButton>
+              <MButton type="text" size="small" danger @click="onDelete(row as DataSourceConfig)">{{ t('datasources.delete') }}</MButton>
+            </div>
+          </template>
+        </MTable>
       </div>
     </div>
 
@@ -225,6 +241,7 @@ async function onDialogTest() {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  height: 100%;
 }
 
 .datasources__head {
@@ -250,29 +267,7 @@ async function onDialogTest() {
   overflow: hidden;
 }
 
-.datasources__row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 2fr 1.6fr;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--m-color-split);
-}
-
-.datasources__row:last-child {
-  border-bottom: none;
-}
-
-.datasources__row--head {
-  background: var(--m-color-fill-light);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.col-name {
+.ds-name-cell {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -291,18 +286,9 @@ async function onDialogTest() {
   font-family: var(--m-font-mono, monospace);
 }
 
-.col-detail {
-  font-size: 13px;
-  color: var(--m-color-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.col-actions {
+.ds-actions {
   display: flex;
   align-items: center;
   gap: 4px;
-  justify-content: flex-end;
 }
 </style>

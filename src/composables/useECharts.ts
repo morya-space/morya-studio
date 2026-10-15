@@ -286,6 +286,11 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
     window.addEventListener('resize', resize)
   })
 
+  // 容器可能晚于挂载才渲染（如异步数据就绪后），出现时补初始化
+  watch(containerRef, (el) => {
+    if (el && !chart.value) initChart()
+  }, { flush: 'post' })
+
   onBeforeUnmount(() => {
     window.removeEventListener('resize', resize)
     chart.value?.dispose()
