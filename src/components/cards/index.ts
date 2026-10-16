@@ -9,6 +9,8 @@ import ChartCard from './ChartCard.vue'
 import TableCard from './TableCard.vue'
 import ListCard from './ListCard.vue'
 import BannerCard from './BannerCard.vue'
+import TextCard from './TextCard.vue'
+import CustomCard from './CustomCard.vue'
 
 const CHART_TYPE_OPTIONS = [
   { label: '柱状图', value: 'bar' },
@@ -33,6 +35,7 @@ export function registerBuiltinCards(): void {
     label: '指标卡',
     icon: 'wallet',
     description: '单个核心数值 + 趋势',
+    category: 'chart',
     defaultConfig: () => ({
       type: 'stat',
       title: '指标',
@@ -56,6 +59,7 @@ export function registerBuiltinCards(): void {
     label: '图表',
     icon: 'bar-chart',
     description: '柱/线/饼/面积/雷达等',
+    category: 'chart',
     defaultConfig: () => ({
       type: 'chart',
       title: '图表',
@@ -81,6 +85,7 @@ export function registerBuiltinCards(): void {
     label: '表格',
     icon: 'grid',
     description: '数据表格 + 分页',
+    category: 'chart',
     defaultConfig: () => ({
       type: 'table',
       title: '表格',
@@ -100,6 +105,7 @@ export function registerBuiltinCards(): void {
     label: '列表',
     icon: 'file',
     description: '键值列表 + 趋势',
+    category: 'chart',
     defaultConfig: () => ({
       type: 'list',
       title: '列表',
@@ -121,6 +127,7 @@ export function registerBuiltinCards(): void {
     label: '横幅',
     icon: 'star',
     description: '品牌渐变横幅 + CTA',
+    category: 'basic',
     defaultConfig: () => ({
       type: 'banner',
       span: 12,
@@ -133,6 +140,43 @@ export function registerBuiltinCards(): void {
       { field: 'banner.buttonAction', label: '按钮动作', component: 'MInput' },
     ],
   })
+
+  registerCard({
+    type: 'text',
+    component: TextCard,
+    label: '文本',
+    icon: 'doc',
+    description: '富文本 / 轻量 Markdown',
+    category: 'basic',
+    defaultConfig: () => ({
+      type: 'text',
+      span: 6,
+      text: { content: '# 标题\n\n输入 **文本** 内容，支持轻量 Markdown。', markdown: true },
+    }),
+    editorSchema: [
+      { field: 'title', label: '标题', component: 'MInput' },
+      { field: 'text.content', label: '内容', component: 'MTextarea' },
+      { field: 'text.markdown', label: 'Markdown', component: 'MSwitch' },
+    ],
+  })
+
+  registerCard({
+    type: 'custom',
+    component: CustomCard,
+    label: '自定义',
+    icon: 'code',
+    description: '逃生舱：渲染自定义 HTML',
+    category: 'basic',
+    defaultConfig: () => ({
+      type: 'custom',
+      span: 6,
+      custom: { html: '<div style="padding:8px 0">自定义内容</div>' },
+    }),
+    editorSchema: [
+      { field: 'title', label: '标题', component: 'MInput' },
+      { field: 'custom.html', label: 'HTML', component: 'MTextarea' },
+    ],
+  })
 }
 
-export { StatCard, ChartCard, TableCard, ListCard, BannerCard }
+export { StatCard, ChartCard, TableCard, ListCard, BannerCard, TextCard, CustomCard }

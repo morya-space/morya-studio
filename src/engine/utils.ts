@@ -20,6 +20,16 @@ export function getCardKey(card: CardSchema): string {
   return `card-${card.id}-${card.type}`
 }
 
+/** 数据型卡片：需要数据源才能渲染的类型 */
+export const DATA_CARD_TYPES = ['stat', 'chart', 'table', 'list'] as const
+
+/** 卡片是否需要数据源但尚未绑定（编辑态显示占位图） */
+export function cardNeedsDataSource(card: CardSchema): boolean {
+  return (DATA_CARD_TYPES as readonly string[]).includes(card.type)
+    && !card.dataSourceId
+    && !card.dataSource
+}
+
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n))
 }

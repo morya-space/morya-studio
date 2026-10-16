@@ -5,7 +5,7 @@
  * MVP：static/api/mock 表单；sql 占位提示。
  */
 
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { MButton, MDialog, MForm, MFormItem, MInput, MInputNumber, MSelect, MTextarea, message } from 'morya-ui'
 import type { DataSourceConfig, DataSourceType } from '../../types/schema'
 import { listDataSources, saveDataSource, deleteDataSource, genDataSourceId } from '../../services/datasource'
@@ -20,18 +20,28 @@ const editing = ref<DataSourceConfig | null>(null)
 /** 类型守卫：确保 editing 非 null 时模板可安全访问 */
 const e = computed(() => editing.value!)
 const staticDataText = ref('[]')
+const mockTemplateText = ref('')
 const testing = ref(false)
 
 const TYPE_OPTIONS = [
   { label: '静态数据', value: 'static' },
   { label: 'REST API', value: 'api' },
   { label: 'Mock', value: 'mock' },
+  { label: 'WebSocket', value: 'websocket' },
+  { label: 'SQL 查询', value: 'sql' },
 ]
 
 const METHOD_OPTIONS = [
   { label: 'GET', value: 'GET' },
   { label: 'POST', value: 'POST' },
 ]
+
+watch(() => e.value?.type, (type) => {
+  if (!editing.value) return
+  if (type === 'sql' && !editing.value.sql) {
+    editing.value.sql = { driver: 'mysql', host: 'localhost', port: 3306, limit: 1000 }
+  }
+})
 
 function refresh() {
   sources.value = listDataSources()
@@ -51,12 +61,14 @@ function onAdd() {
     staticData: [],
   }
   staticDataText.value = '[]'
+  mockTemplateText.value = ''
   dialogVisible.value = true
 }
 
 function onEdit(ds: DataSourceConfig) {
   editing.value = { ...ds }
   staticDataText.value = JSON.stringify(ds.staticData ?? [], null, 2)
+  mockTemplateText.value = ds.mockTemplate ?? ''
   dialogVisible.value = true
 }
 
@@ -79,8 +91,8 @@ function onSave() {
     message.warning('请填写 API 地址')
     return
   }
-  // 解析 staticData
-  if (ds.type === 'static' || ds.type === 'mock') {
+  // 解析 staticData / mockTemplate
+  if (ds.type === 'static') {
     try {
       ds.staticData = JSON.parse(staticDataText.value || '[]')
       if (!Array.isArray(ds.staticData)) throw new Error('not array')
@@ -88,6 +100,22 @@ function onSave() {
       message.warning('静态数据必须是合法的 JSON 数组')
       return
     }
+  }
+  if (ds.type === 'mock') {
+    ds.mockTemplate = mockTemplateText.value.trim() || undefined
+    if (!ds.mockTemplate) {
+      try {
+        ds.staticData = JSON.parse(staticDataText.value || '[]')
+        if (!Array.isArray(ds.staticData)) throw new Error('not array')
+      } catch {
+        message.warning('Mock 需提供模板，或填写合法的 JSON 数组兜底')
+        return
+      }
+    }
+  }
+  if (ds.type === 'sql' && !ds.sql?.query?.trim()) {
+    message.warning('请填写 SQL 查询语句')
+    return
   }
   saveDataSource(ds)
   dataStore.registerDataSource(ds)
@@ -161,9 +189,54 @@ async function onTest() {
           </MFormItem>
         </template>
 
-        <template v-else-if="e.type === 'static' || e.type === 'mock'">
+        <template v-else-if="e.type === 'static'">
           <MFormItem label="静态数据(JSON)" required>
             <MTextarea v-model="staticDataText" :rows="8" fluid placeholder='[{"x":"1月","y":100}]' />
+          </MFormItem>
+        </template>
+
+        <template v-else-if="e.type === 'mock'">
+          <MFormItem label="Mock 模板" help="JSON 模板 + {{int 1 100}} 等占位符；顶层 {{repeat N}} 生成 N 行">
+            <MTextarea v-model="mockTemplateText" :rows="6" fluid placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
+          </MFormItem>
+          <MFormItem label="兜底数据(JSON)" help="模板留空时使用">
+            <MTextarea v-model="staticDataText" :rows="6" fluid placeholder='[{"x":"1月","y":100}]' />
+          </MFormItem>
+        </template>
+
+        <template v-else-if="e.type === 'websocket'">
+          <MFormItem label="WebSocket 地址" required>
+            <MInput v-model="e.wsUrl" placeholder="wss://example.com/live" fluid />
+          </MFormItem>
+          <MFormItem label="轮询间隔(ms)" help="0 表示不轮询">
+            <MInputNumber v-model="e.pollInterval" :min="0" fluid />
+          </MFormItem>
+        </template>
+
+        <template v-else-if="e.type === 'sql' && e.sql">
+          <MFormItem label="数据库类型">
+            <MSelect v-model="e.sql!.driver" :options="[{ label: 'MySQL', value: 'mysql' }, { label: 'PostgreSQL', value: 'postgresql' }, { label: 'SQL Server', value: 'sqlserver' }]" fluid />
+          </MFormItem>
+          <MFormItem label="主机" required>
+            <MInput v-model="e.sql!.host" placeholder="localhost" fluid />
+          </MFormItem>
+          <MFormItem label="端口">
+            <MInputNumber v-model="e.sql!.port" :min="1" :max="65535" fluid />
+          </MFormItem>
+          <MFormItem label="数据库名">
+            <MInput v-model="e.sql!.database" fluid />
+          </MFormItem>
+          <MFormItem label="用户名">
+            <MInput v-model="e.sql!.user" fluid />
+          </MFormItem>
+          <MFormItem label="密码">
+            <MInput type="password" v-model="e.sql!.password" fluid />
+          </MFormItem>
+          <MFormItem label="查询语句" required help="仅允许 SELECT / WITH 只读查询">
+            <MTextarea v-model="e.sql!.query" :rows="5" fluid placeholder="SELECT * FROM orders LIMIT 100" />
+          </MFormItem>
+          <MFormItem label="行数上限">
+            <MInputNumber v-model="e.sql!.limit" :min="1" :max="5000" fluid />
           </MFormItem>
         </template>
       </MForm>

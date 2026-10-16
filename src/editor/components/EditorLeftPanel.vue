@@ -1,40 +1,30 @@
 <script setup lang="ts">
 /**
  * 编辑器左侧面板
- * Tab 切换：组件库 / 数据源 / 大纲
+ * Tab 切换：组件库 / 数据源 / 图层（MSegmented 分段控制器）
  */
 
 import { ref } from 'vue'
-import { MScrollbar } from 'morya-ui'
+import { MSegmented, MScrollbar } from 'morya-ui'
 import ComponentLibrary from '../panels/ComponentLibrary.vue'
 import DataSourcePanel from '../panels/DataSourcePanel.vue'
 import OutlinePanel from '../panels/OutlinePanel.vue'
-import SvgIcon from '../../components/common/SvgIcon.vue'
 
 type TabKey = 'components' | 'datasource' | 'outline'
 
 const activeTab = ref<TabKey>('components')
 
-const tabs: { key: TabKey; label: string; icon: string }[] = [
-  { key: 'components', label: '组件', icon: 'grid' },
-  { key: 'datasource', label: '数据源', icon: 'wallet' },
-  { key: 'outline', label: '大纲', icon: 'file' },
+const tabs: { label: string; value: TabKey }[] = [
+  { label: '组件', value: 'components' },
+  { label: '数据源', value: 'datasource' },
+  { label: '图层', value: 'outline' },
 ]
 </script>
 
 <template>
   <aside class="editor-left">
     <div class="panel-tabs">
-      <button
-        v-for="tab in tabs"
-        :key="tab.key"
-        class="panel-tab"
-        :class="{ active: activeTab === tab.key }"
-        @click="activeTab = tab.key"
-      >
-        <SvgIcon :name="tab.icon" :px="16" />
-        <span>{{ tab.label }}</span>
-      </button>
+      <MSegmented v-model="activeTab" :options="tabs" block />
     </div>
 
     <MScrollbar class="panel-body" view-class="panel-body__view">
@@ -45,7 +35,7 @@ const tabs: { key: TabKey; label: string; icon: string }[] = [
   </aside>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .editor-left {
   width: 264px;
   flex-shrink: 0;
@@ -57,41 +47,17 @@ const tabs: { key: TabKey; label: string; icon: string }[] = [
 }
 
 .panel-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--m-color-border);
   flex-shrink: 0;
-}
-
-.panel-tab {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 4px;
-  border: none;
-  background: transparent;
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-}
-
-.panel-tab:hover {
-  color: var(--m-color-text);
-}
-
-.panel-tab.active {
-  color: var(--m-color-primary);
-  border-bottom-color: var(--m-color-primary);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--m-color-border);
 }
 
 .panel-body {
   flex: 1;
   min-height: 0;
-}
 
-.panel-body__view {
-  padding: 16px;
+  :deep(.panel-body__view) {
+    padding: 16px 14px 24px;
+  }
 }
 </style>

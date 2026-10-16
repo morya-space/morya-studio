@@ -25,6 +25,9 @@ export const useDataStore = defineStore('data', () => {
   /** dataSourceId → 数据源配置（项目级注册） */
   const dataSources = ref(new Map<string, DataSourceConfig>())
 
+  /** 页面级全局过滤器当前值（注入各数据源 {{var}} 插值） */
+  const globalParams = ref<Record<string, unknown>>({})
+
   /** 进行中的请求（按 dataSource key 去重） */
   const inFlight = new Map<string, Promise<Row[]>>()
 
@@ -42,6 +45,11 @@ export const useDataStore = defineStore('data', () => {
     dataSources.value.delete(id)
   }
 
+  /** 更新全局过滤器参数并触发刷新（由过滤器组件调用） */
+  function setGlobalParams(params: Record<string, unknown>): void {
+    globalParams.value = { ...params }
+  }
+
   // ---- 数据加载 ----
 
   /** 解析卡片对应的数据源配置（dataSourceId 优先，回退内联） */
@@ -56,7 +64,7 @@ export const useDataStore = defineStore('data', () => {
   }
 
   /** 数据源级请求（去重 + 缓存），返回未经卡片 transform 的原始行 */
-  async function fetchRaw(ds: DataSourceConfig, opts: { force?: boolean } = {}): Promise<Row[]> {
+  async function fetchRaw(ds: DataSourceConfig, opts: { force?: boolean; params?: Record<string, unknown> } = {}): Promise<Row[]> {
     const cacheKey = buildCacheKey(ds)
     const useCache = ds.cache?.enabled ?? false
     const ttl = ds.cache?.ttl ?? 0
@@ -72,7 +80,8 @@ export const useDataStore = defineStore('data', () => {
     if (existing) return existing
 
     const adapter = getAdapter(ds.type)
-    const promise = adapter.fetch(ds)
+    const ctxParams = { ...globalParams.value, ...(opts.params ?? {}) }
+    const promise = adapter.fetch(ds, { params: ctxParams })
       .then(rows => {
         if (useCache) dataCache.set(cacheKey, rows, ttl, storage)
         return rows
@@ -86,7 +95,7 @@ export const useDataStore = defineStore('data', () => {
   /**
    * 为某张卡片加载数据（含缓存、转换、错误记录、轮询调度）。
    */
-  async function loadCardData(card: CardSchema, opts: { force?: boolean } = {}): Promise<void> {
+  async function loadCardData(card: CardSchema, opts: { force?: boolean; params?: Record<string, unknown> } = {}): Promise<void> {
     cardLoading.value.set(card.id, true)
     cardError.value.set(card.id, null)
     try {
@@ -144,9 +153,11 @@ export const useDataStore = defineStore('data', () => {
     cardLoading,
     cardError,
     dataSources,
+    globalParams,
     // actions
     registerDataSource,
     unregisterDataSource,
+    setGlobalParams,
     loadCardData,
     refreshPage,
     refreshCard,

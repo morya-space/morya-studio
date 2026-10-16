@@ -30,6 +30,8 @@ const REQUIRED_CONFIG: Partial<Record<CardType, keyof CardSchema>> = {
   table: 'table',
   list: 'list',
   banner: 'banner',
+  text: 'text',
+  custom: 'custom',
 }
 
 const TRANSFORM_OPS = new Set(['filter', 'sort', 'limit', 'map', 'groupBy', 'rename'])

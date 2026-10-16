@@ -7,11 +7,12 @@
 import { computed } from 'vue'
 import { useEditorStore } from '../store'
 import { getCardRegistration } from '../../engine/registry'
+import type { CardSchema } from '../../types/schema'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 
 const store = useEditorStore()
 
-const cards = computed(() =>
+const cards = computed<CardSchema[]>(() =>
   [...store.page.cards].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
 )
 
@@ -21,6 +22,50 @@ function labelOf(type: string): string {
 
 function onSelect(id: string) {
   store.selectCard(id)
+}
+
+function isSelected(id: string): boolean {
+  return store.selectedCardId === id
+}
+
+function isDragOver(id: string): boolean {
+  return dragOverId === id
+}
+
+// ==================== 拖拽排序 ====================
+
+let dragFromId: string | null = null
+let dragOverId: string | null = null
+
+function onDragStart(e: DragEvent, id: string) {
+  dragFromId = id
+  dragOverId = null
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', id)
+  }
+}
+
+function onDragOver(e: DragEvent, id: string) {
+  e.preventDefault()
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+  dragOverId = id
+}
+
+function onDrop(e: DragEvent, targetId: string) {
+  e.preventDefault()
+  e.stopPropagation()
+  const fromId = dragFromId ?? e.dataTransfer?.getData('text/plain')
+  dragOverId = null
+  dragFromId = null
+  if (!fromId || fromId === targetId) return
+  const targetIndex = cards.value.findIndex(c => c.id === targetId)
+  if (targetIndex >= 0) store.moveCardTo(fromId, targetIndex)
+}
+
+function onDragEnd() {
+  dragFromId = null
+  dragOverId = null
 }
 </script>
 
@@ -33,9 +78,17 @@ function onSelect(id: string) {
         v-for="card in cards"
         :key="card.id"
         class="outline-item"
-        :class="{ active: store.selectedCardId === card.id }"
+        :class="{ active: isSelected(card.id), 'drag-over': isDragOver(card.id) }"
+        draggable="true"
         @click="onSelect(card.id)"
+        @dragstart="onDragStart($event, card.id)"
+        @dragover="onDragOver($event, card.id)"
+        @drop="onDrop($event, card.id)"
+        @dragend="onDragEnd"
       >
+        <span class="outline-grip">
+          <SvgIcon name="more" :px="12" />
+        </span>
         <SvgIcon :name="getCardRegistration(card.type)?.icon ?? 'grid'" :px="14" />
         <span class="outline-label">{{ card.title ?? labelOf(card.type) }}</span>
         <span class="outline-type">{{ labelOf(card.type) }}</span>
@@ -90,6 +143,22 @@ function onSelect(id: string) {
 .outline-item.active {
   background: color-mix(in srgb, var(--m-color-primary) 10%, transparent);
   color: var(--m-color-primary);
+}
+
+.outline-item.drag-over {
+  outline: 2px dashed var(--m-color-primary);
+  outline-offset: -2px;
+}
+
+.outline-grip {
+  display: inline-flex;
+  color: var(--m-color-text-muted);
+  opacity: 0;
+  cursor: grab;
+}
+
+.outline-item:hover .outline-grip {
+  opacity: 1;
 }
 
 .outline-label {

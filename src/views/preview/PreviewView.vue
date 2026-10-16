@@ -55,11 +55,11 @@ onMounted(async () => {
     </div>
 
     <div v-else-if="notFound" class="preview-notfound">
-      <MEmpty title="看板不存在" description="它可能已被删除">
-        <template #extra>
-          <MButton type="primary" @click="router.push('/pages')">返回列表</MButton>
-        </template>
-      </MEmpty>
+        <MEmpty title="看板不存在" description="它可能已被删除">
+          <template #extra>
+            <MButton type="primary" @click="router.push('/panels')">返回列表</MButton>
+          </template>
+        </MEmpty>
     </div>
 
     <div v-else-if="page" class="preview-content">

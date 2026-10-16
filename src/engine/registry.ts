@@ -35,6 +35,8 @@ export interface CardRegistration {
   icon?: string
   /** 组件库展示描述 */
   description?: string
+  /** 组件库分组：图表 / 基础 / 布局 */
+  category?: 'chart' | 'basic' | 'layout'
 }
 
 const registry = new Map<CardType, CardRegistration>()
