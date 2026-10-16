@@ -45,7 +45,7 @@ export interface DataSourceConfig {
   dataPath?: string
   /** v0.2：Mock.js 模板语法 */
   mockTemplate?: string
-  /** v0.2：WebSocket 地址（远期） */
+  /** v0.2：WebSocket 地址 */
   wsUrl?: string
   /** v0.2：轮询间隔（ms），0 或不填表示不轮询 */
   pollInterval?: number
@@ -53,11 +53,28 @@ export interface DataSourceConfig {
   cache?: DataSourceCache
   /** v0.2：认证（编辑器中加密存储，运行时注入 header） */
   auth?: DataSourceAuth
+  /** v0.2：SQL 数据源连接与查询（经后端代理执行，避免 CORS 与凭证暴露） */
+  sql?: SqlConfig
   /**
    * @deprecated v0.2 起用 Card.transform（TransformStep[]）替代。
    * 保留以兼容旧 schema，将在 v0.3 移除。
    */
   transform?: string
+}
+
+// ==================== SQL 数据源（v0.2） ====================
+
+export interface SqlConfig {
+  driver?: 'mysql' | 'postgresql' | 'sqlserver'
+  host?: string
+  port?: number
+  database?: string
+  user?: string
+  password?: string
+  /** 查询 SQL，返回行数组 */
+  query?: string
+  /** 结果行数上限（后端截断，防御性） */
+  limit?: number
 }
 
 // ==================== 数据转换管道（v0.2） ====================
@@ -175,6 +192,12 @@ export interface CardSchema {
   /** v0.2：固定高度（px），缺省自适应 */
   height?: number
 
+  /** v0.2：自由布局（layout: 'free'）几何信息，px */
+  x?: number
+  y?: number
+  w?: number
+  h?: number
+
   /** v0.2：数据源引用（优先）。与内联 dataSource 二选一 */
   dataSourceId?: string
   /** 内联数据源（向后兼容；编辑器引导迁移到 dataSourceId） */
@@ -187,10 +210,28 @@ export interface CardSchema {
   table?: TableConfig
   list?: ListItemConfig
   banner?: BannerConfig
+  text?: TextConfig
+  custom?: CustomConfig
 
   actions?: ActionConfig[]
   /** v0.2：加载/空/错误三态文案覆盖 */
   stateText?: CardStateText
+}
+
+// ==================== 文本 / 自定义卡片（v0.2） ====================
+
+export interface TextConfig {
+  /** 文本内容（纯文本或轻量 Markdown） */
+  content?: string
+  /** 按轻量 Markdown 渲染（标题/粗体/斜体/链接/列表/行内代码） */
+  markdown?: boolean
+}
+
+export interface CustomConfig {
+  /** 逃生舱：直接渲染的 HTML（作者自担风险） */
+  html?: string
+  /** 备用：以 JSON 形式展示自定义 props */
+  props?: Record<string, unknown>
 }
 
 export interface BannerConfig {
@@ -244,8 +285,41 @@ export interface PageSchema {
   grid?: GridConfig
   cards: CardSchema[]
   theme?: ThemeOverride
+  /** v0.2：画布样式与编辑辅助配置（背景/网格/吸附/尺寸） */
+  canvas?: CanvasConfig
+  /** v0.2：页面级全局过滤器定义（运行时参数注入到各卡片数据源） */
+  filters?: PageFilter[]
   /** v0.2：页面元信息 */
   meta?: PageMeta
+}
+
+// ==================== 画布配置（v0.2） ====================
+
+export interface CanvasConfig {
+  /** 画布背景色（CSS 颜色值或 var(--m-*)，值来自 schema，属用户数据） */
+  bgColor?: string
+  /** 网格颜色 */
+  gridColor?: string
+  /** 网格大小(px) */
+  gridSize?: number
+  /** 对齐吸附步长(px)，0 关闭，缺省 10 */
+  snap?: number
+  /** 自由画布宽(px) */
+  width?: number
+  /** 自由画布高(px) */
+  height?: number
+}
+
+// ==================== 页面全局过滤器（v0.2） ====================
+
+export interface PageFilter {
+  key: string
+  label: string
+  type: 'date' | 'number' | 'text' | 'select'
+  /** select 类型的候选 */
+  options?: { label: string; value: string }[]
+  /** 默认值 */
+  defaultValue?: string
 }
 
 export interface ThemeOverride {
