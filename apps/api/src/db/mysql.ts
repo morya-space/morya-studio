@@ -280,6 +280,35 @@ function migrate(d: DatabaseSync): void {
   ensureLongTextColumn(d, 'datasources', 'config')
   ensureLongTextColumn(d, 'templates', 'page')
   ensureLongTextColumn(d, 'components', 'config')
+
+  // 分享：页面 → 只读 token（公开访问免登录）
+  // 注意：新表默认 collation 为 utf8mb4_0900_ai_ci，与既有 users/pages 的
+  // utf8mb4_unicode_ci 不一致，外键会报 incompatible；故不建 FK，由应用层手动清理。
+  d.exec(`
+    CREATE TABLE IF NOT EXISTS page_shares (
+      page_id VARCHAR(36) PRIMARY KEY,
+      owner_id VARCHAR(36) NOT NULL,
+      token VARCHAR(64) NOT NULL UNIQUE,
+      created_at VARCHAR(30) NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `)
+  ensureIndex(d, 'idx_page_shares_owner', 'page_shares', 'owner_id')
+  ensureIndex(d, 'idx_page_shares_token', 'page_shares', 'token')
+
+  // 版本历史：面板每次更新保存快照
+  d.exec(`
+    CREATE TABLE IF NOT EXISTS page_versions (
+      id VARCHAR(36) PRIMARY KEY,
+      page_id VARCHAR(36) NOT NULL,
+      owner_id VARCHAR(36) NOT NULL,
+      version INT NOT NULL,
+      \`schema\` LONGTEXT NOT NULL,
+      created_at VARCHAR(30) NOT NULL,
+      created_by VARCHAR(36)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `)
+  ensureIndex(d, 'idx_page_versions_page', 'page_versions', 'page_id')
+  ensureIndex(d, 'idx_page_versions_owner', 'page_versions', 'owner_id')
 }
 
 /** 若索引不存在则创建（MySQL 无 CREATE INDEX IF NOT EXISTS） */

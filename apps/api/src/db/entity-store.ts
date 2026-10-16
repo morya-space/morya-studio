@@ -47,6 +47,11 @@ function now(): string {
   return new Date().toISOString().slice(0, 19).replace('T', ' ')
 }
 
+/** 标识符加反引号，避免 schema/order 等保留字冲突 */
+function q(name: string): string {
+  return `\`${name}\``
+}
+
 export function createEntityStore<TPayload>(
   db: DatabaseSync,
   table: string,
@@ -82,7 +87,7 @@ export function createEntityStore<TPayload>(
       const eid = id ?? randomUUID()
       const ts = now()
       const scalars = extractScalars(payload)
-      const cols = ['id', 'owner_id', ...scalarColumns, payloadColumn, 'created_at', 'updated_at']
+      const cols = ['id', 'owner_id', ...scalarColumns, payloadColumn, 'created_at', 'updated_at'].map(q)
       const placeholders = cols.map(() => '?').join(',')
       run(
         db,
@@ -96,11 +101,11 @@ export function createEntityStore<TPayload>(
       if (!existing) return null
       const ts = now()
       const scalars = extractScalars(payload)
-      const setScalars = scalarColumns.map(col => `${col} = ?`).join(', ')
+      const setScalars = scalarColumns.map(col => `${q(col)} = ?`).join(', ')
       const setClause = scalarColumns.length > 0 ? `${setScalars}, ` : ''
       run(
         db,
-        `UPDATE ${table} SET ${setClause}${payloadColumn} = ?, updated_at = ? WHERE owner_id = ? AND id = ?`,
+        `UPDATE ${table} SET ${setClause}${q(payloadColumn)} = ?, ${q('updated_at')} = ? WHERE ${q('owner_id')} = ? AND ${q('id')} = ?`,
         ...scalars, JSON.stringify(payload), ts, ownerId, id,
       )
       return { id, ownerId, createdAt: existing.created_at, updatedAt: ts, payload }

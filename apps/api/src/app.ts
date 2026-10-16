@@ -21,6 +21,8 @@ import { createSettingsRoutes } from './routes/settings'
 import { createConnectorRoutes } from './routes/connectors'
 import { createHealthRoutes } from './routes/health'
 import { createDatasourceDetailRoutes } from './routes/datasource-detail'
+import { createPublicRoutes } from './routes/public'
+import { createSqlProxyRoutes } from './routes/sql-proxy'
 import type { AppBindings } from './types/context'
 
 export interface StudioContext {
@@ -66,10 +68,13 @@ export function createStudio(config?: AppConfig, db?: DatabaseSync): StudioConte
 
   app.route('/health', createHealthRoutes())
   app.route('/api/auth', createAuthRoutes())
+  // 公开只读（免登录）：必须在 /api 身份路由（含 * 鉴权中间件）之前注册，否则会被拦截
+  app.route('/api/public', createPublicRoutes(stores, database))
   app.route('/api', createIdentityRoutes())
-  app.route('/api/pages', createPageRoutes(stores))
+  app.route('/api/pages', createPageRoutes(stores, database))
   app.route('/api/datasources', createDatasourceRoutes(stores))
   app.route('/api/datasources', createDatasourceDetailRoutes(stores, database))
+  app.route('/api/datasources', createSqlProxyRoutes())
   app.route('/api/components', createComponentRoutes(stores))
   app.route('/api/templates', createTemplateRoutes(stores))
   app.route('/api/settings', createSettingsRoutes(database, identity))

@@ -3,6 +3,8 @@
  * 鉴权 / 用户 / 通用响应。
  */
 
+import type { DataSourceConfig, PageSchema } from './schema'
+
 // ==================== 鉴权与身份 ====================
 
 export type UserStatus = 'active' | 'disabled'
@@ -89,4 +91,26 @@ export interface ListResult<T> {
 
 export interface IdResult {
   id: string
+}
+
+// ==================== 分享与版本历史 ====================
+
+/** 发布结果：分享 token + 完整只读链接 */
+export interface PublishResult {
+  token: string
+  url: string
+}
+
+/** 公开只读页面：页面 Schema + 引用的数据源（供渲染，不含归属信息） */
+export interface PublicPageResult {
+  page: PageSchema
+  datasources: DataSourceConfig[]
+}
+
+export interface PageVersion {
+  id: string
+  pageId: string
+  version: number
+  createdAt: string
+  schema: PageSchema
 }
