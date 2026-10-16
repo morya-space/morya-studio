@@ -22,15 +22,15 @@ function onNotify() {
   message.info(t('user.notificationsNotReady'))
 }
 
-function onSelect(item: { value?: string }) {
+async function onSelect(item: { value?: string }) {
   menuOpen.value = false
   if (item.value === 'settings') {
     router.push('/settings')
     return
   }
   if (item.value === 'logout') {
-    logout()
-    router.push('/login')
+    await logout()
+    router.replace('/login')
   }
 }
 </script>

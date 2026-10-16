@@ -6,7 +6,7 @@
 
 import { computed, ref } from 'vue'
 import type { PublicUser } from '@morya-studio/shared'
-import { http, setAuthToken, setUnauthorizedHandler } from '../lib/http'
+import { http, setAuthToken, getAuthToken, setUnauthorizedHandler } from '../lib/http'
 import { resetPages } from '../services/page'
 import { resetDataSources } from '../services/datasource'
 import { resetComponents } from '../services/component'
@@ -125,12 +125,19 @@ export function useSession() {
   }
 
   async function logout(): Promise<void> {
-    try {
-      await http.post('/auth/logout')
-    } catch {
-      /* 忽略登出接口异常，本地照常清理 */
-    }
+    // 先同步清空本地会话（路由守卫立即放行 /login），再用旧 token 后台吊销服务端会话
+    const current = getAuthToken()
     clearSession()
+    if (current) {
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${current}` },
+        })
+      } catch {
+        /* 忽略服务端吊销失败，本地已登出 */
+      }
+    }
   }
 
   /** 资料更新后直接同步本地用户（含持久化） */
