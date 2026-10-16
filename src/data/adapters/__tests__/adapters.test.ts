@@ -10,11 +10,13 @@ describe('registry', () => {
     expect(hasAdapter('static')).toBe(true)
     expect(hasAdapter('api')).toBe(true)
     expect(hasAdapter('mock')).toBe(true)
+    expect(hasAdapter('websocket')).toBe(true)
+    expect(hasAdapter('sql')).toBe(true)
   })
 
   it('getAdapter returns adapter or throws for unknown', () => {
     expect(getAdapter('static')).toBe(staticAdapter)
-    expect(() => getAdapter('sql')).toThrow(/No adapter/)
+    expect(() => getAdapter('unknown-type' as never)).toThrow(/No adapter/)
   })
 })
 
