@@ -1,0 +1,30 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "permission": {
+    "morya-ui_*": "allow",
+    "better-icons_*": "allow"
+  },
+  "instructions": [
+    ".agents/rules/*.md"
+  ],
+  "mcp": {
+    "morya-ui": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@morya-ui/mcp@latest"
+      ],
+      "enabled": true
+    },
+    "better-icons": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "better-icons"
+      ],
+      "enabled": true
+    }
+  }
+}

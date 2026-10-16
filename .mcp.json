@@ -4,8 +4,12 @@
       "command": "npx",
       "args": [
         "-y",
-        "@morya-ui/mcp@latest"
+        "morya-ui"
       ]
+    },
+    "better-icons": {
+      "command": "npx",
+      "args": ["-y", "better-icons"]
     }
   }
 }
