@@ -7,6 +7,7 @@
 
 import type { PageSchema } from '../../types/schema'
 import { SCHEMA_VERSION } from '../../types/schema'
+import { migrateSchema } from '../../engine/migrate'
 import { http } from '../../lib/http'
 
 const cache = new Map<string, PageSchema>()
@@ -57,20 +58,21 @@ export function getPage(id: string): PageSchema | null {
 
 export function savePage(page: PageSchema): void {
   const now = new Date().toISOString()
-  const exists = cache.has(page.id)
+  const migrated = migrateSchema(page)
+  const exists = cache.has(migrated.id)
   const next: PageSchema = {
-    ...page,
+    ...migrated,
     meta: {
-      ...page.meta,
+      ...migrated.meta,
       version: SCHEMA_VERSION,
-      createdAt: page.meta?.createdAt ?? now,
+      createdAt: migrated.meta?.createdAt ?? now,
       updatedAt: now,
     },
   }
-  cache.set(page.id, next)
+  cache.set(next.id, next)
   // 异步写后端：已存在用 PUT，否则 POST
   const req = exists
-    ? http.put(`/pages/${page.id}`, next)
+    ? http.put(`/pages/${next.id}`, next)
     : http.post('/pages', next)
   Promise.resolve(req).catch(reportSyncError)
 }
@@ -86,11 +88,11 @@ export function exportPage(id: string): string | null {
 }
 
 export function importPage(json: string): PageSchema {
-  const page = JSON.parse(json) as PageSchema
-  if (!page.id || !Array.isArray(page.cards)) {
+  const raw = JSON.parse(json) as PageSchema
+  if (!raw.id || !Array.isArray(raw.cards)) {
     throw new Error('非法的页面 JSON：缺少 id 或 cards')
   }
-  page.meta = { ...page.meta, version: SCHEMA_VERSION }
+  const page = migrateSchema(raw)
   savePage(page)
   return page
 }
@@ -98,4 +100,37 @@ export function importPage(json: string): PageSchema {
 /** 生成新页面 id */
 export function genPageId(): string {
   return `page-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+}
+
+// ==================== 版本历史 ====================
+
+export interface PageVersion {
+  id: string
+  pageId: string
+  version: number
+  createdAt: string
+  schema: PageSchema
+}
+
+/** 拉取面板版本列表（后端保存快照） */
+export async function listVersions(pageId: string): Promise<PageVersion[]> {
+  try {
+    const { items } = await http.get<{ items: PageVersion[] }>(`/pages/${pageId}/versions`)
+    return items
+  } catch (e) {
+    reportSyncError(e)
+    return []
+  }
+}
+
+/** 回滚到指定版本（成功后刷新内存缓存） */
+export async function restoreVersion(pageId: string, versionId: string): Promise<PageSchema | null> {
+  try {
+    const { page } = await http.post<{ page: PageSchema }>(`/pages/${pageId}/restore/${versionId}`)
+    cache.set(page.id, page)
+    return page
+  } catch (e) {
+    reportSyncError(e)
+    return null
+  }
 }
