@@ -67,6 +67,8 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
 export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsReturn {
   const containerRef = ref<HTMLElement | null>(null)
   const chart = shallowRef<echarts.ECharts | null>(null)
+  /** setOption 手动覆盖的最近一次 option，重建图表后需要重放（否则自定义样式丢失） */
+  let lastManualOption: echarts.EChartsCoreOption | null = null
 
   const palette = (): string[] => config.colors ?? getChartPalette()
   const axisColor = () => getToken('--m-chart-axis')
@@ -269,6 +271,8 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
 
   const initChart = () => {
     if (!containerRef.value) return
+    // 同一容器已有实例则跳过（setTimeout 补刀与 watcher 可能并发触发）
+    if (chart.value && chart.value.getDom() === containerRef.value) return
     const rect = containerRef.value.getBoundingClientRect()
     if (rect.width === 0 || rect.height === 0) {
       console.warn('ECharts container has zero size', rect)
@@ -276,19 +280,30 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
     }
     chart.value = echarts.init(containerRef.value)
     chart.value.setOption(buildOption())
+    if (lastManualOption) chart.value.setOption(lastManualOption)
   }
 
   const resize = () => chart.value?.resize()
-  const setOption = (option: echarts.EChartsCoreOption) => chart.value?.setOption(option)
+  const setOption = (option: echarts.EChartsCoreOption) => {
+    lastManualOption = option
+    chart.value?.setOption(option)
+  }
 
   onMounted(() => {
     setTimeout(initChart, 100)
     window.addEventListener('resize', resize)
   })
 
-  // 容器可能晚于挂载才渲染（如异步数据就绪后），出现时补初始化
+  // 容器可能晚于挂载才渲染（如异步数据就绪后），出现时补初始化。
+  // 元素被 v-if 卸载时（如切走 Tab）chart 实例仍挂在旧 DOM 上，需 dispose，
+  // 待元素重新挂载（切回 Tab）后在新容器上重建。
   watch(containerRef, (el) => {
-    if (el && !chart.value) initChart()
+    if (!el) {
+      chart.value?.dispose()
+      chart.value = null
+      return
+    }
+    if (!chart.value) initChart()
   }, { flush: 'post' })
 
   onBeforeUnmount(() => {

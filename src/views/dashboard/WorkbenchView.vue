@@ -17,6 +17,8 @@ import { initComponents, listCustomComponents } from '../../services/component'
 import { initTemplates, listTemplates } from '../../services/template'
 import { getAllCardTypes } from '../../engine/registry'
 import { useSession } from '../../composables/useSession'
+import { useECharts } from '../../composables/useECharts'
+import { getToken } from '../../composables/useThemeToken'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -41,40 +43,31 @@ const bannerStats = computed(() => [
 // 中间：最近面板（参考图 All Transactions 列表）
 const recentPages = computed(() => pages.value.slice(0, 6))
 
-// 中间：数据概览仪表（参考图 gauge）
-const gaugeSegments = computed(() => {
-  const total = Math.max(pages.value.length + dsCount.value + componentCount.value + templateCount.value, 1)
-  return [
-    { label: t('workbench.panelCount'), value: pages.value.length, color: 'var(--m-color-primary)', pct: Math.round((pages.value.length / total) * 100) },
-    { label: t('workbench.dsCount'), value: dsCount.value, color: 'var(--m-color-accent-blue)', pct: Math.round((dsCount.value / total) * 100) },
-    { label: t('workbench.componentCount'), value: componentCount.value, color: 'var(--m-color-accent-orange)', pct: Math.round((componentCount.value / total) * 100) },
-    { label: t('workbench.templateCount'), value: templateCount.value, color: 'var(--m-color-success)', pct: Math.round((templateCount.value / total) * 100) },
-  ]
-})
+// 中间：数据概览（ECharts 环形图）
+// 单源定义四类资产（图例颜色与图表一致），图表用 ECharts donut。
+const overviewSegments = computed(() => [
+  { label: t('workbench.panelCount'), value: pages.value.length, token: '--m-color-primary' },
+  { label: t('workbench.dsCount'), value: dsCount.value, token: '--m-color-accent-blue' },
+  { label: t('workbench.componentCount'), value: componentCount.value, token: '--m-color-accent-orange' },
+  { label: t('workbench.templateCount'), value: templateCount.value, token: '--m-color-success' },
+])
 
-// 仪表圆弧（SVG）：0~100 映射到 180°~0° 半圆
-const gaugeArc = computed(() => {
-  const R = 70
-  const CX = 90
-  const CY = 90
-  const total = gaugeSegments.value.reduce((n, s) => n + s.value, 0) || 1
-  let acc = 0
-  return gaugeSegments.value
-    .filter(s => s.value > 0)
-    .map(s => {
-      const start = acc / total
-      acc += s.value
-      const end = acc / total
-      const a0 = Math.PI * (1 - start)
-      const a1 = Math.PI * (1 - end)
-      const x0 = CX + R * Math.cos(a0)
-      const y0 = CY - R * Math.sin(a0)
-      const x1 = CX + R * Math.cos(a1)
-      const y1 = CY - R * Math.sin(a1)
-      const large = end - start > 0.5 ? 1 : 0
-      return { d: `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${R} ${R} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`, color: s.color }
-    })
-})
+const overviewData = computed(() =>
+  overviewSegments.value.map(s => ({ name: s.label, value: s.value })),
+)
+
+const overviewConfig = computed(() => ({
+  chartType: 'pie' as const,
+  xField: 'name',
+  yField: 'value',
+  showLegend: false,
+  height: 220,
+  colors: overviewSegments.value.map(s => getToken(s.token, '#888888')),
+}))
+
+const overviewChart = useECharts(overviewConfig.value, overviewData)
+const { containerRef: overviewRef } = overviewChart
+void overviewRef
 
 // 右侧：成员（参考 Active Members，用团队成员占位）
 const members = computed(() => [
@@ -192,7 +185,7 @@ function fmtDate(iso?: string): string {
           </div>
         </MCard>
 
-        <!-- 数据概览（仪表风） -->
+        <!-- 数据概览（ECharts 环形图） -->
         <MCard class="wb-gauge" shadow="always" :bordered="false">
           <template #header>
             <div class="wb-panel__head">
@@ -204,26 +197,15 @@ function fmtDate(iso?: string): string {
           </div>
           <div v-else class="wb-gauge__content">
           <div class="wb-gauge__body">
-            <svg class="wb-gauge__svg" viewBox="0 0 180 100" aria-hidden="true">
-              <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="var(--m-color-split)" stroke-width="14" stroke-linecap="round" />
-              <path
-                v-for="(seg, i) in gaugeArc"
-                :key="i"
-                :d="seg.d"
-                fill="none"
-                :stroke="seg.color"
-                stroke-width="14"
-                stroke-linecap="round"
-              />
-            </svg>
+            <div ref="overviewRef" class="wb-donut" />
             <div class="wb-gauge__center">
               <span class="wb-gauge__num">{{ totalCards }}</span>
               <span class="wb-gauge__cap">{{ t('workbench.cardTotal') }}</span>
             </div>
           </div>
           <ul class="wb-gauge__legend">
-            <li v-for="s in gaugeSegments" :key="s.label">
-              <span class="dot" :style="{ background: s.color }" />
+            <li v-for="s in overviewSegments" :key="s.label">
+              <span class="dot" :style="{ background: `var(${s.token})` }" />
               <span class="wb-gauge__legend-label">{{ s.label }}</span>
               <span class="wb-gauge__legend-val">{{ s.value }}</span>
             </li>
@@ -525,19 +507,20 @@ function fmtDate(iso?: string): string {
   padding-top: 8px;
 }
 
-.wb-gauge__svg {
+.wb-donut {
   width: 100%;
-  max-width: 220px;
+  height: 220px;
 }
 
 .wb-gauge__center {
   position: absolute;
   left: 50%;
-  bottom: 4px;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
+  pointer-events: none;
 }
 
 .wb-gauge__num {
