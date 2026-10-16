@@ -6,6 +6,7 @@ import SettingsView from '../views/settings/SettingsView.vue'
 import RendererDemoView from '../views/demo/RendererDemoView.vue'
 import EditorView from '../views/editor/EditorView.vue'
 import PreviewView from '../views/preview/PreviewView.vue'
+import PublicViewerView from '../views/preview/PublicViewerView.vue'
 import WorkbenchView from '../views/dashboard/WorkbenchView.vue'
 import PanelListView from '../views/panels/PanelListView.vue'
 import DatasourcesView from '../views/datasources/DatasourcesView.vue'
@@ -117,6 +118,13 @@ const router = createRouter({
       path: '/preview/:id',
       name: 'preview',
       component: PreviewView,
+    },
+    // 公开只读看板（分享链接，免登录）
+    {
+      path: '/view/:id',
+      name: 'viewer',
+      component: PublicViewerView,
+      meta: { public: true },
     },
   ],
 })

@@ -8,15 +8,16 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { MButton, MCard, MDialog, MEmpty, MInput, MSkeleton, message } from 'morya-ui'
+import { MButton, MCard, MDialog, MEmpty, MInput, MSkeleton, message, useConfirm } from 'morya-ui'
 import WorkspacePage from '../../components/shell/WorkspacePage.vue'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 import type { PageSchema } from '../../types/schema'
-import { initPages, listPages, deletePage, exportPage, importPage, genPageId } from '../../services/page'
+import { initPages, listPages, deletePage, exportPage, importPage, genPageId, listVersions, restoreVersion, type PageVersion } from '../../services/page'
 import { initTemplates, saveTemplate, pageToTemplate } from '../../services/template'
 
 const router = useRouter()
 const { t } = useI18n()
+const confirm = useConfirm()
 
 const pages = ref<PageSchema[]>([])
 const loading = ref(true)
@@ -28,6 +29,13 @@ const tplVisible = ref(false)
 const tplName = ref('')
 const tplDesc = ref('')
 const tplSource = ref<PageSchema | null>(null)
+
+// 版本历史
+const versionsVisible = ref(false)
+const versionsFor = ref<PageSchema | null>(null)
+const versions = ref<PageVersion[]>([])
+const versionsLoading = ref(false)
+const restoring = ref(false)
 
 function refresh() {
   pages.value = listPages()
@@ -99,6 +107,48 @@ function confirmSaveTemplate() {
   message.success(t('panels.savedAsTemplate', { title: tpl.title }))
 }
 
+async function onVersions(page: PageSchema) {
+  versionsFor.value = page
+  versionsVisible.value = true
+  versionsLoading.value = true
+  versions.value = []
+  try {
+    versions.value = await listVersions(page.id)
+  } finally {
+    versionsLoading.value = false
+  }
+}
+
+async function onRestore(version: PageVersion) {
+  if (!versionsFor.value) return
+  const ok = await confirm.require({
+    header: '回滚版本',
+    message: `确定回滚到「V${version.version}」？当前内容将被覆盖（当前版本会保留为一条新历史）。`,
+    acceptLabel: '回滚',
+    rejectLabel: '取消',
+    acceptColor: 'danger',
+  })
+  if (!ok) return
+  restoring.value = true
+  try {
+    const restored = await restoreVersion(versionsFor.value.id, version.id)
+    if (restored) {
+      versionsVisible.value = false
+      refresh()
+      message.success(`已回滚到 V${version.version}`)
+    } else {
+      message.error('回滚失败')
+    }
+  } finally {
+    restoring.value = false
+  }
+}
+
+function versionTime(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
 function formatTime(iso?: string): string {
   if (!iso) return '-'
   return new Date(iso).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -142,6 +192,7 @@ function formatTime(iso?: string): string {
             <MButton type="text" size="small" @click="onEdit(page.id)">{{ t('panels.edit') }}</MButton>
             <MButton type="text" size="small" @click="onPreview(page.id)">{{ t('panels.preview') }}</MButton>
             <MButton type="text" size="small" @click="onSaveAsTemplate(page)">{{ t('panels.saveAsTemplate') }}</MButton>
+            <MButton type="text" size="small" @click="onVersions(page)">历史</MButton>
             <MButton type="text" size="small" @click="onExport(page)">{{ t('panels.export') }}</MButton>
             <MButton type="text" size="small" danger @click="onDelete(page)">{{ t('panels.delete') }}</MButton>
           </div>
@@ -171,6 +222,24 @@ function formatTime(iso?: string): string {
         <MButton type="default" @click="tplVisible = false">{{ t('common.cancel') }}</MButton>
         <MButton type="primary" @click="confirmSaveTemplate">{{ t('common.save') }}</MButton>
       </template>
+    </MDialog>
+
+    <!-- 版本历史对话框 -->
+    <MDialog v-model="versionsVisible" :title="versionsFor ? `版本历史 · ${versionsFor.title}` : '版本历史'" width="560px">
+      <div v-if="versionsLoading" class="versions-loading">加载中…</div>
+      <div v-else-if="versions.length === 0" class="versions-empty">
+        <MEmpty title="暂无历史版本" description="每次保存面板都会生成一个快照" />
+      </div>
+      <ul v-else class="versions-list">
+        <li v-for="v in versions" :key="v.id" class="version-item">
+          <div class="version-item__info">
+            <span class="version-item__no">V{{ v.version }}</span>
+            <span class="version-item__time">{{ versionTime(v.createdAt) }}</span>
+            <span class="version-item__meta">{{ v.schema?.cards?.length ?? 0 }} 个卡片</span>
+          </div>
+          <MButton type="text" size="small" :loading="restoring" @click="onRestore(v)">回滚</MButton>
+        </li>
+      </ul>
     </MDialog>
   </WorkspacePage>
 </template>
@@ -258,5 +327,59 @@ function formatTime(iso?: string): string {
   font-weight: 600;
   color: var(--m-color-text);
   margin-top: 4px;
+}
+
+.versions-loading {
+  padding: 32px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--m-color-text-muted);
+}
+
+.versions-empty {
+  padding: 12px 0;
+}
+
+.versions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.version-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--m-color-border);
+  border-radius: var(--m-radius-md);
+}
+
+.version-item__info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.version-item__no {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--m-color-primary);
+}
+
+.version-item__time {
+  font-size: 13px;
+  color: var(--m-color-text);
+}
+
+.version-item__meta {
+  font-size: 12px;
+  color: var(--m-color-text-muted);
 }
 </style>
