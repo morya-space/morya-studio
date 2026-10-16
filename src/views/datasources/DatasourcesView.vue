@@ -5,7 +5,7 @@
  * 也可通过连接器（/connectors）从文件 / 数据库导入。
  */
 
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import {
@@ -22,7 +22,6 @@ import {
   MSegmented,
   MSkeleton,
   MTable,
-  MTag,
   MTextarea,
   message,
   useConfirm,
@@ -49,6 +48,7 @@ const editing = ref<DataSourceConfig | null>(null)
 /** 类型守卫：确保 editing 非 null 时模板可安全访问 */
 const e = computed(() => editing.value!)
 const staticDataText = ref('[]')
+const mockTemplateText = ref('')
 const dialogTesting = ref(false)
 
 // ---------- 筛选 ----------
@@ -61,6 +61,8 @@ const TYPE_FILTER_OPTIONS = computed(() => [
   { label: t('datasources.static'), value: 'static' },
   { label: t('datasources.api'), value: 'api' },
   { label: t('datasources.mock'), value: 'mock' },
+  { label: t('datasources.websocket'), value: 'websocket' },
+  { label: t('datasources.sql'), value: 'sql' },
 ])
 
 const filteredSources = computed(() => {
@@ -74,20 +76,29 @@ const filteredSources = computed(() => {
 
 // ---------- 统计 ----------
 const counts = computed(() => {
-  const c = { total: sources.value.length, static: 0, api: 0, mock: 0 }
+  const c: Record<string, number> = { total: sources.value.length, static: 0, api: 0, mock: 0, websocket: 0, sql: 0 }
   for (const ds of sources.value) {
-    if (ds.type === 'static') c.static++
-    else if (ds.type === 'api') c.api++
-    else if (ds.type === 'mock') c.mock++
+    if (c[ds.type] !== undefined) c[ds.type]++
   }
   return c
 })
+
+const statItems = computed(() => [
+  { key: 'total', label: t('datasources.statTotal'), desc: t('datasources.statTotalSub'), value: counts.value.total, icon: 'database', cls: 'total' },
+  { key: 'static', label: t('datasources.static'), desc: t('datasources.statStaticSub'), value: counts.value.static, icon: 'file', cls: 'static' },
+  { key: 'api', label: t('datasources.api'), desc: t('datasources.statApiSub'), value: counts.value.api, icon: 'api', cls: 'api' },
+  { key: 'mock', label: t('datasources.mock'), desc: t('datasources.statMockSub'), value: counts.value.mock, icon: 'hive', cls: 'mock' },
+  { key: 'websocket', label: t('datasources.websocket'), desc: t('datasources.statWsSub'), value: counts.value.websocket, icon: 'sync', cls: 'websocket' },
+  { key: 'sql', label: t('datasources.sql'), desc: t('datasources.statSqlSub'), value: counts.value.sql, icon: 'database', cls: 'sql' },
+])
 
 // ---------- 表单选项 ----------
 const TYPE_OPTIONS = computed(() => [
   { label: t('datasources.static'), value: 'static' },
   { label: t('datasources.api'), value: 'api' },
   { label: t('datasources.mock'), value: 'mock' },
+  { label: t('datasources.websocket'), value: 'websocket' },
+  { label: t('datasources.sql'), value: 'sql' },
 ])
 const METHOD_OPTIONS = [
   { label: 'GET', value: 'GET' },
@@ -99,6 +110,8 @@ const TYPE_ICON: Record<DataSourceType, string> = {
   static: 'file',
   api: 'api',
   mock: 'hive',
+  websocket: 'sync',
+  sql: 'database',
 }
 
 const columns = computed<TableColumnDefinition[]>(() => [
@@ -127,6 +140,8 @@ function typeLabel(type: DataSourceType): string {
 
 function detailOf(ds: DataSourceConfig): string {
   if (ds.type === 'api') return ds.url ?? '-'
+  if (ds.type === 'websocket') return ds.wsUrl ?? '-'
+  if (ds.type === 'sql') return ds.sql?.host ? `${ds.sql.host}:${ds.sql.port ?? 3306}/${ds.sql.database ?? ''}` : '-'
   return t('datasources.rows', { n: ds.staticData?.length ?? 0 })
 }
 
@@ -147,12 +162,21 @@ async function onTest(ds: DataSourceConfig) {
 function onAdd() {
   editing.value = { id: genDataSourceId(), name: '', type: 'static', staticData: [] }
   staticDataText.value = '[]'
+  mockTemplateText.value = ''
   dialogVisible.value = true
 }
+
+watch(() => e.value?.type, (type) => {
+  if (!editing.value) return
+  if (type === 'sql' && !editing.value.sql) {
+    editing.value.sql = { driver: 'mysql', host: 'localhost', port: 3306, limit: 1000 }
+  }
+})
 
 function onEdit(ds: DataSourceConfig) {
   editing.value = { ...ds }
   staticDataText.value = JSON.stringify(ds.staticData ?? [], null, 2)
+  mockTemplateText.value = ds.mockTemplate ?? ''
   dialogVisible.value = true
 }
 
@@ -177,7 +201,7 @@ function onSave() {
   if (!ds) return
   if (!ds.name?.trim()) { message.warn(t('datasources.name')); return }
   if (ds.type === 'api' && !ds.url?.trim()) { message.warn('URL'); return }
-  if (ds.type === 'static' || ds.type === 'mock') {
+  if (ds.type === 'static') {
     try {
       ds.staticData = JSON.parse(staticDataText.value || '[]')
       if (!Array.isArray(ds.staticData)) throw new Error('not array')
@@ -186,6 +210,19 @@ function onSave() {
       return
     }
   }
+  if (ds.type === 'mock') {
+    ds.mockTemplate = mockTemplateText.value.trim() || undefined
+    if (!ds.mockTemplate) {
+      try {
+        ds.staticData = JSON.parse(staticDataText.value || '[]')
+        if (!Array.isArray(ds.staticData)) throw new Error('not array')
+      } catch {
+        message.warn('JSON')
+        return
+      }
+    }
+  }
+  if (ds.type === 'sql' && !ds.sql?.query?.trim()) { message.warn('SQL'); return }
   saveDataSource(ds)
   dataStore.registerDataSource(ds)
   dialogVisible.value = false
@@ -210,47 +247,24 @@ async function onDialogTest() {
 <template>
   <WorkspacePage :title="t('pages.datasources.title')" :summary="t('pages.datasources.summary')" fill>
     <div class="datasources">
-      <!-- 概览统计 -->
+      <!-- 概览统计（紧凑单条） -->
       <div v-if="!loading" class="datasources__stats">
-        <MCard class="stat-card" shadow="always" :bordered="true">
-          <div class="stat-card__head">
-            <span class="stat-card__icon stat-card__icon--total">
-              <SvgIcon name="database" :px="16" />
+        <MCard class="stats-bar" shadow="always" :bordered="true">
+          <div
+            v-for="(s, i) in statItems"
+            :key="s.key"
+            class="stat-item"
+            :class="{ 'stat-item--divider': i > 0 }"
+            :title="s.desc"
+          >
+            <span class="stat-item__icon" :class="`stat-item__icon--${s.cls}`">
+              <SvgIcon :name="s.icon" :px="16" />
             </span>
-            <span class="stat-card__label">{{ t('datasources.statTotal') }}</span>
-          </div>
-          <div class="stat-card__value">{{ counts.total }}</div>
-          <div class="stat-card__sub">{{ t('datasources.statTotalSub') }}</div>
-        </MCard>
-        <MCard class="stat-card" shadow="always" :bordered="true">
-          <div class="stat-card__head">
-            <span class="stat-card__icon stat-card__icon--static">
-              <SvgIcon name="file" :px="16" />
+            <span class="stat-item__meta">
+              <span class="stat-item__value">{{ s.value }}</span>
+              <span class="stat-item__label">{{ s.label }}</span>
             </span>
-            <span class="stat-card__label">{{ t('datasources.static') }}</span>
           </div>
-          <div class="stat-card__value">{{ counts.static }}</div>
-          <div class="stat-card__sub">{{ t('datasources.statStaticSub') }}</div>
-        </MCard>
-        <MCard class="stat-card" shadow="always" :bordered="true">
-          <div class="stat-card__head">
-            <span class="stat-card__icon stat-card__icon--api">
-              <SvgIcon name="api" :px="16" />
-            </span>
-            <span class="stat-card__label">{{ t('datasources.api') }}</span>
-          </div>
-          <div class="stat-card__value">{{ counts.api }}</div>
-          <div class="stat-card__sub">{{ t('datasources.statApiSub') }}</div>
-        </MCard>
-        <MCard class="stat-card" shadow="always" :bordered="true">
-          <div class="stat-card__head">
-            <span class="stat-card__icon stat-card__icon--mock">
-              <SvgIcon name="hive" :px="16" />
-            </span>
-            <span class="stat-card__label">{{ t('datasources.mock') }}</span>
-          </div>
-          <div class="stat-card__value">{{ counts.mock }}</div>
-          <div class="stat-card__sub">{{ t('datasources.statMockSub') }}</div>
         </MCard>
       </div>
 
@@ -285,9 +299,9 @@ async function onDialogTest() {
       <!-- 加载骨架 -->
       <div v-if="loading" class="datasources__skeleton">
         <div class="datasources__skeleton-stats">
-          <MSkeleton v-for="i in 4" :key="i" height="92px" border-radius="var(--m-radius-lg)" />
+          <MSkeleton v-for="i in 6" :key="i" height="68px" border-radius="var(--m-radius-lg)" />
         </div>
-        <MSkeleton height="56px" border-radius="var(--m-radius-md)" />
+        <MSkeleton height="48px" border-radius="var(--m-radius-md)" />
         <MSkeleton height="400px" border-radius="var(--m-radius-lg)" />
       </div>
 
@@ -394,9 +408,54 @@ async function onDialogTest() {
           </MFormItem>
         </template>
 
-        <template v-else-if="e.type === 'static' || e.type === 'mock'">
+        <template v-else-if="e.type === 'static'">
           <MFormItem label="Data (JSON)" required>
             <MTextarea v-model="staticDataText" :rows="8" fluid placeholder='[{"x":"1月","y":100}]' />
+          </MFormItem>
+        </template>
+
+        <template v-else-if="e.type === 'mock'">
+          <MFormItem label="Mock 模板" help='JSON + {{int 1 100}} / {{name}} / {{date 2024-01-01 2024-12-31}}；顶层 {{repeat N}} 生成 N 行'>
+            <MTextarea v-model="mockTemplateText" :rows="6" fluid placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
+          </MFormItem>
+          <MFormItem label="Fallback Data (JSON)" help="模板留空时使用">
+            <MTextarea v-model="staticDataText" :rows="6" fluid placeholder='[{"x":"1月","y":100}]' />
+          </MFormItem>
+        </template>
+
+        <template v-else-if="e.type === 'websocket'">
+          <MFormItem label="WS URL" required>
+            <MInput v-model="e.wsUrl" placeholder="wss://example.com/live" fluid />
+          </MFormItem>
+          <MFormItem label="pollInterval(ms)">
+            <MInputNumber v-model="e.pollInterval" :min="0" fluid />
+          </MFormItem>
+        </template>
+
+        <template v-else-if="e.type === 'sql' && e.sql">
+          <MFormItem label="Driver">
+            <MSelect v-model="e.sql!.driver" :options="[{ label: 'MySQL', value: 'mysql' }, { label: 'PostgreSQL', value: 'postgresql' }, { label: 'SQL Server', value: 'sqlserver' }]" fluid />
+          </MFormItem>
+          <MFormItem label="Host" required>
+            <MInput v-model="e.sql!.host" placeholder="localhost" fluid />
+          </MFormItem>
+          <MFormItem label="Port">
+            <MInputNumber v-model="e.sql!.port" :min="1" :max="65535" fluid />
+          </MFormItem>
+          <MFormItem label="Database">
+            <MInput v-model="e.sql!.database" fluid />
+          </MFormItem>
+          <MFormItem label="User">
+            <MInput v-model="e.sql!.user" fluid />
+          </MFormItem>
+          <MFormItem label="Password">
+            <MInput type="password" v-model="e.sql!.password" fluid />
+          </MFormItem>
+          <MFormItem label="SQL (read-only)" required help="仅 SELECT / WITH">
+            <MTextarea v-model="e.sql!.query" :rows="5" fluid placeholder="SELECT * FROM orders LIMIT 100" />
+          </MFormItem>
+          <MFormItem label="Row limit">
+            <MInputNumber v-model="e.sql!.limit" :min="1" :max="5000" fluid />
           </MFormItem>
         </template>
       </MForm>
@@ -418,78 +477,90 @@ async function onDialogTest() {
   min-height: 0;
 }
 
-/* ========== 概览统计 ========== */
+/* ========== 概览统计（紧凑单条） ========== */
 .datasources__stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
   flex-shrink: 0;
 }
 
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 16px 18px;
+.stats-bar {
+  padding: 12px 8px;
 }
 
-.stat-card :deep(.m-card__body) {
+.stats-bar :deep(.m-card__body) {
   padding: 0;
+  display: flex;
+  align-items: stretch;
 }
 
-.stat-card__head {
+.stat-item {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--m-color-text-muted);
+  gap: 10px;
+  padding: 2px 16px;
 }
 
-.stat-card__icon {
+.stat-item--divider {
+  border-left: 1px solid var(--m-color-split);
+}
+
+.stat-item__icon {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--m-radius-sm);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--m-radius-md);
   background: var(--m-color-fill-light);
   color: var(--m-color-text-muted);
   flex: none;
 }
 
-.stat-card__icon--total {
+.stat-item__icon--total {
   background: color-mix(in srgb, var(--m-color-text) 8%, transparent);
   color: var(--m-color-text);
 }
-.stat-card__icon--static {
+.stat-item__icon--static {
   background: color-mix(in srgb, var(--m-color-primary) 12%, transparent);
   color: var(--m-color-primary);
 }
-.stat-card__icon--api {
+.stat-item__icon--api {
   background: color-mix(in srgb, var(--m-color-info) 12%, transparent);
   color: var(--m-color-info);
 }
-.stat-card__icon--mock {
+.stat-item__icon--mock {
   background: color-mix(in srgb, var(--m-color-warning) 12%, transparent);
   color: var(--m-color-warning);
 }
-
-.stat-card__label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--m-color-text-muted);
+.stat-item__icon--websocket {
+  background: color-mix(in srgb, var(--m-color-info) 12%, transparent);
+  color: var(--m-color-info);
+}
+.stat-item__icon--sql {
+  background: color-mix(in srgb, var(--m-color-success) 12%, transparent);
+  color: var(--m-color-success);
 }
 
-.stat-card__value {
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 1.1;
+.stat-item__meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stat-item__value {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.15;
   color: var(--m-color-text);
   font-variant-numeric: tabular-nums;
-  margin-top: 2px;
 }
 
-.stat-card__sub {
+.stat-item__label {
   font-size: 12px;
   color: var(--m-color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ========== 工具栏 ========== */
@@ -528,7 +599,7 @@ async function onDialogTest() {
 
 .datasources__skeleton-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -562,15 +633,6 @@ async function onDialogTest() {
 .ds-name-cell {
   display: flex;
   flex-direction: column;
-}
-
-.ds-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--m-color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .ds-id {
@@ -611,6 +673,14 @@ async function onDialogTest() {
   background: color-mix(in srgb, var(--m-color-warning) 12%, transparent);
   color: var(--m-color-warning);
 }
+.ds-type-icon--websocket {
+  background: color-mix(in srgb, var(--m-color-info) 12%, transparent);
+  color: var(--m-color-info);
+}
+.ds-type-icon--sql {
+  background: color-mix(in srgb, var(--m-color-success) 12%, transparent);
+  color: var(--m-color-success);
+}
 
 .ds-type-label {
   font-size: 13px;
@@ -637,10 +707,21 @@ async function onDialogTest() {
 }
 
 /* ========== 响应式 ========== */
+@media (max-width: 1200px) {
+  .stats-bar :deep(.m-card__body) {
+    flex-wrap: wrap;
+  }
+  .stat-item {
+    flex: 1 1 30%;
+  }
+  .stat-item--divider {
+    border-left: none;
+  }
+}
+
 @media (max-width: 900px) {
-  .datasources__stats,
   .datasources__skeleton-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .datasources__search {
     width: 180px;

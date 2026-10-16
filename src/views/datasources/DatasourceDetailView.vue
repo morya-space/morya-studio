@@ -127,19 +127,13 @@ watch(chartData, () => {
   setChartOption({
     tooltip: { trigger: 'axis' },
     xAxis: { type: 'category', data: c.labels },
-    yAxis: { type: 'value', max: c.max },
+    yAxis: { type: 'value', max: Number(c.max.toFixed(0)) },
     series: [{
       type: 'bar',
       data: c.vals,
       barWidth: '60%',
       itemStyle: {
         borderRadius: [4, 4, 0, 0],
-        color: (params: { dataIndex: number }) => {
-          const isLast = params.dataIndex === c.vals.length - 1
-          return isLast
-            ? 'var(--m-color-primary)'
-            : 'color-mix(in srgb, var(--m-color-primary) 55%, transparent)'
-        },
       },
     }],
   })
@@ -221,15 +215,38 @@ const TYPE_ICON_MAP: Record<string, string> = {
 </script>
 
 <template>
-  <div class="h-full w-full overflow-hidden bg-page-bg px-8 py-6 flex flex-col">
-    <!-- 顶部工具栏 -->
-    <div class="mb-5 flex flex-wrap items-center gap-3">
-      <MButton type="text" @click="goBack">
-        <SvgIcon name="chevron-left" :px="14" /> {{ t('dsd.backToList') }}
-      </MButton>
-    </div>
+    <div class="h-full w-full overflow-hidden bg-page-bg flex flex-col">
+      <!-- 页头：返回 + 数据源信息 + 操作 -->
+      <header class="dsd-header flex flex-wrap items-center gap-3 border-b border-border bg-surface px-6 py-3">
+        <MButton type="text" @click="goBack">
+          <SvgIcon name="chevron-left" :px="14" /> {{ t('dsd.backToList') }}
+        </MButton>
+        <template v-if="detail">
+          <span class="dsd-header__divider" />
+          <span class="chip-primary size-10">
+            <SvgIcon :name="TYPE_ICON_MAP[d.icon] ?? 'database'" :px="22" />
+          </span>
+          <div class="min-w-[200px] flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xl font-medium text-text">{{ d.name }}</span>
+              <MTag size="small">{{ d.type }}</MTag>
+              <MTag size="small" type="success">{{ t('dsd.connected') }}</MTag>
+            </div>
+            <div class="mt-0.5 text-[13px] text-text-muted">{{ d.desc }}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <MButton :loading="testing" @click="onTest">{{ t('dsd.testConn') }}</MButton>
+            <MButton type="primary" :loading="syncing" @click="onSync">
+              <SvgIcon name="sync" :px="14" class="mr-1" />
+              {{ syncing ? t('dsd.syncing') : t('dsd.syncNow') }}
+            </MButton>
+          </div>
+        </template>
+      </header>
 
-    <MEmpty v-if="!loading && !detail" :title="t('dsd.notFound')">
+      <!-- 内容区 -->
+      <div class="flex-1 min-h-0 flex flex-col px-8 py-6">
+      <MEmpty v-if="!loading && !detail" :title="t('dsd.notFound')">
       <template #extra>
         <MButton type="primary" @click="goBack">{{ t('dsd.backToList') }}</MButton>
       </template>
@@ -240,28 +257,6 @@ const TYPE_ICON_MAP: Record<string, string> = {
     </div>
 
     <template v-else>
-      <!-- 页头 -->
-      <div class="mb-4 flex flex-wrap items-start gap-3">
-        <span class="chip-primary size-10">
-          <SvgIcon :name="TYPE_ICON_MAP[d.icon] ?? 'database'" :px="22" />
-        </span>
-        <div class="min-w-[200px] flex-1">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xl font-medium text-text">{{ d.name }}</span>
-            <MTag size="small">{{ d.type }}</MTag>
-            <MTag size="small" type="success">{{ t('dsd.connected') }}</MTag>
-          </div>
-          <div class="mt-1 text-[13px] text-text-muted">{{ d.desc }}</div>
-        </div>
-        <div class="flex items-center gap-2">
-          <MButton :loading="testing" @click="onTest">{{ t('dsd.testConn') }}</MButton>
-          <MButton type="primary" :loading="syncing" @click="onSync">
-            <SvgIcon name="sync" :px="14" class="mr-1" />
-            {{ syncing ? t('dsd.syncing') : t('dsd.syncNow') }}
-          </MButton>
-        </div>
-      </div>
-
       <!-- KPI 指标条 -->
       <div class="mb-5 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
         <MCard v-for="(kpi, i) in d.kpis" :key="i">
@@ -441,11 +436,20 @@ const TYPE_ICON_MAP: Record<string, string> = {
           </div>
         </template>
       </MTabs>
-    </template>
-  </div>
+      </template>
+      </div>
+    </div>
 </template>
 
 <style scoped lang="scss">
+/* 页头：返回按钮与数据源信息之间的分隔线 */
+.dsd-header__divider {
+  width: 1px;
+  height: 24px;
+  background: var(--m-color-split);
+  flex: none;
+}
+
 /* MCard 内表格贴边 */
 .dsd-card--flush {
   height: 100%;

@@ -28,13 +28,14 @@ import {
   MSkeleton,
   MStepper,
   MTag,
+  MTextarea,
   message,
 } from 'morya-ui'
 import WorkspacePage from '../../components/shell/WorkspacePage.vue'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 import type { DataSourceConfig } from '../../types/schema'
 import { initDataSources, listDataSources, deleteDataSource } from '../../services/datasource'
-import { importRowsAsDataSource, importDatabaseAsDataSource, parseFileText } from '../../services/connector'
+import { importRowsAsDataSource, importDatabaseAsDataSource, importSqlDataSource, parseFileText } from '../../services/connector'
 import { getAdapter } from '../../data/adapters'
 
 const router = useRouter()
@@ -105,11 +106,18 @@ const filteredSources = computed(() => {
 })
 
 function typeLabel(ds: DataSourceConfig): string {
-  return ds.type === 'static' ? '文件' : ds.type === 'api' ? 'API' : ds.type === 'mock' ? 'Mock' : ds.type
+  if (ds.type === 'static') return '文件'
+  if (ds.type === 'api') return 'API'
+  if (ds.type === 'mock') return 'Mock'
+  if (ds.type === 'websocket') return 'WebSocket'
+  if (ds.type === 'sql') return 'SQL 查询'
+  return ds.type
 }
 
 function detailOf(ds: DataSourceConfig): string {
   if (ds.type === 'api') return ds.url ?? '-'
+  if (ds.type === 'websocket') return ds.wsUrl ?? '-'
+  if (ds.type === 'sql') return ds.sql?.host ? `${ds.sql.host}:${ds.sql.port ?? 3306}/${ds.sql.database ?? ''}` : '-'
   if (ds.type === 'static') return t('connectors.rows', { n: ds.staticData?.length ?? 0 })
   if (ds.type === 'mock') return 'Mock.js'
   return '-'
@@ -149,12 +157,14 @@ const createdDsName = ref('')
 
 // 数据库表单
 const dbForm = ref({
+  driver: 'mysql' as 'mysql' | 'postgresql' | 'sqlserver' | 'rest',
   host: '',
   port: 3306,
   database: '',
   user: '',
   password: '',
   ssl: false,
+  query: '',
 })
 
 // 文件表单
@@ -212,8 +222,14 @@ function onPickSrc(id: string) {
   srcId.value = id
   tested.value = false
   testMsg.value = null
-  // 默认端口
-  if (cat.value === 'db' && DEFAULT_PORT[id]) dbForm.value.port = DEFAULT_PORT[id]
+  // 默认端口与驱动
+  if (cat.value === 'db') {
+    if (DEFAULT_PORT[id]) dbForm.value.port = DEFAULT_PORT[id]
+    dbForm.value.driver = id === 'rest' ? 'rest' : (id as 'mysql' | 'postgresql' | 'sqlserver')
+    if (id !== 'rest') {
+      dbForm.value.query = 'SELECT * FROM ' + (dbForm.value.database || 'your_table') + ' LIMIT 100'
+    }
+  }
   // 默认连接名
   const s = SOURCES[cat.value].find(x => x.id === id)
   if (s && !connName.value) connName.value = `${s.name} 连接`
@@ -240,23 +256,51 @@ async function onSelectFile(files: File[]) {
   }
 }
 
-function onTest() {
+async function onTest() {
   testing.value = true
   testMsg.value = null
-  // MVP：本地校验必填项 + 模拟测试
-  setTimeout(() => {
+  try {
+    if (cat.value === 'file') {
+      if (!fileRows.value) throw new Error(t('connectors.fileEmpty'))
+      testMsg.value = { ok: true, text: t('connectors.fileParsed', { n: fileRows.value.length }) }
+    } else if (cat.value === 'api') {
+      if (!apiForm.value.url.trim()) throw new Error(t('connectors.dbUrlRequired'))
+      const r = await getAdapter('api').test!({
+        type: 'api',
+        url: apiForm.value.url.trim(),
+        method: apiForm.value.method,
+        dataPath: apiForm.value.dataPath.trim() || undefined,
+      })
+      testMsg.value = { ok: r.ok, text: r.message ?? '' }
+    } else {
+      // db：REST 桥接走本地校验；直连走 SQL 代理真实测试
+      if (!dbForm.value.host.trim()) throw new Error(t('connectors.testNeedHost'))
+      if (dbForm.value.driver === 'rest') {
+        testMsg.value = { ok: true, text: t('connectors.testOk') }
+      } else {
+        if (!dbForm.value.query.trim()) throw new Error('请填写 SQL 查询语句')
+        const r = await getAdapter('sql').test!({
+          type: 'sql',
+          sql: {
+            driver: dbForm.value.driver,
+            host: dbForm.value.host.trim(),
+            port: dbForm.value.port,
+            database: dbForm.value.database.trim(),
+            user: dbForm.value.user.trim(),
+            password: dbForm.value.password,
+            query: dbForm.value.query.trim(),
+          },
+        })
+        testMsg.value = { ok: r.ok, text: r.message ?? '' }
+      }
+    }
+    tested.value = testMsg.value.ok
+  } catch (e) {
+    tested.value = false
+    testMsg.value = { ok: false, text: e instanceof Error ? e.message : String(e) }
+  } finally {
     testing.value = false
-    if (cat.value === 'db' && !dbForm.value.host.trim()) {
-      testMsg.value = { ok: false, text: t('connectors.testNeedHost') }
-      return
-    }
-    if (cat.value === 'api' && !apiForm.value.url.trim()) {
-      testMsg.value = { ok: false, text: t('connectors.dbUrlRequired') }
-      return
-    }
-    tested.value = true
-    testMsg.value = { ok: true, text: t('connectors.testOk') }
-  }, 600)
+  }
 }
 
 async function onNext() {
@@ -283,15 +327,34 @@ async function onNext() {
           message.warn(t('connectors.testNeedHost'))
           return
         }
-        // 生成 REST 桥接 api 数据源（直连需后端代理，预留）
-        const url = `mysql://${dbForm.value.host}:${dbForm.value.port}/${dbForm.value.database}`
-        const ds = await importDatabaseAsDataSource({
-          name: connName.value.trim(),
-          driver: srcId.value === 'rest' ? 'rest' : 'mysql',
-          url,
-          dataPath: '',
-        })
-        createdDsName.value = ds.name ?? ds.id ?? ''
+        if (dbForm.value.driver === 'rest') {
+          // REST 桥接
+          const url = `mysql://${dbForm.value.host}:${dbForm.value.port}/${dbForm.value.database}`
+          const ds = await importDatabaseAsDataSource({
+            name: connName.value.trim(),
+            driver: 'rest',
+            url,
+            dataPath: '',
+          })
+          createdDsName.value = ds.name ?? ds.id ?? ''
+        } else {
+          // 数据库直连：生成 sql 数据源，经后端代理执行只读查询
+          if (!dbForm.value.query.trim()) {
+            message.warn('请填写 SQL 查询语句')
+            return
+          }
+          const ds = await importSqlDataSource({
+            name: connName.value.trim(),
+            driver: dbForm.value.driver,
+            host: dbForm.value.host.trim(),
+            port: dbForm.value.port,
+            database: dbForm.value.database.trim(),
+            user: dbForm.value.user.trim(),
+            password: dbForm.value.password,
+            query: dbForm.value.query.trim(),
+          })
+          createdDsName.value = ds.name ?? ds.id ?? ''
+        }
       } else {
         if (!apiForm.value.url.trim()) {
           message.warn(t('connectors.dbUrlRequired'))
@@ -399,7 +462,7 @@ const nextLabel = computed(() =>
         <div v-for="ds in filteredSources" :key="ds.id" class="conn-table__row">
           <span class="col-name">
             <span class="conn-avatar">
-              <SvgIcon :name="ds.type === 'static' ? 'file' : ds.type === 'api' ? 'api' : 'database'" :px="14" />
+              <SvgIcon :name="ds.type === 'static' ? 'file' : ds.type === 'api' ? 'api' : ds.type === 'websocket' ? 'sync' : 'database'" :px="14" />
             </span>
             <span class="conn-name">{{ ds.name }}</span>
           </span>
@@ -478,6 +541,10 @@ const nextLabel = computed(() =>
               </MFormItem>
               <MFormItem :label="t('connectors.dbPassword')" required class="form-grid__full">
                 <MInputPassword v-model="dbForm.password" placeholder="••••••••" fluid />
+              </MFormItem>
+              <MFormItem v-if="dbForm.driver !== 'rest'" :label="t('connectors.dbQuery')" required class="form-grid__full"
+                :help="t('connectors.dbQueryHelp')">
+                <MTextarea v-model="dbForm.query" :rows="3" placeholder="SELECT * FROM orders LIMIT 100" fluid />
               </MFormItem>
             </div>
             <MCheckbox v-model="dbForm.ssl" :label="t('connectors.dbSsl')" />

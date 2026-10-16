@@ -141,3 +141,39 @@ export async function importDatabaseAsDataSource(input: DbConnectInput): Promise
   await saveDataSource(ds)
   return ds
 }
+
+export interface SqlImportInput {
+  name: string
+  driver: 'mysql' | 'postgresql' | 'sqlserver'
+  host: string
+  port: number
+  database: string
+  user: string
+  password: string
+  query?: string
+  limit?: number
+}
+
+/**
+ * 数据库直连 → sql 数据源（经后端代理执行只读查询，避免 CORS 与凭证暴露）。
+ */
+export async function importSqlDataSource(input: SqlImportInput): Promise<DataSourceConfig> {
+  if (!input.host?.trim()) throw new Error('请填写数据库主机地址')
+  const ds: DataSourceConfig = {
+    id: genDataSourceId(),
+    name: input.name || `${input.driver} 连接`,
+    type: 'sql',
+    sql: {
+      driver: input.driver,
+      host: input.host.trim(),
+      port: input.port,
+      database: input.database.trim(),
+      user: input.user.trim(),
+      password: input.password,
+      query: input.query?.trim() || undefined,
+      limit: input.limit ?? 1000,
+    },
+  }
+  await saveDataSource(ds)
+  return ds
+}
