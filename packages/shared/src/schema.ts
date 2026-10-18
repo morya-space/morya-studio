@@ -86,6 +86,8 @@ export type TransformStep =
   | { op: 'map'; expr: string }
   | { op: 'groupBy'; field: string; aggs: Record<string, 'sum' | 'avg' | 'count' | 'max' | 'min'> }
   | { op: 'rename'; fields: Record<string, string> }
+  /** v0.3：列选取——仅保留 fields 中的字段（用于字段常规操作里的「隐藏列」） */
+  | { op: 'pick'; fields: string[] }
 
 // ==================== 图表 ====================
 
@@ -200,10 +202,14 @@ export interface CardSchema {
 
   /** v0.2：数据源引用（优先）。与内联 dataSource 二选一 */
   dataSourceId?: string
+  /** v0.3：多数据源绑定（行纵向合并）。优先于 dataSourceId；单源时与 dataSourceId 保持一致 */
+  dataSourceIds?: string[]
   /** 内联数据源（向后兼容；编辑器引导迁移到 dataSourceId） */
   dataSource?: DataSourceConfig
   /** v0.2：数据转换管道（数据到达卡片前执行） */
   transform?: TransformStep[]
+  /** v0.3：字段角色分配（拖拽配置）——字段名 → 建议角色（维度/指标/时间），驱动卡片自动配置与渲染 */
+  fieldRoles?: Record<string, 'dimension' | 'metric' | 'time'>
 
   chart?: ChartConfig
   stat?: StatConfig

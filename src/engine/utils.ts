@@ -23,10 +23,16 @@ export function getCardKey(card: CardSchema): string {
 /** 数据型卡片：需要数据源才能渲染的类型 */
 export const DATA_CARD_TYPES = ['stat', 'chart', 'table', 'list'] as const
 
+/** 卡片数据源引用列表（dataSourceIds 优先，兼容单源 dataSourceId） */
+export function cardDataSourceIds(card: CardSchema): string[] {
+  if (card.dataSourceIds?.length) return card.dataSourceIds
+  return card.dataSourceId ? [card.dataSourceId] : []
+}
+
 /** 卡片是否需要数据源但尚未绑定（编辑态显示占位图） */
 export function cardNeedsDataSource(card: CardSchema): boolean {
   return (DATA_CARD_TYPES as readonly string[]).includes(card.type)
-    && !card.dataSourceId
+    && cardDataSourceIds(card).length === 0
     && !card.dataSource
 }
 

@@ -2,6 +2,8 @@
 /**
  * 图表卡（chart）
  * 用 useECharts 渲染 schema.chart 配置的图表。
+ * - 配置（维度/指标等字段、图表类型）变化实时重绘
+ * - 图表高度自适应卡片（自由布局拖拽边框实时重绘）
  */
 
 import { computed, toRef } from 'vue'
@@ -13,13 +15,12 @@ const props = defineProps<CardProps>()
 const emit = defineEmits<CardEmits>()
 
 const chartConfig = computed(() => props.schema.chart ?? { chartType: 'bar' as const })
-const { containerRef } = useECharts(chartConfig.value, toRef(props, 'data'))
+const { containerRef } = useECharts(chartConfig, toRef(props, 'data'))
 void containerRef // template ref usage
 
-const height = computed(() => {
-  const h = props.schema.chart?.height ?? props.schema.height ?? 280
-  return `${h}px`
-})
+const minHeight = computed(() =>
+  props.schema.chart?.height ?? props.schema.height ?? 240,
+)
 </script>
 
 <template>
@@ -34,12 +35,13 @@ const height = computed(() => {
     @retry="emit('retry')"
     @action="emit('action', $event)"
   >
-    <div ref="containerRef" class="chart-card" :style="{ height }" />
+    <div ref="containerRef" class="chart-card" :style="{ minHeight: `${minHeight}px` }" />
   </CardShell>
 </template>
 
 <style scoped>
 .chart-card {
   width: 100%;
+  height: 100%;
 }
 </style>

@@ -208,8 +208,8 @@ async function buildDetail(
   const boards: [string, string][] = []
   for (const p of pages) {
     try {
-      const schema = JSON.parse(p.schema) as { cards?: { dataSourceId?: string }[] }
-      const used = schema.cards?.some(c => c.dataSourceId === ds.id)
+      const schema = JSON.parse(p.schema) as { cards?: { dataSourceId?: string; dataSourceIds?: string[] }[] }
+      const used = schema.cards?.some(c => c.dataSourceId === ds.id || c.dataSourceIds?.includes(ds.id!))
       if (used) boards.push([p.title, `${schema.cards?.length ?? 0} 个卡片`])
     } catch { /* ignore */ }
   }

@@ -225,7 +225,7 @@ function formatTime(iso?: string): string {
     </MDialog>
 
     <!-- 版本历史对话框 -->
-    <MDialog v-model="versionsVisible" :title="versionsFor ? `版本历史 · ${versionsFor.title}` : '版本历史'" width="560px">
+    <MDialog v-model="versionsVisible" :title="versionsFor ? `版本历史 · ${versionsFor.title}` : '版本历史'" class="versions-dialog-host" width="560px">
       <div v-if="versionsLoading" class="versions-loading">加载中…</div>
       <div v-else-if="versions.length === 0" class="versions-empty">
         <MEmpty title="暂无历史版本" description="每次保存面板都会生成一个快照" />
@@ -381,5 +381,12 @@ function formatTime(iso?: string): string {
 .version-item__meta {
   font-size: 12px;
   color: var(--m-color-text-muted);
+}
+</style>
+
+<style>
+/* 版本历史 560px 被 MDialog 默认 --m-dialog-width(32rem=512px) 截断，列表被挤压；用类限定覆盖变量。 */
+.versions-dialog-host .m-dialog {
+  --m-dialog-width: min(560px, 94vw);
 }
 </style>

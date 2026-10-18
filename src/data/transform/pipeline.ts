@@ -34,6 +34,8 @@ function applyStep(rows: Row[], step: TransformStep): Row[] {
       return groupByRows(rows, step.field, step.aggs)
     case 'rename':
       return renameRows(rows, step.fields)
+    case 'pick':
+      return pickRows(rows, step.fields)
     default: {
       // 未知 op —— 类型系统已收敛，这里防御性跳过
       console.warn('[transform] unknown step op', step)
@@ -127,6 +129,16 @@ function renameRows(rows: Row[], fields: Record<string, string>): Row[] {
     const out: Row = {}
     for (const [k, v] of Object.entries(row)) {
       out[fields[k] ?? k] = v
+    }
+    return out
+  })
+}
+
+function pickRows(rows: Row[], fields: string[]): Row[] {
+  return rows.map(row => {
+    const out: Row = {}
+    for (const key of fields) {
+      if (key in row) out[key] = row[key]
     }
     return out
   })

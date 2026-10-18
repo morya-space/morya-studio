@@ -56,8 +56,10 @@ export function createPublicRoutes(
       throw new ApiError(500, 'invalid_schema', '面板数据损坏')
     }
 
-    // 收集卡片引用的数据源（去重），仅返回分享所属 owner 的数据源
-    const dsIds = [...new Set((page.cards ?? []).map(c => c.dataSourceId).filter(Boolean))] as string[]
+    // 收集卡片引用的数据源（去重，多源 dataSourceIds 优先），仅返回分享所属 owner 的数据源
+    const dsIds = [...new Set(
+      (page.cards ?? []).flatMap(c => c.dataSourceIds?.length ? c.dataSourceIds : [c.dataSourceId]),
+    )].filter(Boolean) as string[]
     const datasources: DataSourceConfig[] = []
     if (dsIds.length > 0) {
       const rows = all<DsRow>(

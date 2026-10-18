@@ -15,6 +15,7 @@ import { initDataSources, listDataSources } from '../../services/datasource'
 import { initComponents, listCustomComponents } from '../../services/component'
 import { initTemplates, listTemplates } from '../../services/template'
 import { useECharts } from '../../composables/useECharts'
+import { cardDataSourceIds } from '../../engine/utils'
 import type { DataSourceConfig, PageSchema } from '../../types/schema'
 
 const { t } = useI18n()
@@ -75,9 +76,13 @@ const dsTypeData = computed(() => {
   const dsById = new Map(datasources.value.map(d => [d.id, d]))
   for (const p of pages.value) {
     for (const c of p.cards ?? []) {
-      if (c.dataSourceId) {
-        const ds = dsById.get(c.dataSourceId)
-        count.set(ds?.type ?? '未知', (count.get(ds?.type ?? '未知') ?? 0) + 1)
+      const refs = cardDataSourceIds(c)
+      if (refs.length) {
+        for (const ref of refs) {
+          const ds = dsById.get(ref)
+          const key = ds?.type ?? '未知'
+          count.set(key, (count.get(key) ?? 0) + 1)
+        }
       } else if (c.dataSource) {
         count.set('内联', (count.get('内联') ?? 0) + 1)
       } else {
@@ -118,10 +123,12 @@ const attention = computed<AttentionItem[]>(() => {
       continue
     }
     for (const c of cards) {
-      if (!c.dataSourceId && !c.dataSource) {
+      const refs = cardDataSourceIds(c)
+      const unknown = refs.filter(r => !dsIds.has(r))
+      if (!refs.length && !c.dataSource) {
         items.push({ level: 'error', panel: p.title, card: c.title ?? c.type, message: '卡片未绑定数据源' })
-      } else if (c.dataSourceId && !dsIds.has(c.dataSourceId)) {
-        items.push({ level: 'error', panel: p.title, card: c.title ?? c.type, message: `引用了不存在的数据源：${c.dataSourceId}` })
+      } else if (unknown.length) {
+        items.push({ level: 'error', panel: p.title, card: c.title ?? c.type, message: `引用了不存在的数据源：${unknown.join('、')}` })
       }
     }
   }

@@ -64,6 +64,8 @@ function trendOf(row: Record<string, unknown>): { text: string; type: 'up' | 'do
 
 <style scoped>
 .list-card {
+  height: 100%;
+  overflow-y: auto;
   list-style: none;
   margin: 0;
   padding: 0;

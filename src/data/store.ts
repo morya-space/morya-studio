@@ -52,14 +52,21 @@ export const useDataStore = defineStore('data', () => {
 
   // ---- 数据加载 ----
 
-  /** 解析卡片对应的数据源配置（dataSourceId 优先，回退内联） */
-  function resolveDataSource(card: CardSchema): DataSourceConfig {
+  /** 解析卡片对应的数据源配置（dataSourceIds 优先，其次 dataSourceId，回退内联） */
+  function resolveDataSources(card: CardSchema): DataSourceConfig[] {
+    if (card.dataSourceIds?.length) {
+      return card.dataSourceIds.map(id => {
+        const ds = dataSources.value.get(id)
+        if (!ds) throw new Error(`[dataStore] unknown dataSourceId: "${id}"`)
+        return ds
+      })
+    }
     if (card.dataSourceId) {
       const ds = dataSources.value.get(card.dataSourceId)
       if (!ds) throw new Error(`[dataStore] unknown dataSourceId: "${card.dataSourceId}"`)
-      return ds
+      return [ds]
     }
-    if (card.dataSource) return card.dataSource
+    if (card.dataSource) return [card.dataSource]
     throw new Error(`[dataStore] card "${card.id}" has no dataSource`)
   }
 
@@ -99,14 +106,18 @@ export const useDataStore = defineStore('data', () => {
     cardLoading.value.set(card.id, true)
     cardError.value.set(card.id, null)
     try {
-      const ds = resolveDataSource(card)
-      const raw = await fetchRaw(ds, opts)
+      const sources = resolveDataSources(card)
+      // 多数据源：并行拉取后按绑定顺序做行纵向合并（UNION）
+      const batches = await Promise.all(sources.map(ds => fetchRaw(ds, opts)))
+      const raw: Row[] = []
+      for (const batch of batches) raw.push(...batch)
       const rows = applyTransform(raw, card.transform)
       cardData.value.set(card.id, rows)
 
-      // 调度轮询（pollInterval > 0 才启动）
-      if ((ds.pollInterval ?? 0) > 0) {
-        pollScheduler.start(card.id, ds.pollInterval as number, async () => {
+      // 调度轮询：取各源最小的正轮询间隔
+      const interval = Math.min(...sources.map(ds => ds.pollInterval ?? 0).filter(v => v > 0))
+      if (Number.isFinite(interval) && interval > 0) {
+        pollScheduler.start(card.id, interval, async () => {
           await loadCardData(card, { force: true })
         })
       }
@@ -158,6 +169,7 @@ export const useDataStore = defineStore('data', () => {
     registerDataSource,
     unregisterDataSource,
     setGlobalParams,
+    fetchRaw,
     loadCardData,
     refreshPage,
     refreshCard,

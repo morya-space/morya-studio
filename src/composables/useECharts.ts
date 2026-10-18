@@ -22,7 +22,7 @@ import {
   TooltipComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import { onBeforeUnmount, onMounted, ref, shallowRef, watch, type Ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, shallowRef, watch, computed, toValue, type Ref, type MaybeRef } from 'vue'
 import type { ChartConfig } from '../types/schema'
 import { getChartPalette, getToken } from './useThemeToken'
 
@@ -64,13 +64,16 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
   return out
 }
 
-export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsReturn {
+export function useECharts(configInput: MaybeRef<ChartConfig>, data: Ref<Row[]>): UseEChartsReturn {
   const containerRef = ref<HTMLElement | null>(null)
   const chart = shallowRef<echarts.ECharts | null>(null)
+  /** 配置（响应式）：ChartCard 传入 computed 时，配置变动会实时重建图表 */
+  const config = computed(() => toValue(configInput))
   /** setOption 手动覆盖的最近一次 option，重建图表后需要重放（否则自定义样式丢失） */
   let lastManualOption: echarts.EChartsCoreOption | null = null
+  let resizeObserver: ResizeObserver | null = null
 
-  const palette = (): string[] => config.colors ?? getChartPalette()
+  const palette = (): string[] => config.value.colors ?? getChartPalette()
   const axisColor = () => getToken('--m-chart-axis')
   const splitColor = () => getToken('--m-chart-split')
   const surfaceColor = () => getToken('--m-chart-surface')
@@ -78,7 +81,7 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
 
   /** 按 seriesField 把数据拆成多系列 */
   function groupBySeries(items: Row[]): Map<string, Row[]> {
-    const field = config.seriesField
+    const field = config.value.seriesField
     if (!field) return new Map([['', items]])
     const groups = new Map<string, Row[]>()
     for (const row of items) {
@@ -91,22 +94,23 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
   }
 
   function baseCartesian(xData: string[]): echarts.EChartsCoreOption {
+    const c = config.value
     return {
       grid: { show: false, left: 0, right: 0, top: 10, bottom: 0, containLabel: true },
-      tooltip: { show: config.showTooltip !== false, trigger: 'axis' },
-      legend: { show: config.showLegend ?? false },
+      tooltip: { show: c.showTooltip !== false, trigger: 'axis' },
+      legend: { show: c.showLegend ?? false },
       xAxis: {
         type: 'category',
         data: xData,
-        show: config.showGrid !== false,
+        show: c.showGrid !== false,
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: { color: axisColor(), fontSize: 12 },
       },
       yAxis: {
         type: 'value',
-        show: config.showGrid !== false,
-        name: config.yAxis?.title ?? '',
+        show: c.showGrid !== false,
+        name: c.yAxis?.title ?? '',
         splitLine: { lineStyle: { color: splitColor() } },
         axisLabel: { color: axisColor(), fontSize: 12 },
       },
@@ -114,18 +118,19 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
   }
 
   function buildOption(): echarts.EChartsCoreOption {
+    const c = config.value
     const items = data.value
-    const xField = config.xField ?? 'x'
-    const yField = config.yField ?? 'y'
+    const xField = c.xField ?? 'x'
+    const yField = c.yField ?? 'y'
     const xData = items.map(item => String(item[xField] ?? ''))
     const groups = groupBySeries(items)
     const seriesNames = [...groups.keys()]
-    const multi = config.seriesField ? seriesNames.length : 1
-    const stackName = config.stack ? 'total' : undefined
+    const multi = c.seriesField ? seriesNames.length : 1
+    const stackName = c.stack ? 'total' : undefined
 
     let option: echarts.EChartsCoreOption
 
-    switch (config.chartType) {
+    switch (c.chartType) {
       case 'bar': {
         option = {
           ...baseCartesian(xData),
@@ -144,7 +149,7 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
 
       case 'line':
       case 'area': {
-        const isArea = config.chartType === 'area'
+        const isArea = c.chartType === 'area'
         option = {
           ...baseCartesian(xData),
           color: palette(),
@@ -153,7 +158,7 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
             type: 'line',
             stack: stackName,
             data: (groups.get(name) ?? []).map(item => Number(item[yField] ?? 0)),
-            smooth: config.smooth ?? true,
+            smooth: c.smooth ?? true,
             lineStyle: { width: 3 },
             areaStyle: isArea ? { opacity: 0.15 } : undefined,
           })),
@@ -165,7 +170,7 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
         option = {
           color: palette(),
           tooltip: { trigger: 'item' },
-          legend: { show: config.showLegend ?? false },
+          legend: { show: c.showLegend ?? false },
           series: [{
             type: 'pie',
             radius: ['40%', '70%'],
@@ -183,8 +188,8 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
       case 'radar': {
         option = {
           color: palette(),
-          tooltip: { show: config.showTooltip !== false },
-          legend: { show: config.showLegend ?? false },
+          tooltip: { show: c.showTooltip !== false },
+          legend: { show: c.showLegend ?? false },
           radar: {
             indicator: items.map(item => ({ name: String(item[xField] ?? '') })),
             axisName: { color: axisColor(), fontSize: 12 },
@@ -193,7 +198,7 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
             type: 'radar',
             data: [{
               value: items.map(item => Number(item[yField] ?? 0)),
-              name: config.yAxis?.title ?? '',
+              name: c.yAxis?.title ?? '',
             }],
           }],
         }
@@ -262,8 +267,8 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
     }
 
     // rawOption 逃生舱：深度合并到最后
-    if (config.rawOption) {
-      option = deepMerge(option as Record<string, unknown>, config.rawOption) as echarts.EChartsCoreOption
+    if (c.rawOption) {
+      option = deepMerge(option as Record<string, unknown>, c.rawOption) as echarts.EChartsCoreOption
     }
 
     return option
@@ -294,24 +299,37 @@ export function useECharts(config: ChartConfig, data: Ref<Row[]>): UseEChartsRet
     window.addEventListener('resize', resize)
   })
 
+  function attachResizeObserver(el: HTMLElement) {
+    if (typeof ResizeObserver === 'undefined' || resizeObserver) return
+    resizeObserver = new ResizeObserver(() => chart.value?.resize())
+    resizeObserver.observe(el)
+  }
+
   // 容器可能晚于挂载才渲染（如异步数据就绪后），出现时补初始化。
   // 元素被 v-if 卸载时（如切走 Tab）chart 实例仍挂在旧 DOM 上，需 dispose，
   // 待元素重新挂载（切回 Tab）后在新容器上重建。
+  // 容器尺寸变化（卡片边框拖拽 / 网格列宽等）实时重绘。
   watch(containerRef, (el) => {
     if (!el) {
+      resizeObserver?.disconnect()
+      resizeObserver = null
       chart.value?.dispose()
       chart.value = null
       return
     }
+    attachResizeObserver(el)
     if (!chart.value) initChart()
   }, { flush: 'post' })
 
   onBeforeUnmount(() => {
+    resizeObserver?.disconnect()
+    resizeObserver = null
     window.removeEventListener('resize', resize)
     chart.value?.dispose()
   })
 
-  watch(data, () => {
+  // 配置（维度 / 指标等字段）或数据变化 → 实时重建 option
+  watch([config, data], () => {
     chart.value?.setOption(buildOption())
   }, { deep: true })
 

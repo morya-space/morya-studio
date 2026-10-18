@@ -6,6 +6,7 @@
 
 import type { CardSchema, CardType, PageSchema, TransformStep } from '../types/schema'
 import { validateExpr } from '../data/transform/expr'
+import { cardDataSourceIds } from './utils'
 
 export type ValidationLevel = 'error' | 'warning'
 
@@ -34,7 +35,7 @@ const REQUIRED_CONFIG: Partial<Record<CardType, keyof CardSchema>> = {
   custom: 'custom',
 }
 
-const TRANSFORM_OPS = new Set(['filter', 'sort', 'limit', 'map', 'groupBy', 'rename'])
+const TRANSFORM_OPS = new Set(['filter', 'sort', 'limit', 'map', 'groupBy', 'rename', 'pick'])
 
 /**
  * 校验页面 Schema。
@@ -93,13 +94,18 @@ function validateCard(card: CardSchema, base: string, ctx: CardContext): void {
     push('error', `.${requiredKey}`, `Card type "${card.type}" requires "${requiredKey}" config`, 'R2')
   }
 
-  // R3：数据源引用存在性；二选一校验
-  const hasRef = Boolean(card.dataSourceId)
+  // R3：数据源引用存在性；多源 dataSourceIds 优先，与内联 dataSource 二选一
+  const refs = cardDataSourceIds(card)
+  const hasRef = refs.length > 0
   const hasInline = Boolean(card.dataSource)
   if (!hasRef && !hasInline) {
     push('error', '.dataSourceId', 'Card requires dataSourceId or inline dataSource', 'R3')
-  } else if (hasRef && !knownDataSourceIds.has(card.dataSourceId as string)) {
-    push('error', '.dataSourceId', `Unknown dataSource id: "${card.dataSourceId}"`, 'R3')
+  } else {
+    for (const ref of refs) {
+      if (!knownDataSourceIds.has(ref)) {
+        push('error', '.dataSourceId', `Unknown dataSource id: "${ref}"`, 'R3')
+      }
+    }
   }
 
   // R4：span 范围
@@ -150,6 +156,9 @@ function validateTransformStep(step: TransformStep, path: string, issues: Valida
   }
   if (step.op === 'groupBy' && !step.field) {
     issues.push({ level: 'error', path: `${path}.field`, message: 'groupBy step requires field', rule: 'R6' })
+  }
+  if (step.op === 'pick' && (!Array.isArray(step.fields) || step.fields.length === 0)) {
+    issues.push({ level: 'error', path: `${path}.fields`, message: 'pick step requires non-empty fields', rule: 'R6' })
   }
 }
 

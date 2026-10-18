@@ -171,6 +171,9 @@ function onAction(action: ActionConfig) {
 
 .card-shell__body {
   min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 骨架屏 */

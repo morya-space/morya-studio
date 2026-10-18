@@ -13,9 +13,13 @@ export interface EditorFieldSchema {
   /** lodash 路径，如 'chart.chartType' */
   field: string
   label: string
-  component: 'MInput' | 'MSelect' | 'MSwitch' | 'MInputNumber' | 'MTextarea'
-  /** 静态选项，或 'auto:dataFields' 表示从绑定数据源当前数据推断字段 */
-  options?: { label: string; value: unknown }[] | 'auto:dataFields'
+  component: 'MInput' | 'MSelect' | 'MSwitch' | 'MInputNumber' | 'MTextarea' | 'MTableColumns'
+  /** 静态选项，或 'auto:*' 表示从绑定数据源当前数据推断字段 */
+  options?:
+    | { label: string; value: unknown }[]
+    | 'auto:dataFields'
+    | 'auto:dimensionFields'
+    | 'auto:metricFields'
   /** 透传给控件的 props */
   props?: Record<string, unknown>
   /** 帮助文案 */

@@ -5,15 +5,18 @@
  * 选中卡片时显示卡片属性；未选中显示页面设置。
  */
 
-import { computed } from 'vue'
-import { MButton, MForm, MFormItem, MInputNumber, MSelect } from 'morya-ui'
+import { computed, ref } from 'vue'
+import { MButton, MForm, MFormItem, MInputNumber, MTag } from 'morya-ui'
+import type { DataSourceConfig } from '../../types/schema'
 import { useEditorStore } from '../store'
 import { useDataStore } from '../../data/store'
 import { getCardRegistration, type EditorFieldSchema } from '../../engine/registry'
-import { cardNeedsDataSource } from '../../engine/utils'
-import { listDataSources } from '../../services/datasource'
+import { cardDataSourceIds, cardNeedsDataSource } from '../../engine/utils'
+import { getDataSource } from '../../services/datasource'
+import { describeFields, fieldOptions, type FieldDescriptor } from '../../data/fields'
 import FieldRenderer from '../components/FieldRenderer.vue'
 import TransformEditor from './TransformEditor.vue'
+import DataSourceBindingDialog from './DataSourceBindingDialog.vue'
 import PageSettings from './PageSettings.vue'
 import PropGroup from './PropGroup.vue'
 import SvgIcon from '../../components/common/SvgIcon.vue'
@@ -29,31 +32,49 @@ const registration = computed(() =>
 )
 const editorSchema = computed<EditorFieldSchema[]>(() => registration.value?.editorSchema ?? [])
 
-const dataSourceOptions = computed(() => {
-  const saved = listDataSources()
-    .filter(ds => ds.id)
-    .map(ds => ({ label: ds.name ?? ds.id ?? '', value: ds.id ?? '' }))
-  return [{ label: '（不绑定）', value: '' }, ...saved]
-})
+// ==================== 数据源绑定（弹窗） ====================
+const bindingVisible = ref(false)
 
-const dataSourceId = computed({
-  get: () => card.value?.dataSourceId ?? '',
-  set: (v: string) => {
-    if (!card.value) return
-    editorStore.updateCardField(card.value.id, 'dataSourceId', v || undefined)
-    // 绑定后预加载数据，供 auto:dataFields 推断
-    if (v && card.value) void dataStore.loadCardData({ ...card.value, dataSourceId: v })
-  },
-})
+const boundIds = computed<string[]>(() => card.value ? cardDataSourceIds(card.value) : [])
+const boundSources = computed<DataSourceConfig[]>(() =>
+  boundIds.value.map(id => getDataSource(id)).filter((ds): ds is DataSourceConfig => !!ds),
+)
+const unboundIds = computed(() =>
+  boundIds.value.filter(id => !getDataSource(id)),
+)
 
-/** 推断当前绑定数据源的字段名（从已加载数据的第一行） */
-const dataFieldOptions = computed(() => {
+function unbindSource(id: string) {
+  const c = card.value
+  if (!c) return
+  const next = boundIds.value.filter(x => x !== id)
+  editorStore.updateSchema(draft => {
+    const target = draft.cards.find(cc => cc.id === c.id)
+    if (!target) return
+    if (next.length) {
+      target.dataSourceIds = next
+      target.dataSourceId = next[0]
+    } else {
+      delete target.dataSourceIds
+      delete target.dataSourceId
+    }
+  })
+  const updated = editorStore.selectedCard
+  if (updated) void dataStore.loadCardData({ ...updated })
+}
+
+/** 从已加载卡片数据探测字段描述符（类型 + 维度/指标/时间角色） */
+const fieldDescriptors = computed<FieldDescriptor[]>(() => {
   if (!card.value) return []
   const rows = dataStore.cardData.get(card.value.id) ?? []
-  const first = rows[0]
-  if (!first) return []
-  return Object.keys(first).map(k => ({ label: k, value: k }))
+  return describeFields(rows)
 })
+
+/** 全部字段（含角色徽标），供 'auto:dataFields' 选择器 */
+const dataFieldOptions = computed(() => fieldOptions(fieldDescriptors.value, 'all'))
+/** 维度优先，供 X 轴 / 标签 / 标题等「类别」字段选择器 */
+const dimensionFieldOptions = computed(() => fieldOptions(fieldDescriptors.value, 'dimension'))
+/** 指标优先，供 Y 轴 / 数值 / 趋势等「数值」字段选择器 */
+const metricFieldOptions = computed(() => fieldOptions(fieldDescriptors.value, 'metric'))
 
 function fieldValue(field: EditorFieldSchema): unknown {
   if (!card.value) return undefined
@@ -120,9 +141,30 @@ function getByPath(obj: Record<string, unknown>, path: string): unknown {
 
       <!-- 数据绑定 -->
       <PropGroup title="数据绑定">
-        <MFormItem label="数据源">
-          <MSelect v-model="dataSourceId" :options="dataSourceOptions" fluid allow-clear />
-        </MFormItem>
+        <div class="binding-row">
+          <div class="binding-chips">
+            <MTag
+              v-for="ds in boundSources" :key="ds.id"
+              type="secondary" size="small" closable
+              @close="unbindSource(ds.id!)"
+            >{{ ds.name || ds.id }}</MTag>
+            <MTag
+              v-for="id in unboundIds" :key="id"
+              type="danger" size="small" closable
+              @close="unbindSource(id)"
+            >{{ id }}（已失效）</MTag>
+            <span v-if="!boundIds.length" class="binding-empty">未绑定数据源</span>
+          </div>
+          <MButton type="secondary" size="small" @click="bindingVisible = true">
+            <SvgIcon name="plug" :px="12" /> 配置绑定
+          </MButton>
+        </div>
+        <p v-if="boundIds.length > 1" class="binding-note">
+          {{ boundIds.length }} 个数据源按行纵向合并
+        </p>
+        <p v-else-if="card?.dataSource" class="binding-note">
+          该卡片仍有内联数据源；绑定注册数据源后以注册数据源优先
+        </p>
         <p v-if="needsDataSource" class="datasource-hint">
           该组件需要数据源，绑定后即可显示
         </p>
@@ -141,6 +183,9 @@ function getByPath(obj: Record<string, unknown>, path: string): unknown {
               :field="field"
               :model-value="fieldValue(field)"
               :data-field-options="dataFieldOptions"
+              :dimension-field-options="dimensionFieldOptions"
+              :metric-field-options="metricFieldOptions"
+              :field-descriptors="fieldDescriptors"
               @update:model-value="onFieldChange(field, $event)"
             />
           </MFormItem>
@@ -171,6 +216,8 @@ function getByPath(obj: Record<string, unknown>, path: string): unknown {
           </MButton>
         </div>
       </PropGroup>
+
+      <DataSourceBindingDialog v-model="bindingVisible" />
     </template>
   </div>
 </template>
@@ -194,6 +241,38 @@ function getByPath(obj: Record<string, unknown>, path: string): unknown {
   padding: 6px 10px;
   border-radius: var(--m-radius-sm);
   background: color-mix(in srgb, var(--m-color-warning) 10%, transparent);
+}
+
+.binding-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.binding-chips {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.binding-empty {
+  font-size: 12px;
+  color: var(--m-color-text-muted);
+}
+
+.binding-note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--m-color-text-muted);
+}
+
+.binding-row :deep(.m-button) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .op-row :deep(.m-button) {

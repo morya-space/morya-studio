@@ -1075,3 +1075,11 @@ const nextLabel = computed(() =>
   gap: 10px;
 }
 </style>
+
+<style>
+/* MDialog 面板 max-width 由 --m-dialog-width 控制（默认 32rem=512px），
+   仅传 width="860px" 会被静默截断到 512px；用类限定全局样式覆盖该变量。 */
+.conn-dialog .m-dialog {
+  --m-dialog-width: min(860px, 94vw);
+}
+</style>

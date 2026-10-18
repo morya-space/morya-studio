@@ -27,6 +27,7 @@ const OP_OPTIONS = [
   { label: '映射 map', value: 'map' },
   { label: '分组聚合 groupBy', value: 'groupBy' },
   { label: '重命名 rename', value: 'rename' },
+  { label: '列选取 pick', value: 'pick' },
 ]
 const newOp = ref<TransformStep['op']>('filter')
 
@@ -40,6 +41,7 @@ function addStep() {
     case 'map': (base as { expr: string }).expr = ''; break
     case 'groupBy': Object.assign(base, { field: '', aggs: { value: 'sum' } }); break
     case 'rename': Object.assign(base, { fields: {} }); break
+    case 'pick': Object.assign(base, { fields: [] }); break
   }
   next.push(base)
   writeSteps(next)
@@ -91,7 +93,17 @@ function onRenameChange(index: number, text: string) {
 }
 
 const OP_LABEL: Record<string, string> = {
-  filter: '过滤', sort: '排序', limit: '截取', map: '映射', groupBy: '分组聚合', rename: '重命名',
+  filter: '过滤', sort: '排序', limit: '截取', map: '映射', groupBy: '分组聚合', rename: '重命名', pick: '列选取',
+}
+
+function pickFieldsText(index: number): string {
+  const step = steps.value[index]
+  if (step?.op !== 'pick') return ''
+  return step.fields.join(', ')
+}
+
+function onPickFieldsChange(index: number, text: string) {
+  updateStep(index, { fields: text.split(',').map(s => s.trim()).filter(Boolean) })
 }
 </script>
 
@@ -140,6 +152,11 @@ const OP_LABEL: Record<string, string> = {
         <div v-else-if="step.op === 'rename'" class="transform-item__body">
           <MTextarea :model-value="renameText(i)" :rows="2" placeholder='{"oldName":"newName"}' fluid
             @update:model-value="onRenameChange(i, $event as string)" />
+        </div>
+
+        <div v-else-if="step.op === 'pick'" class="transform-item__body">
+          <MInput :model-value="pickFieldsText(i)" placeholder="保留字段，逗号分隔，如 name, value" fluid
+            @update:model-value="onPickFieldsChange(i, $event as string)" />
         </div>
       </div>
     </div>

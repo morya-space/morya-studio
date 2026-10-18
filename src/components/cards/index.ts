@@ -44,12 +44,12 @@ export function registerBuiltinCards(): void {
     }),
     editorSchema: [
       { field: 'title', label: '标题', component: 'MInput' },
-      { field: 'stat.valueField', label: '数值字段', component: 'MSelect', options: 'auto:dataFields' },
-      { field: 'stat.labelField', label: '标签字段', component: 'MSelect', options: 'auto:dataFields' },
+      { field: 'stat.valueField', label: '数值字段', component: 'MSelect', options: 'auto:metricFields' },
+      { field: 'stat.labelField', label: '标签字段', component: 'MSelect', options: 'auto:dimensionFields' },
       { field: 'stat.prefix', label: '前缀', component: 'MInput' },
       { field: 'stat.suffix', label: '后缀', component: 'MInput' },
       { field: 'stat.precision', label: '小数位', component: 'MInputNumber', props: { min: 0, max: 6 } },
-      { field: 'stat.trendField', label: '趋势字段', component: 'MSelect', options: 'auto:dataFields' },
+      { field: 'stat.trendField', label: '趋势字段', component: 'MSelect', options: 'auto:metricFields' },
     ],
   })
 
@@ -69,9 +69,9 @@ export function registerBuiltinCards(): void {
     editorSchema: [
       { field: 'title', label: '标题', component: 'MInput' },
       { field: 'chart.chartType', label: '图表类型', component: 'MSelect', options: CHART_TYPE_OPTIONS },
-      { field: 'chart.xField', label: 'X 轴字段', component: 'MSelect', options: 'auto:dataFields' },
-      { field: 'chart.yField', label: 'Y 轴字段', component: 'MSelect', options: 'auto:dataFields' },
-      { field: 'chart.seriesField', label: '系列字段', component: 'MSelect', options: 'auto:dataFields' },
+      { field: 'chart.xField', label: 'X 轴字段', component: 'MSelect', options: 'auto:dimensionFields' },
+      { field: 'chart.yField', label: 'Y 轴字段', component: 'MSelect', options: 'auto:metricFields' },
+      { field: 'chart.seriesField', label: '系列字段', component: 'MSelect', options: 'auto:dimensionFields' },
       { field: 'chart.smooth', label: '平滑曲线', component: 'MSwitch' },
       { field: 'chart.stack', label: '堆叠', component: 'MSwitch' },
       { field: 'chart.showLegend', label: '显示图例', component: 'MSwitch' },
@@ -94,6 +94,7 @@ export function registerBuiltinCards(): void {
     }),
     editorSchema: [
       { field: 'title', label: '标题', component: 'MInput' },
+      { field: 'table.columns', label: '列字段', component: 'MTableColumns', help: '勾选数据源字段作为表格列，可改列标题' },
       { field: 'table.pageSize', label: '每页条数', component: 'MInputNumber', props: { min: 5, max: 100 } },
       { field: 'table.showPagination', label: '显示分页', component: 'MSwitch' },
     ],
@@ -114,10 +115,10 @@ export function registerBuiltinCards(): void {
     }),
     editorSchema: [
       { field: 'title', label: '标题', component: 'MInput' },
-      { field: 'list.titleField', label: '标题字段', component: 'MSelect', options: 'auto:dataFields' },
-      { field: 'list.subtitleField', label: '副标题字段', component: 'MSelect', options: 'auto:dataFields' },
-      { field: 'list.valueField', label: '数值字段', component: 'MSelect', options: 'auto:dataFields' },
-      { field: 'list.trendField', label: '趋势字段', component: 'MSelect', options: 'auto:dataFields' },
+      { field: 'list.titleField', label: '标题字段', component: 'MSelect', options: 'auto:dimensionFields' },
+      { field: 'list.subtitleField', label: '副标题字段', component: 'MSelect', options: 'auto:dimensionFields' },
+      { field: 'list.valueField', label: '数值字段', component: 'MSelect', options: 'auto:metricFields' },
+      { field: 'list.trendField', label: '趋势字段', component: 'MSelect', options: 'auto:metricFields' },
     ],
   })
 

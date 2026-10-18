@@ -55,6 +55,30 @@ describe('useDataStore', () => {
     expect(store.cardData.get('card-1')).toEqual([{ x: 9 }])
   })
 
+  it('merges rows of multiple dataSourceIds (union)', async () => {
+    store.registerDataSource({ id: 'ds-a', type: 'static', staticData: [{ x: 1 }, { x: 2 }] })
+    store.registerDataSource({ id: 'ds-b', type: 'static', staticData: [{ y: 3 }] })
+    const card = makeCard({ dataSourceIds: ['ds-a', 'ds-b'] })
+    await store.loadCardData(card)
+    expect(store.cardData.get('card-1')).toEqual([{ x: 1 }, { x: 2 }, { y: 3 }])
+  })
+
+  it('errors when any dataSourceIds entry is unknown', async () => {
+    store.registerDataSource({ id: 'ds-ok', type: 'static', staticData: [{ x: 1 }] })
+    const card = makeCard({ dataSourceIds: ['ds-ok', 'ds-missing'] })
+    await store.loadCardData(card)
+    expect(store.cardError.get('card-1')?.message).toMatch(/unknown dataSourceId: "ds-missing"/)
+  })
+
+  it('applies pick step to keep only selected fields', async () => {
+    const card = makeCard({
+      dataSource: { type: 'static', staticData: [{ a: 1, b: 2, c: 3 }] },
+      transform: [{ op: 'pick', fields: ['a', 'c'] }],
+    })
+    await store.loadCardData(card)
+    expect(store.cardData.get('card-1')).toEqual([{ a: 1, c: 3 }])
+  })
+
   it('errors when dataSourceId unknown', async () => {
     const card = makeCard({ dataSourceId: 'missing' })
     await store.loadCardData(card)

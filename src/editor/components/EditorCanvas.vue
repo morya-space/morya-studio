@@ -9,7 +9,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { MButton, MDialog, MEmpty, MInput, MScrollbar, MTextarea, message } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { useDataStore } from '../../data/store'
-import { sortCards } from '../../engine/utils'
+import { cardDataSourceIds, sortCards } from '../../engine/utils'
 import type { CardType } from '../../types/schema'
 import CardWrapper from './CardWrapper.vue'
 import FreeCard from './FreeCard.vue'
@@ -79,7 +79,7 @@ onMounted(loadCardData)
 
 // 卡片列表变化（增删/数据源变化）时刷新
 watch(
-  () => editorStore.page.cards.map(c => `${c.id}:${c.dataSourceId ?? ''}`).join(','),
+  () => editorStore.page.cards.map(c => `${c.id}:${cardDataSourceIds(c).join('+')}:${c.transform?.length ?? 0}`).join(','),
   () => { void loadCardData() },
 )
 
