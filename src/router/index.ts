@@ -118,6 +118,7 @@ const router = createRouter({
       path: '/preview/:id',
       name: 'preview',
       component: PreviewView,
+      meta: { bare: true },
     },
     // 公开只读看板（分享链接，免登录）
     {

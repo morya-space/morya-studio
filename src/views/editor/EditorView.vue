@@ -7,23 +7,25 @@
  */
 
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import { MButton, MDialog, MSkeleton, MScrollbar, message } from 'morya-ui'
+import { useRoute, useRouter } from 'vue-router'
+import { MSkeleton, message } from 'morya-ui'
 import EditorTopBar from '../../editor/components/EditorTopBar.vue'
 import EditorLeftPanel from '../../editor/components/EditorLeftPanel.vue'
 import EditorRightPanel from '../../editor/components/EditorRightPanel.vue'
 import EditorCanvas from '../../editor/components/EditorCanvas.vue'
-import SchemaRenderer from '../../engine/SchemaRenderer.vue'
+import EditorBottomBar from '../../editor/components/EditorBottomBar.vue'
+import CanvasContextMenu from '../../editor/components/CanvasContextMenu.vue'
 import { useEditorStore } from '../../editor/store'
 import { useDataStore } from '../../data/store'
+import { plain } from '../../editor/plain'
 import { initPages, getPage, genPageId } from '../../services/page'
 import { initDataSources, listDataSources } from '../../services/datasource'
 
 const route = useRoute()
+const router = useRouter()
 const editorStore = useEditorStore()
 const dataStore = useDataStore()
 
-const previewVisible = ref(false)
 /** 缓存就绪后再渲染编辑器子面板（子面板同步读 listDataSources） */
 const ready = ref(false)
 
@@ -88,38 +90,58 @@ function onKeydown(e: KeyboardEvent) {
     e.preventDefault()
     const id = editorStore.pasteCard()
     if (id) message.success('已粘贴')
+  } else if (mod && key === 'g' && e.shiftKey) {
+    e.preventDefault()
+    editorStore.ungroupSelection()
+  } else if (mod && key === 'g') {
+    e.preventDefault()
+    if (editorStore.groupSelection()) message.success('已成组')
+  } else if (mod && key === 'l') {
+    e.preventDefault()
+    editorStore.toggleSelectionLock()
+  } else if (mod && key === 'h') {
+    e.preventDefault()
+    editorStore.toggleSelectionHide()
   } else if (mod) {
     return
   }
 
-  // 自由布局：选中卡片的常用操作
-  if (editorStore.page.layout === 'free' && editorStore.selectedCard) {
-    const card = editorStore.selectedCard
+  // 自由布局：选中卡片的常用操作（支持多选）
+  if (editorStore.selectionCount > 0 && editorStore.page.layout === 'free') {
     if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault()
-      editorStore.removeCard(card.id)
+      editorStore.removeSelection()
       return
     }
     if (e.key === 'Escape') {
-      editorStore.selectCard(null)
+      editorStore.clearSelection()
       return
     }
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
       e.preventDefault()
       const step = e.shiftKey ? 10 : 1
-      const patch: Partial<{ x: number; y: number }> = {}
-      if (e.key === 'ArrowUp') patch.y = (card.y ?? 0) - step
-      if (e.key === 'ArrowDown') patch.y = (card.y ?? 0) + step
-      if (e.key === 'ArrowLeft') patch.x = (card.x ?? 0) - step
-      if (e.key === 'ArrowRight') patch.x = (card.x ?? 0) + step
+      let dx = 0
+      let dy = 0
+      if (e.key === 'ArrowUp') dy = -step
+      if (e.key === 'ArrowDown') dy = step
+      if (e.key === 'ArrowLeft') dx = -step
+      if (e.key === 'ArrowRight') dx = step
       editorStore.beginChange()
-      editorStore.setCardGeometry(card.id, patch)
+      editorStore.moveCardsBy(editorStore.selectedIds, dx, dy)
     }
   }
 }
 
+/** 预览：把当前 Schema 写入 draft，并新开全屏页面预览 */
 function onPreview() {
-  previewVisible.value = true
+  const id = editorStore.page.id
+  try {
+    localStorage.setItem(`morya:preview:${id}`, JSON.stringify(plain(editorStore.page)))
+  } catch {
+    message.warn('本地存储不可用，将打开已保存版本')
+  }
+  const href = router.resolve({ name: 'preview', params: { id }, query: { draft: '1' } }).href
+  window.open(href, '_blank', 'noopener')
 }
 </script>
 
@@ -127,10 +149,11 @@ function onPreview() {
   <div class="editor-view">
     <EditorTopBar @preview="onPreview" />
     <div v-if="ready" class="editor-main">
-      <EditorLeftPanel />
+      <EditorLeftPanel v-if="editorStore.showLeft" />
       <EditorCanvas />
-      <EditorRightPanel />
+      <EditorRightPanel v-if="editorStore.showRight" />
     </div>
+    <EditorBottomBar v-if="ready" />
     <div v-else class="editor-loading">
       <MSkeleton class="editor-loading__bar" height="52px" border-radius="0" />
       <div class="editor-loading__main">
@@ -142,19 +165,8 @@ function onPreview() {
       </div>
     </div>
 
-    <!-- 预览：用真实 SchemaRenderer 渲染当前 Schema -->
-    <MDialog
-      v-model="previewVisible"
-      :title="editorStore.page.title || '预览'"
-      width="90vw"
-    >
-      <MScrollbar class="preview-body" view-class="preview-body__view" fit-content>
-        <SchemaRenderer :page="editorStore.page" />
-      </MScrollbar>
-      <template #footer>
-        <MButton type="primary" @click="previewVisible = false">关闭</MButton>
-      </template>
-    </MDialog>
+    <!-- 画布 / 组件右键菜单 -->
+    <CanvasContextMenu />
   </div>
 </template>
 
