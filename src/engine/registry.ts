@@ -13,7 +13,7 @@ export interface EditorFieldSchema {
   /** lodash 路径，如 'chart.chartType' */
   field: string
   label: string
-  component: 'MInput' | 'MSelect' | 'MSwitch' | 'MInputNumber' | 'MTextarea'
+  component: 'MInput' | 'MSelect' | 'MSwitch' | 'MInputNumber' | 'MTextarea' | 'MColorPicker'
   /** 静态选项，或 'auto:dataFields' 表示从绑定数据源当前数据推断字段 */
   options?: { label: string; value: unknown }[] | 'auto:dataFields'
   /** 透传给控件的 props */
@@ -35,8 +35,14 @@ export interface CardRegistration {
   icon?: string
   /** 组件库展示描述 */
   description?: string
-  /** 组件库分组：图表 / 基础 / 布局 */
-  category?: 'chart' | 'basic' | 'layout'
+  /** 组件库分组 */
+  category?: 'chart' | 'information' | 'table' | 'media' | 'decorate' | 'basic' | 'layout'
+  /** 自由布局默认尺寸（px）；缺省回落内置表 */
+  defaultSize?: { w: number; h: number }
+  /** 该组件向上抛出的事件（供交互联动选择源，v0.3） */
+  emitEvents?: Record<string, { value: string; label: string }[]>
+  /** 组件来源：内置或用户自定义包 id（v0.3） */
+  packageId?: string
 }
 
 const registry = new Map<CardType, CardRegistration>()

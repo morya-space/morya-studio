@@ -9,6 +9,7 @@
 @import './theme/colors.css';
 @import './theme/brand.css';
 @import './theme/chart.css';
+@import './theme/animations.css';
 
 /* 基础重置 */
 *,

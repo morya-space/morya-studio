@@ -2,6 +2,7 @@
 import { listPages, getPage, savePage, deletePage, exportPage, importPage, genPageId } from '../index'
 import { listDataSources, saveDataSource, deleteDataSource, genDataSourceId, getDataSource } from '../../datasource'
 import type { PageSchema } from '../../../types/schema'
+import { SCHEMA_VERSION } from '../../../types/schema'
 
 function makePage(id: string, title = 'T'): PageSchema {
   return { id, title, layout: 'grid', grid: { cols: 12 }, cards: [] }
@@ -18,7 +19,7 @@ describe('page service', () => {
   it('save stamps version and timestamps', () => {
     savePage(makePage('p1'))
     const p = getPage('p1')!
-    expect(p.meta?.version).toBe(2)
+    expect(p.meta?.version).toBe(SCHEMA_VERSION)
     expect(p.meta?.createdAt).toBeTruthy()
     expect(p.meta?.updatedAt).toBeTruthy()
   })

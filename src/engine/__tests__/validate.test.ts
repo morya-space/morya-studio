@@ -135,6 +135,48 @@ describe('validatePage', () => {
     expect(r.valid).toBe(true)
   })
 
+  it('R8: flags unknown group reference', () => {
+    const card = makeCard({ groupId: 'g-missing' })
+    const r = validatePage(makePage([card]))
+    expect(r.valid).toBe(false)
+    expect(r.issues.some(i => i.rule === 'R8' && i.path.includes('.groupId'))).toBe(true)
+  })
+
+  it('R8: accepts known group reference', () => {
+    const card = makeCard({ groupId: 'g1' })
+    const page = makePage([card])
+    page.groups = [{ id: 'g1', name: 'g', x: 0, y: 0, w: 10, h: 10 }]
+    const r = validatePage(page)
+    expect(r.issues.filter(i => i.rule === 'R8')).toHaveLength(0)
+  })
+
+  it('R10: interaction cannot target itself or unknown card', () => {
+    const self = makeCard({
+      id: 'a',
+      events: { interactions: [{ id: 'i1', on: 'click', targetCardId: 'a', bindings: [{ target: 'p', source: 'v' }] }] },
+    })
+    const r = validatePage(makePage([self]))
+    expect(r.valid).toBe(false)
+    expect(r.issues.some(i => i.rule === 'R10' && i.message.includes('itself'))).toBe(true)
+
+    const ghost = makeCard({
+      id: 'b',
+      events: { interactions: [{ id: 'i2', on: 'click', targetCardId: 'zzz', bindings: [{ target: 'p', source: 'v' }] }] },
+    })
+    const r2 = validatePage(makePage([ghost]))
+    expect(r2.issues.some(i => i.rule === 'R10' && i.message.includes('zzz'))).toBe(true)
+  })
+
+  it('R10: valid interaction targets another card', () => {
+    const a = makeCard({ id: 'a' })
+    const b = makeCard({
+      id: 'b',
+      events: { interactions: [{ id: 'i1', on: 'click', targetCardId: 'a', bindings: [{ target: 'p', source: 'v' }] }] },
+    })
+    const r = validatePage(makePage([a, b]))
+    expect(r.issues.filter(i => i.rule === 'R10')).toHaveLength(0)
+  })
+
   it('collects multiple issues across cards', () => {
     const r = validatePage(makePage([
       makeCard({ id: 'x', span: 99 }),

@@ -21,7 +21,11 @@ export function getCardKey(card: CardSchema): string {
 }
 
 /** 数据型卡片：需要数据源才能渲染的类型 */
-export const DATA_CARD_TYPES = ['stat', 'chart', 'table', 'list'] as const
+export const DATA_CARD_TYPES = [
+  'chart', 'bar', 'line', 'area', 'pie', 'scatter', 'radar', 'funnel', 'gauge', 'barH', 'barLine',
+  'sankey', 'graph', 'heatmap', 'treeMap', 'wordCloud', 'waterPolo',
+  'stat', 'table', 'list', 'scrollTable',
+] as const
 
 /** 卡片是否需要数据源但尚未绑定（编辑态显示占位图） */
 export function cardNeedsDataSource(card: CardSchema): boolean {

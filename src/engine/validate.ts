@@ -26,13 +26,59 @@ export interface ValidationResult {
 /** 每种卡片类型必须携带的配置块字段（R2） */
 const REQUIRED_CONFIG: Partial<Record<CardType, keyof CardSchema>> = {
   chart: 'chart',
+  bar: 'chart',
+  line: 'chart',
+  area: 'chart',
+  pie: 'chart',
+  scatter: 'chart',
+  radar: 'chart',
+  funnel: 'chart',
+  gauge: 'chart',
+  barH: 'chart',
+  barLine: 'chart',
+  sankey: 'chart',
+  graph: 'chart',
+  heatmap: 'chart',
+  treeMap: 'chart',
+  wordCloud: 'wordCloud',
+  waterPolo: 'waterPolo',
+  earth3D: 'earth3D',
   stat: 'stat',
   table: 'table',
   list: 'list',
+  scrollTable: 'scrollTable',
   banner: 'banner',
   text: 'text',
+  number: 'number',
+  time: 'time',
+  countdown: 'countdown',
+  textGradient: 'text',
+  barrage: 'barrage',
+  carousel: 'carousel',
+  formInput: 'formInput',
+  formSelect: 'formSelect',
+  formTabs: 'formTabs',
+  pagination: 'pagination',
+  image: 'image',
+  video: 'video',
+  iframe: 'iframe',
+  icon: 'icon',
+  border: 'decorate',
+  decoration: 'decorate',
+  circlePoint: 'decorate',
+  pipeline: 'decorate',
+  flowLine: 'decorate',
+  clock: 'clock',
+  fullScreen: 'fullScreen',
   custom: 'custom',
 }
+
+/** 需要数据源的卡片类型（R3 只对这些类型强约束） */
+const DATA_TYPES = new Set<string>([
+  'chart', 'bar', 'line', 'area', 'pie', 'scatter', 'radar', 'funnel', 'gauge', 'barH', 'barLine',
+  'sankey', 'graph', 'heatmap', 'treeMap', 'wordCloud', 'waterPolo',
+  'stat', 'table', 'list', 'scrollTable',
+])
 
 const TRANSFORM_OPS = new Set(['filter', 'sort', 'limit', 'map', 'groupBy', 'rename'])
 
@@ -53,6 +99,9 @@ export function validatePage(
 
   const cards = schema.cards ?? []
   const cols = schema.grid?.cols ?? 12
+  const groups = schema.groups ?? []
+  const groupIds = new Set(groups.map(g => g.id))
+  const cardIds = new Set(cards.map(c => c.id))
 
   // R1：卡片 id 唯一
   collectDuplicate(cards.map(c => c.id)).forEach(id => {
@@ -65,9 +114,14 @@ export function validatePage(
     issues.push({ level: 'warning', path: 'cards', message: `Duplicate card order: ${ord}`, rule: 'R7' })
   })
 
+  // R8：分组 id 唯一
+  collectDuplicate(groups.map(g => g.id)).forEach(id => {
+    issues.push({ level: 'error', path: 'groups', message: `Duplicate group id: "${id}"`, rule: 'R8' })
+  })
+
   cards.forEach((card, index) => {
     const base = `cards[${index}]`
-    validateCard(card, base, { cols, knownDataSourceIds, issues })
+    validateCard(card, base, { cols, knownDataSourceIds, groupIds, cardIds, issues })
   })
 
   return { valid: issues.every(i => i.level !== 'error'), issues }
@@ -76,6 +130,8 @@ export function validatePage(
 interface CardContext {
   cols: number
   knownDataSourceIds: Set<string>
+  groupIds: Set<string>
+  cardIds: Set<string>
   issues: ValidationIssue[]
 }
 
@@ -93,10 +149,10 @@ function validateCard(card: CardSchema, base: string, ctx: CardContext): void {
     push('error', `.${requiredKey}`, `Card type "${card.type}" requires "${requiredKey}" config`, 'R2')
   }
 
-  // R3：数据源引用存在性；二选一校验
+  // R3：数据型卡片必须有数据源；若引用了 dataSourceId 则必须存在
   const hasRef = Boolean(card.dataSourceId)
   const hasInline = Boolean(card.dataSource)
-  if (!hasRef && !hasInline) {
+  if (DATA_TYPES.has(card.type) && !hasRef && !hasInline) {
     push('error', '.dataSourceId', 'Card requires dataSourceId or inline dataSource', 'R3')
   } else if (hasRef && !knownDataSourceIds.has(card.dataSourceId as string)) {
     push('error', '.dataSourceId', `Unknown dataSource id: "${card.dataSourceId}"`, 'R3')
@@ -125,6 +181,34 @@ function validateCard(card: CardSchema, base: string, ctx: CardContext): void {
   // R6：transform 步骤合法 + 表达式可解析
   card.transform?.forEach((step, i) => {
     validateTransformStep(step, `${base}.transform[${i}]`, issues)
+  })
+
+  // R8：分组引用存在
+  if (card.groupId && !ctx.groupIds.has(card.groupId)) {
+    push('error', '.groupId', `Unknown group id: "${card.groupId}"`, 'R8')
+  }
+
+  // R9：样式取值范围
+  const styles = card.styles
+  if (styles) {
+    if (styles.opacity !== undefined && (styles.opacity < 0 || styles.opacity > 1)) {
+      push('warning', '.styles.opacity', 'opacity should be within 0~1', 'R9')
+    }
+  }
+
+  // R10：事件联动目标合法
+  card.events?.interactions?.forEach((it, i) => {
+    const api = `.events.interactions[${i}]`
+    if (!it.targetCardId) {
+      push('error', `${api}.targetCardId`, 'interaction requires targetCardId', 'R10')
+    } else if (it.targetCardId === card.id) {
+      push('error', `${api}.targetCardId`, 'interaction cannot target itself', 'R10')
+    } else if (!ctx.cardIds.has(it.targetCardId)) {
+      push('error', `${api}.targetCardId`, `Unknown target card: "${it.targetCardId}"`, 'R10')
+    }
+    if (!it.bindings || it.bindings.length === 0) {
+      push('warning', `${api}.bindings`, 'interaction has no parameter bindings', 'R10')
+    }
   })
 }
 

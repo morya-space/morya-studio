@@ -70,7 +70,7 @@ describe('migrateSchema', () => {
     expect(c1.w).toBe(420)
     expect(c1.h).toBe(250)
     expect(c2.w).toBe(250)
-    expect(c2.h).toBe(130)
+    expect(c2.h).toBe(150)
   })
 
   it('keeps grid layout unchanged for grid pages', () => {
@@ -82,6 +82,39 @@ describe('migrateSchema', () => {
     } as never)
     expect(page.layout).toBe('grid')
     expect(page.cards[0].x).toBeUndefined()
+  })
+
+  it('fills v0.3 defaults: mode, groups, card status', () => {
+    const page = migrateSchema({
+      id: 'p1',
+      title: 't',
+      layout: 'free',
+      cards: [{ id: 'c1', type: 'stat', stat: { valueField: 'v' } }],
+    } as never)
+    expect(page.mode).toBe('screen')
+    expect(page.groups).toEqual([])
+    expect(page.cards[0].status).toEqual({ lock: false, hide: false })
+  })
+
+  it('grid pages default mode to dashboard', () => {
+    const page = migrateSchema({ id: 'p1', title: 't', layout: 'grid', cards: [] } as never)
+    expect(page.mode).toBe('dashboard')
+  })
+
+  it('keeps explicit groups and drops dangling groupId references', () => {
+    const page = migrateSchema({
+      id: 'p1',
+      title: 't',
+      layout: 'free',
+      groups: [{ id: 'g1', name: '组', x: 0, y: 0, w: 100, h: 100 }],
+      cards: [
+        { id: 'c1', type: 'stat', stat: { valueField: 'v' }, groupId: 'g1' },
+        { id: 'c2', type: 'stat', stat: { valueField: 'v' }, groupId: 'ghost' },
+      ],
+    } as never)
+    expect(page.groups).toHaveLength(1)
+    expect(page.cards[0].groupId).toBe('g1')
+    expect(page.cards[1].groupId).toBeUndefined()
   })
 })
 
