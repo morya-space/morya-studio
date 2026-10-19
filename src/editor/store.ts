@@ -678,6 +678,17 @@ export const useEditorStore = defineStore('editor', () => {
     })
   }
 
+  /** 批量更新卡片字段（只记一条历史），用于「数据配置」弹窗点完成时一次性提交 */
+  function updateCardFields(cardId: string, patch: Record<string, unknown>): void {
+    updateSchema(draft => {
+      const card = draft.cards.find(c => c.id === cardId)
+      if (!card) return
+      for (const [path, value] of Object.entries(patch)) {
+        setByPath(card as unknown as Record<string, unknown>, path, value)
+      }
+    })
+  }
+
   /** 更新页面级字段 */
   function updatePageField(path: string, value: unknown): void {
     updateSchema(draft => {
@@ -794,6 +805,7 @@ export const useEditorStore = defineStore('editor', () => {
     centerCanvas,
     fitCanvas,
     updateCardField,
+    updateCardFields,
     updatePageField,
     loadPage,
     newPage,

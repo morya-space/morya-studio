@@ -4,14 +4,16 @@
  * 标题 + 注册表 editorSchema 自动生成表单。
  */
 
-import { computed, ref } from 'vue'
-import { MDialog, MForm, MFormItem, MInput, MButton } from 'morya-ui'
+import { computed, ref, watch } from 'vue'
+import { MDialog, MForm, MFormItem, MInput, MButton, message } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { useDataStore } from '../../data/store'
 import { getCardRegistration, type EditorFieldSchema } from '../../engine/registry'
 import FieldRenderer from '../components/FieldRenderer.vue'
 import DataConfigCard from './DataConfigCard.vue'
 import DataPanel from './DataPanel.vue'
+import { plain } from '../plain'
+import type { DataConfigDraft } from './dataDraft'
 
 const store = useEditorStore()
 const dataStore = useDataStore()
@@ -49,15 +51,49 @@ function getByPath(obj: Record<string, unknown>, path: string): unknown {
   return cur
 }
 
-// 数据配置弹窗
+// 数据配置弹窗（草稿模式：编辑只写草稿，点「完成」才提交生效）
 const dataDialog = ref(false)
+const draft = ref<DataConfigDraft | null>(null)
+
+function openDataDialog() {
+  const c = card.value
+  if (!c) return
+  draft.value = {
+    dataSource: c.dataSource ? plain(c.dataSource) : undefined,
+    dataSourceId: c.dataSourceId,
+    chart: c.chart ? plain(c.chart) : undefined,
+  }
+  dataDialog.value = true
+}
+
+/** commit=true「完成」提交；false「取消」/ 关闭则丢弃草稿 */
+function closeDataDialog(commit: boolean) {
+  const c = card.value
+  const d = draft.value
+  if (commit && c && d) {
+    store.updateCardFields(c.id, {
+      dataSource: d.dataSource,
+      dataSourceId: d.dataSourceId,
+      chart: d.chart,
+    })
+    // 提交后刷新卡片数据，画布即时生效
+    const committed = store.selectedCard
+    if (committed) void dataStore.refreshCard(committed)
+    message.success('数据配置已生效')
+  }
+  draft.value = null
+  dataDialog.value = false
+}
+
+// 通过遮罩 / 关闭按钮退出时同样丢弃草稿
+watch(dataDialog, open => { if (!open) draft.value = null })
 </script>
 
 <template>
   <div v-if="card" class="properties-panel">
     <!-- 数据配置卡片（置顶） -->
     <p class="properties-panel__section">数据</p>
-    <DataConfigCard @edit="dataDialog = true" />
+    <DataConfigCard @edit="openDataDialog" />
 
     <p class="properties-panel__section">内容</p>
     <MForm>
@@ -87,10 +123,11 @@ const dataDialog = ref(false)
 
     <MDialog v-model="dataDialog" title="数据配置" width="760px">
       <div class="data-dialog-body">
-        <DataPanel />
+        <DataPanel v-if="draft" :draft="draft" />
       </div>
       <template #footer>
-        <MButton type="primary" @click="dataDialog = false">完成</MButton>
+        <MButton type="default" @click="closeDataDialog(false)">取消</MButton>
+        <MButton type="primary" @click="closeDataDialog(true)">完成</MButton>
       </template>
     </MDialog>
   </div>
