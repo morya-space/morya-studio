@@ -12,21 +12,39 @@ import { requireAuth, requirePermission } from '../middleware/auth'
 import { ApiError } from '../middleware/error-handler'
 import { createEntityStore, type EntityStore } from '../db/entity-store'
 
-const dsSchema = z.object({
+const sqlSchema = z.object({
+  driver: z.enum(['mysql', 'postgresql', 'sqlserver']).optional(),
+  host: z.string().optional(),
+  port: z.number().int().positive().optional(),
+  database: z.string().optional(),
+  user: z.string().optional(),
+  password: z.string().optional(),
+  query: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+})
+
+export const dsSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1),
   type: z.enum(['static', 'api', 'mock', 'websocket', 'sql']),
   url: z.string().optional(),
-  method: z.enum(['GET', 'POST']).optional(),
+  method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']).optional(),
   headers: z.record(z.string()).optional(),
   params: z.record(z.unknown()).optional(),
+  bodyType: z.enum(['none', 'json', 'form', 'x-www-form-urlencoded']).optional(),
+  body: z.string().optional(),
+  timeoutMs: z.number().positive().optional(),
+  retry: z.object({ count: z.number().int().nonnegative(), delayMs: z.number().nonnegative() }).optional(),
   staticData: z.array(z.record(z.unknown())).optional(),
   dataPath: z.string().optional(),
   mockTemplate: z.string().optional(),
   wsUrl: z.string().optional(),
+  ws: z.object({ messagePath: z.string().optional(), aggregate: z.enum(['first', 'append', 'replace']).optional() }).optional(),
   pollInterval: z.number().optional(),
   cache: z.record(z.unknown()).optional(),
   auth: z.record(z.unknown()).optional(),
+  sql: sqlSchema.optional(),
+  transform: z.string().optional(),
 })
 
 export interface DatasourceStores {

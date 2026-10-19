@@ -32,6 +32,15 @@ export function getPublicPage(pageId: string, token: string): Promise<PublicPage
   return http.get<PublicPageResult>(`/public/pages/${pageId}?token=${encodeURIComponent(token)}`)
 }
 
+/** 使用分享 token 查询该面板实际引用的数据源。 */
+export function getPublicDataSource(
+  pageId: string,
+  dataSourceId: string,
+  token: string,
+): Promise<{ rows: Record<string, unknown>[] }> {
+  return http.get(`/public/pages/${pageId}/datasources/${encodeURIComponent(dataSourceId)}?token=${encodeURIComponent(token)}`)
+}
+
 /** 由页面 id 与 token 拼出分享链接 */
 export function buildShareLink(pageId: string, token: string): string {
   const { origin, pathname } = window.location

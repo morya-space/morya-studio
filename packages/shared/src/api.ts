@@ -101,7 +101,7 @@ export interface PublishResult {
   url: string
 }
 
-/** 公开只读页面：页面 Schema + 引用的数据源（供渲染，不含归属信息） */
+/** 公开只读页面：页面 Schema + 无敏感配置的数据源代理描述（不含归属信息） */
 export interface PublicPageResult {
   page: PageSchema
   datasources: DataSourceConfig[]

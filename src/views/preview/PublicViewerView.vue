@@ -10,7 +10,7 @@ import { useRoute } from 'vue-router'
 import { MButton, MEmpty, MLoading } from 'morya-ui'
 import SchemaRenderer from '../../engine/SchemaRenderer.vue'
 import { useDataStore } from '../../data/store'
-import { getPublicPage } from '../../services/share'
+import { getPublicDataSource, getPublicPage } from '../../services/share'
 import type { PageSchema } from '../../types/schema'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 
@@ -34,7 +34,11 @@ onMounted(async () => {
   }
   try {
     const { page: p, datasources } = await getPublicPage(id, token)
-    for (const ds of datasources) dataStore.registerDataSource(ds)
+    const loaded = await Promise.all(datasources.map(async (ds) => {
+      const { rows } = await getPublicDataSource(id, ds.id!, token)
+      return { ...ds, staticData: rows }
+    }))
+    for (const ds of loaded) dataStore.registerDataSource(ds)
     page.value = p
     title.value = p.title
   } catch (e) {
