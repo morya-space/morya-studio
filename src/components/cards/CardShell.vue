@@ -108,6 +108,7 @@ function onAction(action: ActionConfig) {
   box-shadow: var(--m-shadow-card);
   background: var(--m-color-surface);
   height: 100%;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -121,6 +122,7 @@ function onAction(action: ActionConfig) {
   padding: 16px 24px 24px;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 .card-shell__header {
@@ -171,6 +173,10 @@ function onAction(action: ActionConfig) {
 
 .card-shell__body {
   min-width: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 骨架屏 */

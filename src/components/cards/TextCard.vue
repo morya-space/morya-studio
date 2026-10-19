@@ -82,6 +82,26 @@ const rendered = computed(() => {
   if (!content) return ''
   return props.schema.text?.markdown === false ? escapeHtml(content) : renderMarkdown(content)
 })
+
+const textStyle = computed(() => {
+  const t = props.schema.text ?? {}
+  const style: Record<string, string> = {}
+  if (t.fontSize) style.fontSize = `${t.fontSize}px`
+  if (t.color) style.color = t.color
+  if (t.align) style.textAlign = t.align
+  if (t.fontWeight) style.fontWeight = t.fontWeight
+  if (t.letterSpacing) style.letterSpacing = `${t.letterSpacing}px`
+  if (t.backgroundColor) style.background = t.backgroundColor
+  if (t.borderWidth) style.border = `${t.borderWidth}px solid ${t.borderColor ?? 'var(--m-color-border)'}`
+  if (t.borderRadius) style.borderRadius = `${t.borderRadius}px`
+  if (t.gradient) {
+    style.backgroundImage = t.color ? `linear-gradient(90deg, ${t.color}, transparent)` : 'var(--m-gradient-brand)'
+    style['-webkit-background-clip'] = 'text'
+    style.backgroundClip = 'text'
+    style.color = 'transparent'
+  }
+  return style
+})
 </script>
 
 <template>
@@ -96,16 +116,31 @@ const rendered = computed(() => {
     @retry="emit('retry')"
     @action="emit('action', $event)"
   >
-    <div class="text-card" v-html="rendered" />
+    <a
+      v-if="schema.text?.link"
+      class="text-card text-card--link"
+      :style="textStyle"
+      :href="schema.text.link"
+      target="_blank"
+      rel="noopener noreferrer"
+      v-html="rendered"
+    />
+    <div v-else class="text-card" :style="textStyle" v-html="rendered" />
   </CardShell>
 </template>
 
 <style scoped>
 .text-card {
+  display: block;
   font-size: 14px;
   line-height: 1.7;
   color: var(--m-color-text);
   word-break: break-word;
+  text-decoration: none;
+}
+
+.text-card--link:hover {
+  opacity: 0.85;
 }
 
 .text-card :deep(h1),

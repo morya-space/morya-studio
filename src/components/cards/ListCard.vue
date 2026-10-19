@@ -67,6 +67,9 @@ function trendOf(row: Record<string, unknown>): { text: string; type: 'up' | 'do
   list-style: none;
   margin: 0;
   padding: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
   display: flex;
   flex-direction: column;
 }

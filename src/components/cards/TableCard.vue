@@ -64,28 +64,38 @@ function statusOf(col: TableColumn | undefined, value: unknown) {
     @retry="emit('retry')"
     @action="emit('action', $event)"
   >
-    <MTable
-      :columns="columns"
-      :rows="data"
-      :row-key="tableConfig?.rowKey ?? 'id'"
-      :paginator="showPagination"
-      :rows-per-page="pageSize"
-      :empty-text="schema.stateText?.empty ?? '暂无数据'"
-    >
-      <template
-        v-for="col in columns"
-        :key="col.key"
-        #[`cell-${col.key}`]="{ value }"
+    <div class="table-card">
+      <MTable
+        :columns="columns"
+        :rows="data"
+        :row-key="tableConfig?.rowKey ?? 'id'"
+        :paginator="showPagination"
+        :rows-per-page="pageSize"
+        :empty-text="schema.stateText?.empty ?? '暂无数据'"
       >
-        <template v-if="statusOf(colDef(col.key), value)">
-          <MTag :type="statusOf(colDef(col.key), value)!.type">
-            {{ statusOf(colDef(col.key), value)!.label }}
-          </MTag>
+        <template
+          v-for="col in columns"
+          :key="col.key"
+          #[`cell-${col.key}`]="{ value }"
+        >
+          <template v-if="statusOf(colDef(col.key), value)">
+            <MTag :type="statusOf(colDef(col.key), value)!.type">
+              {{ statusOf(colDef(col.key), value)!.label }}
+            </MTag>
+          </template>
+          <template v-else>
+            {{ formatCell(colDef(col.key), value) }}
+          </template>
         </template>
-        <template v-else>
-          {{ formatCell(colDef(col.key), value) }}
-        </template>
-      </template>
-    </MTable>
+      </MTable>
+    </div>
   </CardShell>
 </template>
+
+<style scoped>
+.table-card {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+</style>
