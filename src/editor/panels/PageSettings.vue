@@ -1,58 +1,19 @@
 <script setup lang="ts">
 /**
  * 页面设置面板（未选中卡片时显示）
- * 页面标题/描述、栅格列数与间距、主题覆盖（主色/圆角/阴影）、全局过滤器。
+ * 页面标题/描述、栅格列数与间距、布局方式、主题覆盖、全局过滤器。
+ * 画布尺寸/背景等见 CanvasPanel。
  */
 
 import { computed } from 'vue'
-import { MButton, MColorPicker, MForm, MFormItem, MInput, MInputNumber, MSelect, MSegmented, MSwitch, MTextarea } from 'morya-ui'
+import { MButton, MColorPicker, MForm, MFormItem, MInput, MInputNumber, MSelect, MSegmented, MTextarea } from 'morya-ui'
 import { useEditorStore } from '../store'
+import { plain } from '../plain'
 import type { PageFilter } from '../../types/schema'
 
 const store = useEditorStore()
-
 const page = computed(() => store.page)
 
-/** 画布背景色（用 var(--m-*) 值，避免裸 hex；存入 schema 属用户数据） */
-const bgOptions = [
-  { label: '白色', value: 'var(--m-color-surface)' },
-  { label: '浅灰', value: 'var(--m-color-page-bg)' },
-  { label: '深色', value: 'var(--m-color-text-muted)' },
-]
-
-const canvasBg = computed({
-  get: () => page.value.canvas?.bgColor ?? 'var(--m-color-surface)',
-  set: (v: string) => updateCanvas('bgColor', v),
-})
-const canvasGridColor = computed({
-  get: () => page.value.canvas?.gridColor ?? '',
-  set: (v: string) => updateCanvas('gridColor', v || undefined),
-})
-const canvasGridSize = computed({
-  get: () => page.value.canvas?.gridSize ?? 10,
-  set: (v: number) => updateCanvas('gridSize', Math.max(4, Number(v) || 10)),
-})
-const canvasSnap = computed({
-  get: () => page.value.canvas?.snap ?? 10,
-  set: (v: number) => updateCanvas('snap', Math.max(0, Number(v) || 0)),
-})
-const canvasWidth = computed({
-  get: () => page.value.canvas?.width ?? 1200,
-  set: (v: number) => updateCanvas('width', Math.max(320, Math.round(Number(v) || 1200))),
-})
-const canvasHeight = computed({
-  get: () => page.value.canvas?.height ?? 760,
-  set: (v: number) => updateCanvas('height', Math.max(240, Math.round(Number(v) || 760))),
-})
-
-function updateCanvas(field: 'bgColor' | 'gridColor' | 'gridSize' | 'snap' | 'width' | 'height', value: unknown): void {
-  const canvas = { ...(page.value.canvas ?? {}) }
-  if (value === undefined) delete canvas[field]
-  else canvas[field] = value as never
-  store.updatePageField('canvas', canvas)
-}
-
-// ---------- 基础 ----------
 const title = computed({
   get: () => page.value.title,
   set: (v: string) => store.updatePageField('title', v),
@@ -69,24 +30,28 @@ const gridGap = computed({
   get: () => page.value.grid?.gap ?? 24,
   set: (v: number) => store.updatePageField('grid.gap', Math.max(0, Number(v) || 24)),
 })
+const layout = computed({
+  get: () => page.value.layout,
+  set: (v: string) => store.setLayout(v as 'free' | 'grid'),
+})
 
 // ---------- 主题覆盖 ----------
 const primaryColor = computed({
   get: () => page.value.theme?.primaryColor ?? '',
   set: (v: string) => {
-    const t = { ...(page.value.theme ?? {}) }
+    const t = plain(page.value.theme ?? {})
     if (v) t.primaryColor = v
     else delete t.primaryColor
-    store.updatePageField('theme', t)
+    store.updatePageField('theme', plain(t))
   },
 })
 const cardRadius = computed({
   get: () => page.value.theme?.cardRadius ?? undefined,
   set: (v: number | undefined) => {
-    const t = { ...(page.value.theme ?? {}) }
+    const t = plain(page.value.theme ?? {})
     if (v !== undefined && Number(v) > 0) t.cardRadius = Number(v)
     else delete t.cardRadius
-    store.updatePageField('theme', t)
+    store.updatePageField('theme', plain(t))
   },
 })
 
@@ -99,17 +64,17 @@ const TYPE_OPTIONS = [
 ]
 
 function addFilter() {
-  const next: PageFilter[] = [...(page.value.filters ?? []), { key: '', label: '过滤器', type: 'text' }]
-  store.updatePageField('filters', next)
+  const next: PageFilter[] = [...plain(page.value.filters ?? []), { key: '', label: '过滤器', type: 'text' }]
+  store.updatePageField('filters', plain(next))
 }
 function removeFilter(index: number) {
-  const next = [...(page.value.filters ?? [])].filter((_, i) => i !== index)
-  store.updatePageField('filters', next.length ? next : undefined)
+  const next = plain(page.value.filters ?? []).filter((_, i) => i !== index)
+  store.updatePageField('filters', next.length ? plain(next) : undefined)
 }
 function patchFilter(index: number, patch: Partial<PageFilter>) {
-  const next = [...(page.value.filters ?? [])]
-  next[index] = { ...next[index], ...patch }
-  store.updatePageField('filters', next)
+  const next = plain(page.value.filters ?? [])
+  next[index] = { ...next[index], ...plain(patch) }
+  store.updatePageField('filters', plain(next))
 }
 
 const filterHint = '过滤器值会注入到数据源参数 {{var}}。用于 api 类型数据源的日期范围/筛选。'
@@ -131,59 +96,17 @@ function onOptionsChange(index: number, text: string) {
     <div class="panel-section">
       <p class="panel-section-title">页面</p>
       <MForm>
-        <MFormItem label="标题">
-          <MInput v-model="title" fluid />
-        </MFormItem>
-        <MFormItem label="描述">
-          <MInput v-model="description" fluid />
-        </MFormItem>
-        <MFormItem label="栅格列数">
-          <MInputNumber v-model="gridCols" :min="4" :max="24" fluid />
-        </MFormItem>
-        <MFormItem label="卡片间距(px)">
-          <MInputNumber v-model="gridGap" :min="0" fluid />
-        </MFormItem>
-      </MForm>
-    </div>
-
-    <div class="panel-section">
-      <p class="panel-section-title">画布</p>
-      <MForm>
+        <MFormItem label="标题"><MInput v-model="title" fluid /></MFormItem>
+        <MFormItem label="描述"><MInput v-model="description" fluid /></MFormItem>
         <MFormItem label="布局方式">
           <MSegmented
-            :model-value="store.page.layout"
+            v-model="layout"
             :options="[{ label: '自由布局', value: 'free' }, { label: '网格布局', value: 'grid' }]"
             block
-            @update:model-value="store.setLayout($event as 'free' | 'grid')"
           />
         </MFormItem>
-        <MFormItem label="背景色">
-          <MSegmented v-model="canvasBg" :options="bgOptions" block />
-        </MFormItem>
-        <MFormItem label="自定义背景" help="留空使用上方预设">
-          <MColorPicker :model-value="canvasBg" format="hex" clearable
-            @update:model-value="updateCanvas('bgColor', ($event as string) || undefined)" />
-        </MFormItem>
-        <MFormItem label="显示网格">
-          <MSwitch v-model="store.showGrid" />
-        </MFormItem>
-        <MFormItem label="网格颜色" help="留空使用默认">
-          <MColorPicker v-model="canvasGridColor" format="hex" clearable />
-        </MFormItem>
-        <MFormItem label="网格大小(px)">
-          <MInputNumber v-model="canvasGridSize" :min="4" :max="40" fluid />
-        </MFormItem>
-        <MFormItem label="对齐吸附(px)" help="0 表示关闭吸附">
-          <MInputNumber v-model="canvasSnap" :min="0" :max="40" fluid />
-        </MFormItem>
-        <div v-if="store.page.layout === 'free'" class="field-2">
-          <MFormItem label="画布宽(px)">
-            <MInputNumber v-model="canvasWidth" :min="320" :max="4000" fluid />
-          </MFormItem>
-          <MFormItem label="画布高(px)">
-            <MInputNumber v-model="canvasHeight" :min="240" :max="4000" fluid />
-          </MFormItem>
-        </div>
+        <MFormItem label="栅格列数"><MInputNumber v-model="gridCols" :min="4" :max="24" fluid /></MFormItem>
+        <MFormItem label="卡片间距(px)"><MInputNumber v-model="gridGap" :min="0" fluid /></MFormItem>
       </MForm>
     </div>
 
@@ -255,12 +178,6 @@ function onOptionsChange(index: number, text: string) {
   margin: 0;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--m-color-split);
-}
-
-.canvas-size-hint {
-  font-size: 13px;
-  color: var(--m-color-text-muted);
-  font-family: var(--m-font-mono, monospace);
 }
 
 .panel-section-hint {

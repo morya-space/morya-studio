@@ -5,7 +5,7 @@
  */
 
 import { computed } from 'vue'
-import { getAllRegistrations } from '../../engine/registry'
+import { getAllRegistrations, type CardRegistration } from '../../engine/registry'
 import type { CardType } from '../../types/schema'
 import { useEditorStore } from '../store'
 import SvgIcon from '../../components/common/SvgIcon.vue'
@@ -13,8 +13,12 @@ import SvgIcon from '../../components/common/SvgIcon.vue'
 const store = useEditorStore()
 const registrations = getAllRegistrations()
 
-const GROUPS: { key: 'chart' | 'basic'; label: string }[] = [
+const GROUPS: { key: NonNullable<CardRegistration['category']>; label: string }[] = [
   { key: 'chart', label: '图表' },
+  { key: 'information', label: '信息' },
+  { key: 'table', label: '表格' },
+  { key: 'media', label: '媒体' },
+  { key: 'decorate', label: '装饰' },
   { key: 'basic', label: '基础' },
 ]
 
@@ -22,7 +26,7 @@ const grouped = computed(() =>
   GROUPS.map(g => ({
     ...g,
     items: registrations.filter(r => (r.category ?? 'basic') === g.key),
-  })),
+  })).filter(g => g.items.length > 0),
 )
 
 function onDragStart(event: DragEvent, type: CardType) {

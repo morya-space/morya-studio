@@ -5,7 +5,7 @@
  */
 
 import { computed } from 'vue'
-import { MInput, MSelect, MSwitch, MInputNumber, MTextarea } from 'morya-ui'
+import { MInput, MSelect, MSwitch, MInputNumber, MTextarea, MColorPicker } from 'morya-ui'
 import type { EditorFieldSchema } from '../../engine/registry'
 
 const props = defineProps<{
@@ -55,6 +55,13 @@ const selectOptions = computed(() => {
       v-model="(value as string)"
       :rows="3"
       fluid
+      v-bind="field.props"
+    />
+    <MColorPicker
+      v-else-if="field.component === 'MColorPicker'"
+      v-model="(value as string)"
+      format="hex"
+      clearable
       v-bind="field.props"
     />
     <MInput

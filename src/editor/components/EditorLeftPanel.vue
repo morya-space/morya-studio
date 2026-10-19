@@ -5,14 +5,15 @@
  */
 
 import { ref } from 'vue'
-import { MSegmented, MScrollbar } from 'morya-ui'
+import { MScrollbar } from 'morya-ui'
 import ComponentLibrary from '../panels/ComponentLibrary.vue'
 import DataSourcePanel from '../panels/DataSourcePanel.vue'
 import OutlinePanel from '../panels/OutlinePanel.vue'
+import PanelTabs from './PanelTabs.vue'
 
 type TabKey = 'components' | 'datasource' | 'outline'
 
-const activeTab = ref<TabKey>('components')
+const activeTab = ref<string>('components')
 
 const tabs: { label: string; value: TabKey }[] = [
   { label: '组件', value: 'components' },
@@ -23,8 +24,8 @@ const tabs: { label: string; value: TabKey }[] = [
 
 <template>
   <aside class="editor-left">
-    <div class="panel-tabs">
-      <MSegmented v-model="activeTab" :options="tabs" block />
+    <div class="panel-tabs-wrap">
+      <PanelTabs v-model="activeTab" :options="tabs" />
     </div>
 
     <MScrollbar class="panel-body" view-class="panel-body__view">
@@ -46,7 +47,7 @@ const tabs: { label: string; value: TabKey }[] = [
   overflow: hidden;
 }
 
-.panel-tabs {
+.panel-tabs-wrap {
   flex-shrink: 0;
   padding: 10px 12px;
   border-bottom: 1px solid var(--m-color-border);

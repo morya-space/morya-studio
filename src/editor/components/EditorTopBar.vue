@@ -10,6 +10,7 @@ import { MButton, MDialog, MInput, MTooltip, message } from 'morya-ui'
 import { useEditorStore, CANVAS_W, CANVAS_H } from '../store'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 import { getShareStatus, publishPage, unpublishPage, buildShareLink, buildEmbedCode, type ShareStatus } from '../../services/share'
+import { importPage } from '../../services/page'
 
 const emit = defineEmits<{
   (e: 'preview'): void
@@ -122,6 +123,71 @@ async function copy(text: string, tip: string) {
 function openShareLink() {
   if (shareUrl.value) window.open(shareUrl.value, '_blank')
 }
+
+/** 截图导出当前画布（html2canvas，按需加载） */
+async function onScreenshot() {
+  const el = document.querySelector('.canvas') as HTMLElement | null
+  if (!el) {
+    message.error('画布未就绪')
+    return
+  }
+  const prevSelection = [...store.selectedIds]
+  store.clearSelection()
+  store.setGuides([])
+  try {
+    const { default: html2canvas } = await import('html2canvas')
+    const canvas = await html2canvas(el, { backgroundColor: null, useCORS: true, scale: 2 })
+    const url = canvas.toDataURL('image/png')
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${store.page.title || 'board'}.png`
+    a.click()
+    message.success('已导出图片')
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '截图失败')
+  } finally {
+    if (prevSelection.length) store.setSelection(prevSelection)
+  }
+}
+
+// ==================== 导入 ====================
+const fileInput = ref<HTMLInputElement | null>(null)
+
+function onImportClick() {
+  fileInput.value?.click()
+}
+
+async function onFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  try {
+    const text = await file.text()
+    const page = importPage(text)
+    store.loadPage(page)
+    message.success('已导入')
+  } catch (err) {
+    message.error(err instanceof Error ? err.message : '导入失败')
+  }
+}
+
+/** 导出当前 Schema 为 JSON 文件 */
+function onExport() {
+  try {
+    const json = JSON.stringify(store.page, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${store.page.title || 'board'}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    message.success('已导出 JSON')
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '导出失败')
+  }
+}
 </script>
 
 <template>
@@ -186,8 +252,18 @@ function openShareLink() {
       <span class="topbar-divider" />
 
       <MButton type="default" @click="emit('preview')">预览</MButton>
+      <MButton type="default" @click="onImportClick">导入</MButton>
+      <MButton type="default" @click="onScreenshot">截图</MButton>
+      <MButton type="default" @click="onExport">导出</MButton>
       <MButton type="default" @click="onShareClick">分享</MButton>
       <MButton type="primary" :loading="store.saving" @click="onSave">保存</MButton>
+      <input
+        ref="fileInput"
+        type="file"
+        accept="application/json,.json"
+        class="topbar-file"
+        @change="onFileChange"
+      >
     </div>
 
     <!-- 分享对话框 -->
@@ -271,6 +347,10 @@ function openShareLink() {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.topbar-file {
+  display: none;
 }
 
 .topbar-divider {
