@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { registerBuiltinCards } from '..'
-import { getAllRegistrations, getCardComponent } from '../../../engine/registry'
+import { getAllRegistrations, getCardComponent, getCardRegistration } from '../../../engine/registry'
 import { validatePage } from '../../../engine/validate'
 import { DATA_CARD_TYPES } from '../../../engine/utils'
 import type { CardSchema, PageSchema } from '../../../types/schema'
@@ -55,5 +55,38 @@ describe('builtin card catalog', () => {
     const errors = res.issues.filter(i => i.level === 'error')
     expect(errors).toEqual([])
     expect(res.valid).toBe(true)
+  })
+
+  it('declares reusable field role contracts for data-driven cards', () => {
+    const dataRegistrations = getAllRegistrations().filter(registration => DATA_TYPES.has(registration.type))
+    expect(dataRegistrations).toHaveLength(DATA_CARD_TYPES.length)
+
+    for (const registration of dataRegistrations) {
+      expect(registration.dataContract?.roles.length, registration.type).toBeGreaterThan(0)
+      for (const role of registration.dataContract?.roles ?? []) {
+        expect(role.name, registration.type).toBeTruthy()
+        expect(role.label, registration.type).toBeTruthy()
+        expect(role.acceptedTypes.length, `${registration.type}:${role.name}`).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('maps representative role names to the fields read by cards', () => {
+    expect(getCardRegistration('chart')?.dataContract?.roles).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'category', field: 'chart.xField', required: true }),
+      expect.objectContaining({ name: 'metric', field: 'chart.yField', acceptedTypes: ['number'] }),
+      expect.objectContaining({ name: 'series', field: 'chart.seriesField' }),
+    ]))
+    expect(getCardRegistration('stat')?.dataContract?.roles).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'metric', field: 'stat.valueField', required: true }),
+      expect.objectContaining({ name: 'trend', field: 'stat.trendField' }),
+    ]))
+    expect(getCardRegistration('table')?.dataContract?.roles).toEqual([
+      expect.objectContaining({ name: 'column', required: true, multiple: true }),
+    ])
+    expect(getCardRegistration('sankey')?.dataContract?.roles).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'source', field: 'chart.xField', required: true }),
+      expect.objectContaining({ name: 'target', field: 'chart.seriesField', required: true }),
+    ]))
   })
 })

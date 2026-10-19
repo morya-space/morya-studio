@@ -6,6 +6,10 @@
 
 import type { CardSchema, CardType, PageSchema, TransformStep } from '../types/schema'
 import { validateExpr } from '../data/transform/expr'
+import { validateDataBindings } from './data-binding'
+import { isSupportedAction } from './events'
+import { isSafeBinding, isSafePath } from './interactions'
+import { getCardRegistration } from './registry'
 
 export type ValidationLevel = 'error' | 'warning'
 
@@ -163,18 +167,13 @@ function validateCard(card: CardSchema, base: string, ctx: CardContext): void {
     push('error', '.span', `span must be between 1 and ${cols}, got ${card.span}`, 'R4')
   }
 
-  // R5：图表字段在静态数据中存在（warning，仅当可推断）
-  if (card.type === 'chart' && card.chart) {
-    const staticData = card.dataSource?.staticData
-    if (Array.isArray(staticData) && staticData.length > 0) {
-      const fields = new Set(Object.keys(staticData[0]))
-      const { xField, yField } = card.chart
-      if (xField && !fields.has(xField)) {
-        push('warning', '.chart.xField', `xField "${xField}" not found in static data fields`, 'R5')
-      }
-      if (yField && !fields.has(yField)) {
-        push('warning', '.chart.yField', `yField "${yField}" not found in static data fields`, 'R5')
-      }
+  // R5：仅对可推断的内联静态数据复用绑定契约。页面保存不因数据质量阻断。
+  const staticData = card.dataSource?.staticData
+  if (Array.isArray(staticData) && staticData.length > 0) {
+    const bindingResult = validateDataBindings(card, getCardRegistration(card.type), staticData)
+    for (const issue of bindingResult.issues) {
+      if (issue.level === 'info') continue
+      push('warning', issue.path ? `.${issue.path}` : '', issue.message, 'R5')
     }
   }
 
@@ -197,8 +196,26 @@ function validateCard(card: CardSchema, base: string, ctx: CardContext): void {
   }
 
   // R10：事件联动目标合法
+  const baseEvents = card.events?.base
+  if (baseEvents) {
+    for (const [eventName, actions] of Object.entries(baseEvents)) {
+      if (!['click', 'dblclick', 'mouseenter', 'mouseleave'].includes(eventName)) {
+        push('error', `.events.base.${eventName}`, `Unsupported base event: "${eventName}"`, 'R10')
+        continue
+      }
+      actions?.forEach((action, i) => {
+        if (!isSupportedAction(action)) {
+          push('error', `.events.base.${eventName}[${i}].action`, 'Action must be refresh or navigate:<safe URL>, with a label', 'R10')
+        }
+      })
+    }
+  }
+
   card.events?.interactions?.forEach((it, i) => {
     const api = `.events.interactions[${i}]`
+    if (!['click', 'dblclick', 'mouseenter', 'mouseleave'].includes(it.on)) {
+      push('error', `${api}.on`, `Unsupported interaction event: "${it.on}"`, 'R10')
+    }
     if (!it.targetCardId) {
       push('error', `${api}.targetCardId`, 'interaction requires targetCardId', 'R10')
     } else if (it.targetCardId === card.id) {
@@ -209,6 +226,14 @@ function validateCard(card: CardSchema, base: string, ctx: CardContext): void {
     if (!it.bindings || it.bindings.length === 0) {
       push('warning', `${api}.bindings`, 'interaction has no parameter bindings', 'R10')
     }
+    it.bindings?.forEach((binding, bindingIndex) => {
+      if (!binding.target || !binding.source) {
+        push('error', `${api}.bindings[${bindingIndex}]`, 'interaction binding requires target and source', 'R10')
+      } else if (!isSafeBinding(binding)) {
+        const field = isSafePath(binding.source) ? 'target' : 'source'
+        push('error', `${api}.bindings[${bindingIndex}].${field}`, 'interaction binding uses an unsupported parameter name or source path', 'R10')
+      }
+    })
   })
 }
 

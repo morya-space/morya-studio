@@ -83,7 +83,9 @@ describe('validatePage', () => {
     expect(r2.issues.filter(i => i.rule === 'R4')).toHaveLength(0)
   })
 
-  it('R5: warns when chart fields missing from static data', () => {
+  it('R5: warns when a registered chart binding is missing from static data', async () => {
+    const { registerBuiltinCards } = await import('../../components/cards')
+    registerBuiltinCards()
     const card = makeCard({
       type: 'chart',
       chart: { chartType: 'bar', xField: 'month', yField: 'sales' },
@@ -92,7 +94,7 @@ describe('validatePage', () => {
     delete card.stat
     const r = validatePage(makePage([card]))
     const r5 = r.issues.filter(i => i.rule === 'R5')
-    expect(r5.some(i => i.message.includes('yField'))).toBe(true) // sales 不存在
+    expect(r5.some(i => i.message.includes('sales'))).toBe(true) // sales 不存在
     expect(r5.every(i => i.level === 'warning')).toBe(true)
     expect(r.valid).toBe(true) // warning 不影响 valid
   })
@@ -174,6 +176,47 @@ describe('validatePage', () => {
       events: { interactions: [{ id: 'i1', on: 'click', targetCardId: 'a', bindings: [{ target: 'p', source: 'v' }] }] },
     })
     const r = validatePage(makePage([a, b]))
+    expect(r.issues.filter(i => i.rule === 'R10')).toHaveLength(0)
+  })
+
+  it('R10: rejects unsafe actions and invalid interaction bindings', () => {
+    const target = makeCard({ id: 'target' })
+    const source = makeCard({
+      id: 'source',
+      events: {
+        base: {
+          click: [
+            { label: 'Unsafe', action: 'navigate:javascript:alert(1)' },
+            { label: 'Unknown', action: 'eval:window.location' },
+          ],
+        },
+        interactions: [{
+          id: 'i1',
+          on: 'select',
+          targetCardId: 'target',
+          bindings: [{ target: 'bad key', source: 'data.__proto__.x' }],
+        }],
+      },
+    })
+
+    const r = validatePage(makePage([source, target]))
+    expect(r.valid).toBe(false)
+    expect(r.issues.filter(i => i.rule === 'R10')).toHaveLength(4)
+  })
+
+  it('R10: accepts refresh, safe navigation and constrained bindings', () => {
+    const target = makeCard({ id: 'target' })
+    const source = makeCard({
+      id: 'source',
+      events: {
+        base: { click: [{ label: 'Refresh', action: 'refresh' }, { label: 'Details', action: 'navigate:/details' }] },
+        interactions: [{
+          id: 'i1', on: 'click', targetCardId: 'target', bindings: [{ target: 'region', source: 'data.region' }],
+        }],
+      },
+    })
+
+    const r = validatePage(makePage([source, target]))
     expect(r.issues.filter(i => i.rule === 'R10')).toHaveLength(0)
   })
 

@@ -7,6 +7,9 @@
 
 import type { Component } from 'vue'
 import type { CardSchema, CardType } from '../types/schema'
+import type { DataRoleContract } from './data-role'
+
+export type { DataFieldType, DataRole, DataRoleContract } from './data-role'
 
 /** 编辑器属性面板的表单字段 Schema（自动生成表单） */
 export interface EditorFieldSchema {
@@ -29,6 +32,8 @@ export interface CardRegistration {
   editorSchema?: EditorFieldSchema[]
   /** 新建卡片时的默认配置（编辑器 addCard 用） */
   defaultConfig: () => Partial<CardSchema>
+  /** 绑定数据源时可用的字段角色契约；省略表示不声明数据字段角色。 */
+  dataContract?: DataRoleContract
   /** 组件库展示名 */
   label?: string
   /** 组件库展示图标（SvgIcon name） */

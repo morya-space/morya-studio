@@ -4,7 +4,7 @@
  * 在应用启动时调用 registerBuiltinCards() 一次。
  */
 
-import { registerCard, type EditorFieldSchema } from '../../engine/registry'
+import { registerCard, type DataRoleContract, type EditorFieldSchema } from '../../engine/registry'
 import type { CardType } from '../../types/schema'
 import StatCard from './StatCard.vue'
 import ChartCard from './ChartCard.vue'
@@ -117,6 +117,33 @@ const SIZES: Record<string, { w: number; h: number }> = {
 
 type ChartKind = 'cartesian' | 'pie' | 'radar' | 'gauge' | 'funnel'
 
+const CATEGORY_ROLE = { name: 'category', label: '维度', field: 'chart.xField', acceptedTypes: ['string', 'number', 'date'] } as const
+const METRIC_ROLE = { name: 'metric', label: '数值', field: 'chart.yField', acceptedTypes: ['number'], required: true } as const
+const SERIES_ROLE = { name: 'series', label: '系列', field: 'chart.seriesField', acceptedTypes: ['string', 'number'] } as const
+
+/** 图表字段角色按实际渲染配置裁剪，供编辑器和插件复用。 */
+function chartDataContract(kind: ChartKind): DataRoleContract {
+  if (kind === 'gauge') return { roles: [{ ...METRIC_ROLE }] }
+  if (kind === 'funnel') return { roles: [{ ...CATEGORY_ROLE, name: 'label', label: '标签' }, { ...METRIC_ROLE }] }
+  if (kind === 'pie') return { roles: [{ ...CATEGORY_ROLE, name: 'label', label: '标签' }, { ...METRIC_ROLE }] }
+  if (kind === 'radar') return { roles: [{ ...CATEGORY_ROLE }, { ...METRIC_ROLE }] }
+  return { roles: [{ ...CATEGORY_ROLE, required: true }, { ...METRIC_ROLE }, { ...SERIES_ROLE }] }
+}
+
+function relationDataContract(): DataRoleContract {
+  return {
+    roles: [
+      { name: 'source', label: '来源', field: 'chart.xField', acceptedTypes: ['string', 'number'], required: true },
+      { name: 'target', label: '去向', field: 'chart.seriesField', acceptedTypes: ['string', 'number'], required: true },
+      { ...METRIC_ROLE },
+    ],
+  }
+}
+
+const TABLE_DATA_CONTRACT: DataRoleContract = {
+  roles: [{ name: 'column', label: '表格列', acceptedTypes: ['string', 'number', 'boolean', 'date', 'unknown'], required: true, multiple: true }],
+}
+
 /** 图表组件的属性面板字段（按图表族裁剪） */
 function chartFields(kind: ChartKind): EditorFieldSchema[] {
   const fields: EditorFieldSchema[] = [
@@ -169,6 +196,7 @@ export function registerBuiltinCards(): void {
       span: 8,
       chart: { chartType: 'bar', xField: 'x', yField: 'y', smooth: true },
     }),
+    dataContract: chartDataContract('cartesian'),
     editorSchema: [
       { field: 'title', label: '标题', component: 'MInput' },
       { field: 'chart.chartType', label: '图表类型', component: 'MSelect', options: CHART_TYPE_OPTIONS },
@@ -217,6 +245,9 @@ export function registerBuiltinCards(): void {
         span: v.kind === 'gauge' ? 4 : 6,
         chart: { chartType: v.chartType as never, xField: 'x', yField: 'y', smooth: true, ...(v.extra ?? {}) },
       }),
+      dataContract: v.type === 'barLine'
+        ? { roles: [...chartDataContract(v.kind).roles, { name: 'secondaryMetric', label: '折线数值', field: 'chart.subField', acceptedTypes: ['number'], required: true }] }
+        : (v.type === 'sankey' || v.type === 'graph' ? relationDataContract() : chartDataContract(v.kind)),
       editorSchema: v.type === 'barLine'
         ? [...chartFields(v.kind), { field: 'chart.subField', label: '折线字段', component: 'MSelect', options: 'auto:dataFields' }]
         : chartFields(v.kind),
@@ -239,6 +270,13 @@ export function registerBuiltinCards(): void {
       span: 4,
       stat: { valueField: 'value' },
     }),
+    dataContract: {
+      roles: [
+        { name: 'metric', label: '数值', field: 'stat.valueField', acceptedTypes: ['number'], required: true },
+        { name: 'label', label: '标签', field: 'stat.labelField', acceptedTypes: ['string', 'number', 'date'] },
+        { name: 'trend', label: '趋势', field: 'stat.trendField', acceptedTypes: ['number'] },
+      ],
+    },
     editorSchema: [
       { field: 'title', label: '标题', component: 'MInput' },
       { field: 'stat.valueField', label: '数值字段', component: 'MSelect', options: 'auto:dataFields' },
@@ -264,6 +302,7 @@ export function registerBuiltinCards(): void {
       span: 12,
       table: { columns: [], showPagination: true, pageSize: 10 },
     }),
+    dataContract: TABLE_DATA_CONTRACT,
     editorSchema: [
       { field: 'title', label: '标题', component: 'MInput' },
       { field: 'table.pageSize', label: '每页条数', component: 'MInputNumber', props: { min: 5, max: 100 } },
@@ -285,6 +324,7 @@ export function registerBuiltinCards(): void {
       span: 12,
       scrollTable: { rowHeight: 36, speed: 40, headShow: true, indexShow: true, stripe: true },
     }),
+    dataContract: TABLE_DATA_CONTRACT,
     editorSchema: [
       { field: 'scrollTable.rowHeight', label: '行高(px)', component: 'MInputNumber', props: { min: 20, max: 80 } },
       { field: 'scrollTable.speed', label: '滚动速度(px/s)', component: 'MInputNumber', props: { min: 0, max: 200 }, help: '0 表示不滚动' },
@@ -308,6 +348,14 @@ export function registerBuiltinCards(): void {
       span: 6,
       list: { titleField: 'name', valueField: 'value', valueType: 'number' },
     }),
+    dataContract: {
+      roles: [
+        { name: 'label', label: '标题', field: 'list.titleField', acceptedTypes: ['string', 'number', 'date'], required: true },
+        { name: 'subtitle', label: '副标题', field: 'list.subtitleField', acceptedTypes: ['string', 'number', 'date'] },
+        { name: 'metric', label: '数值', field: 'list.valueField', acceptedTypes: ['number'], required: true },
+        { name: 'trend', label: '趋势', field: 'list.trendField', acceptedTypes: ['number'] },
+      ],
+    },
     editorSchema: [
       { field: 'title', label: '标题', component: 'MInput' },
       { field: 'list.titleField', label: '标题字段', component: 'MSelect', options: 'auto:dataFields' },
@@ -388,6 +436,7 @@ export function registerBuiltinCards(): void {
       span: 4,
       number: { value: 1000, from: 0, duration: 0.8, precision: 0, separator: true, fontSize: 34, color: 'var(--m-color-primary)' },
     }),
+    dataContract: { roles: [{ name: 'metric', label: '数值', field: 'number.valueField', acceptedTypes: ['number'] }] },
     editorSchema: [
       { field: 'number.valueField', label: '数值字段', component: 'MSelect', options: 'auto:dataFields', help: '绑定数据源时生效' },
       { field: 'number.value', label: '静态数值', component: 'MInputNumber' },
@@ -605,6 +654,12 @@ export function registerBuiltinCards(): void {
       span: 6,
       wordCloud: { textField: 'name', valueField: 'value', minSize: 14, maxSize: 34 },
     }),
+    dataContract: {
+      roles: [
+        { name: 'label', label: '文本', field: 'wordCloud.textField', acceptedTypes: ['string', 'number'], required: true },
+        { name: 'metric', label: '权重', field: 'wordCloud.valueField', acceptedTypes: ['number'], required: true },
+      ],
+    },
     editorSchema: [
       { field: 'title', label: '标题', component: 'MInput' },
       { field: 'wordCloud.textField', label: '文本字段', component: 'MSelect', options: 'auto:dataFields' },
@@ -629,6 +684,7 @@ export function registerBuiltinCards(): void {
       span: 4,
       waterPolo: { valueField: 'value', value: 60, max: 100, precision: 0, color: 'var(--m-color-primary)' },
     }),
+    dataContract: { roles: [{ name: 'metric', label: '数值', field: 'waterPolo.valueField', acceptedTypes: ['number'] }] },
     editorSchema: [
       { field: 'waterPolo.valueField', label: '数值字段', component: 'MSelect', options: 'auto:dataFields' },
       { field: 'waterPolo.value', label: '静态数值', component: 'MInputNumber' },
