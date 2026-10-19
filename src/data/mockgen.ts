@@ -116,3 +116,20 @@ function renderToken(raw: string, index: number): unknown {
     default: return null
   }
 }
+
+/**
+ * 美化 Mock 模板：顶层 {{repeat N}} 前缀单独一行，其余 JSON 按 2 空格缩进。
+ * 非法 JSON 原样返回，避免破坏编辑中的输入。
+ */
+export function formatMockTemplate(template: string): string {
+  const text = (template ?? '').trim()
+  if (!text) return ''
+  const repeat = /^\{\{\s*repeat\s+(\d+)\s*\}\}\s*([\s\S]*)$/i.exec(text)
+  const prefix = repeat ? `{{repeat ${repeat[1]}}}\n` : ''
+  const body = (repeat ? repeat[2] : text).trim()
+  try {
+    return prefix + JSON.stringify(JSON.parse(body), null, 2)
+  } catch {
+    return text
+  }
+}

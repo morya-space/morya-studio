@@ -6,11 +6,12 @@
  */
 
 import { computed, onMounted, ref, watch } from 'vue'
-import { MButton, MDialog, MForm, MFormItem, MInput, MInputNumber, MSelect, MTextarea, message } from 'morya-ui'
+import { MButton, MDialog, MForm, MFormItem, MInput, MInputNumber, MSelect, MSegmented, MTextarea, message } from 'morya-ui'
 import type { DataSourceConfig, DataSourceType } from '../../types/schema'
 import { listDataSources, saveDataSource, deleteDataSource, genDataSourceId } from '../../services/datasource'
 import { useDataStore } from '../../data/store'
 import { getAdapter } from '../../data/adapters'
+import { formatMockTemplate } from '../../data/mockgen'
 
 const dataStore = useDataStore()
 const sources = ref<DataSourceConfig[]>([])
@@ -21,6 +22,13 @@ const editing = ref<DataSourceConfig | null>(null)
 const e = computed(() => editing.value!)
 const staticDataText = ref('[]')
 const mockTemplateText = ref('')
+/** Mock 数据方式：模板生成 / 固定数据（二选一） */
+type MockMode = 'template' | 'static'
+const mockMode = ref<MockMode>('template')
+const MOCK_MODE_OPTIONS = [
+  { label: '模板生成', value: 'template' },
+  { label: '固定数据', value: 'static' },
+]
 const testing = ref(false)
 
 const TYPE_OPTIONS = [
@@ -62,14 +70,32 @@ function onAdd() {
   }
   staticDataText.value = '[]'
   mockTemplateText.value = ''
+  mockMode.value = 'template'
   dialogVisible.value = true
 }
 
 function onEdit(ds: DataSourceConfig) {
   editing.value = { ...ds }
   staticDataText.value = JSON.stringify(ds.staticData ?? [], null, 2)
-  mockTemplateText.value = ds.mockTemplate ?? ''
+  mockTemplateText.value = formatMockTemplate(ds.mockTemplate ?? '')
+  mockMode.value = ds.mockTemplate ? 'template' : 'static'
   dialogVisible.value = true
+}
+
+/** 美化 Mock 模板（保留 {{repeat N}} 前缀） */
+function onFormatMockTemplate() {
+  mockTemplateText.value = formatMockTemplate(mockTemplateText.value)
+  message.success('已格式化')
+}
+
+/** 美化 Mock 固定数据 JSON */
+function onFormatMockData() {
+  try {
+    staticDataText.value = JSON.stringify(JSON.parse(staticDataText.value || '[]'), null, 2)
+    message.success('已格式化')
+  } catch {
+    message.warning('固定数据需为合法的 JSON 数组')
+  }
 }
 
 function onDelete(ds: DataSourceConfig) {
@@ -102,15 +128,23 @@ function onSave() {
     }
   }
   if (ds.type === 'mock') {
-    ds.mockTemplate = mockTemplateText.value.trim() || undefined
-    if (!ds.mockTemplate) {
-      try {
-        ds.staticData = JSON.parse(staticDataText.value || '[]')
-        if (!Array.isArray(ds.staticData)) throw new Error('not array')
-      } catch {
-        message.warning('Mock 需提供模板，或填写合法的 JSON 数组兜底')
+    if (mockMode.value === 'template') {
+      ds.mockTemplate = mockTemplateText.value.trim() || undefined
+      if (!ds.mockTemplate) {
+        message.warning('请填写 Mock 模板')
         return
       }
+      ds.staticData = undefined
+    } else {
+      try {
+        const parsed = JSON.parse(staticDataText.value || '[]')
+        if (!Array.isArray(parsed)) throw new Error('not array')
+        ds.staticData = parsed
+      } catch {
+        message.warning('固定数据需为合法的 JSON 数组')
+        return
+      }
+      ds.mockTemplate = undefined
     }
   }
   if (ds.type === 'sql' && !ds.sql?.query?.trim()) {
@@ -196,11 +230,30 @@ async function onTest() {
         </template>
 
         <template v-else-if="e.type === 'mock'">
-          <MFormItem label="Mock 模板" help="JSON 模板 + {{int 1 100}} 等占位符；顶层 {{repeat N}} 生成 N 行">
-            <MTextarea v-model="mockTemplateText" :rows="6" fluid placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
+          <MFormItem label="数据方式">
+            <MSegmented v-model="mockMode" :options="MOCK_MODE_OPTIONS" />
           </MFormItem>
-          <MFormItem label="兜底数据(JSON)" help="模板留空时使用">
-            <MTextarea v-model="staticDataText" :rows="6" fluid placeholder='[{"x":"1月","y":100}]' />
+          <MFormItem
+            v-if="mockMode === 'template'"
+            label="Mock 模板"
+            required
+            help="JSON 模板 + {{int 1 100}} 等占位符；顶层 {{repeat N}} 生成 N 行"
+          >
+            <MTextarea v-model="mockTemplateText" :rows="8" fluid placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
+            <div class="flex justify-end">
+              <MButton type="default" size="small" :disabled="!mockTemplateText.trim()" @click="onFormatMockTemplate">格式化</MButton>
+            </div>
+          </MFormItem>
+          <MFormItem
+            v-else
+            label="固定数据(JSON)"
+            required
+            help="直接作为结果返回，不随机生成"
+          >
+            <MTextarea v-model="staticDataText" :rows="8" fluid placeholder='[{"x":"1月","y":100}]' />
+            <div class="flex justify-end">
+              <MButton type="default" size="small" :disabled="!staticDataText.trim()" @click="onFormatMockData">格式化</MButton>
+            </div>
           </MFormItem>
         </template>
 

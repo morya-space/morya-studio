@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { generateMockRows } from '../mockgen'
+import { formatMockTemplate, generateMockRows } from '../mockgen'
 
 describe('generateMockRows', () => {
   it('generates rows from a repeat template', () => {
@@ -41,5 +41,27 @@ describe('generateMockRows', () => {
   it('caps repeat count', () => {
     const rows = generateMockRows('{{repeat 99999}} {"a":1}')
     expect(rows.length).toBeLessThanOrEqual(1000)
+  })
+})
+
+describe('formatMockTemplate', () => {
+  it('pretty-prints JSON with 2-space indent', () => {
+    const out = formatMockTemplate('{"a":1,"b":{"c":2}}')
+    expect(out).toBe('{\n  "a": 1,\n  "b": {\n    "c": 2\n  }\n}')
+  })
+
+  it('keeps the repeat prefix on its own line', () => {
+    const out = formatMockTemplate('{{repeat 6}} {"x":"{{int 1 9}}"}')
+    expect(out.startsWith('{{repeat 6}}\n{')).toBe(true)
+    // 格式化后仍可正常生成
+    expect(generateMockRows(out)).toHaveLength(6)
+  })
+
+  it('returns the input unchanged for invalid JSON', () => {
+    expect(formatMockTemplate('not json')).toBe('not json')
+  })
+
+  it('returns empty string for blank input', () => {
+    expect(formatMockTemplate('  ')).toBe('')
   })
 })

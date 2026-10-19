@@ -32,6 +32,7 @@ import SvgIcon from '../../components/common/SvgIcon.vue'
 import type { DataSourceConfig, DataSourceType } from '../../types/schema'
 import { initDataSources, listDataSources, saveDataSource, deleteDataSource, genDataSourceId } from '../../services/datasource'
 import { getAdapter } from '../../data/adapters'
+import { formatMockTemplate } from '../../data/mockgen'
 import { useDataStore } from '../../data/store'
 
 const { t } = useI18n()
@@ -49,6 +50,13 @@ const editing = ref<DataSourceConfig | null>(null)
 const e = computed(() => editing.value!)
 const staticDataText = ref('[]')
 const mockTemplateText = ref('')
+/** Mock 数据方式：模板生成 / 固定数据（二选一） */
+type MockMode = 'template' | 'static'
+const mockMode = ref<MockMode>('template')
+const MOCK_MODE_OPTIONS = computed(() => [
+  { label: t('datasources.mockModeTemplate'), value: 'template' },
+  { label: t('datasources.mockModeStatic'), value: 'static' },
+])
 const dialogTesting = ref(false)
 
 // ---------- 筛选 ----------
@@ -142,6 +150,7 @@ function detailOf(ds: DataSourceConfig): string {
   if (ds.type === 'api') return ds.url ?? '-'
   if (ds.type === 'websocket') return ds.wsUrl ?? '-'
   if (ds.type === 'sql') return ds.sql?.host ? `${ds.sql.host}:${ds.sql.port ?? 3306}/${ds.sql.database ?? ''}` : '-'
+  if (ds.type === 'mock') return ds.mockTemplate ? t('datasources.mockTemplate') : '-'
   return t('datasources.rows', { n: ds.staticData?.length ?? 0 })
 }
 
@@ -163,6 +172,7 @@ function onAdd() {
   editing.value = { id: genDataSourceId(), name: '', type: 'static', staticData: [] }
   staticDataText.value = '[]'
   mockTemplateText.value = ''
+  mockMode.value = 'template'
   dialogVisible.value = true
 }
 
@@ -176,8 +186,25 @@ watch(() => e.value?.type, (type) => {
 function onEdit(ds: DataSourceConfig) {
   editing.value = { ...ds }
   staticDataText.value = JSON.stringify(ds.staticData ?? [], null, 2)
-  mockTemplateText.value = ds.mockTemplate ?? ''
+  mockTemplateText.value = formatMockTemplate(ds.mockTemplate ?? '')
+  mockMode.value = ds.mockTemplate ? 'template' : 'static'
   dialogVisible.value = true
+}
+
+/** 美化 Mock 模板（保留 {{repeat N}} 前缀） */
+function onFormatMockTemplate() {
+  mockTemplateText.value = formatMockTemplate(mockTemplateText.value)
+  message.success(t('datasources.formatted'))
+}
+
+/** 美化 Mock 固定数据 JSON */
+function onFormatMockData() {
+  try {
+    staticDataText.value = JSON.stringify(JSON.parse(staticDataText.value || '[]'), null, 2)
+    message.success(t('datasources.formatted'))
+  } catch {
+    message.warn(t('datasources.mockDataRequired'))
+  }
 }
 
 async function onDelete(ds: DataSourceConfig) {
@@ -211,15 +238,23 @@ function onSave() {
     }
   }
   if (ds.type === 'mock') {
-    ds.mockTemplate = mockTemplateText.value.trim() || undefined
-    if (!ds.mockTemplate) {
-      try {
-        ds.staticData = JSON.parse(staticDataText.value || '[]')
-        if (!Array.isArray(ds.staticData)) throw new Error('not array')
-      } catch {
-        message.warn('JSON')
+    if (mockMode.value === 'template') {
+      ds.mockTemplate = mockTemplateText.value.trim() || undefined
+      if (!ds.mockTemplate) {
+        message.warn(t('datasources.mockTemplateRequired'))
         return
       }
+      ds.staticData = undefined
+    } else {
+      try {
+        const parsed = JSON.parse(staticDataText.value || '[]')
+        if (!Array.isArray(parsed)) throw new Error('not array')
+        ds.staticData = parsed
+      } catch {
+        message.warn(t('datasources.mockDataRequired'))
+        return
+      }
+      ds.mockTemplate = undefined
     }
   }
   if (ds.type === 'sql' && !ds.sql?.query?.trim()) { message.warn('SQL'); return }
@@ -415,11 +450,36 @@ async function onDialogTest() {
         </template>
 
         <template v-else-if="e.type === 'mock'">
-          <MFormItem label="Mock 模板" help='JSON + {{int 1 100}} / {{name}} / {{date 2024-01-01 2024-12-31}}；顶层 {{repeat N}} 生成 N 行'>
-            <MTextarea v-model="mockTemplateText" :rows="6" fluid placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
+          <MFormItem :label="t('datasources.mockMode')">
+            <MSegmented v-model="mockMode" :options="MOCK_MODE_OPTIONS" />
           </MFormItem>
-          <MFormItem label="Fallback Data (JSON)" help="模板留空时使用">
-            <MTextarea v-model="staticDataText" :rows="6" fluid placeholder='[{"x":"1月","y":100}]' />
+
+          <MFormItem
+            v-if="mockMode === 'template'"
+            :label="t('datasources.mockTemplate')"
+            required
+            :help="t('datasources.mockTemplateHelp')"
+          >
+            <MTextarea v-model="mockTemplateText" :rows="8" fluid placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
+            <div class="flex justify-end">
+              <MButton type="default" size="small" :disabled="!mockTemplateText.trim()" @click="onFormatMockTemplate">
+                {{ t('datasources.format') }}
+              </MButton>
+            </div>
+          </MFormItem>
+
+          <MFormItem
+            v-else
+            :label="t('datasources.mockData')"
+            required
+            :help="t('datasources.mockDataHelp')"
+          >
+            <MTextarea v-model="staticDataText" :rows="8" fluid placeholder='[{"x":"1月","y":100}]' />
+            <div class="flex justify-end">
+              <MButton type="default" size="small" :disabled="!staticDataText.trim()" @click="onFormatMockData">
+                {{ t('datasources.format') }}
+              </MButton>
+            </div>
           </MFormItem>
         </template>
 

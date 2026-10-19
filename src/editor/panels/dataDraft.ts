@@ -1,0 +1,13 @@
+/**
+ * 「数据配置」弹窗草稿
+ * 弹窗内对数据源 / 引用 / 字段映射的修改先写入草稿，
+ * 点「完成」才一次性提交回卡片（关闭或取消则丢弃）。
+ */
+
+import type { ChartConfig, DataSourceConfig } from '../../types/schema'
+
+export interface DataConfigDraft {
+  dataSource?: DataSourceConfig
+  dataSourceId?: string
+  chart?: ChartConfig
+}

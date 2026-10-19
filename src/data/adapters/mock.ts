@@ -1,7 +1,8 @@
 /**
  * Mock 数据适配器
- * 优先按 mockTemplate（轻量模板语法，见 data/mockgen.ts）生成随机数据；
- * 无模板时回退 staticData（旧数据源兼容）。
+ * 两种模式（二选一，由配置决定）：
+ * - 模板模式：配置 mockTemplate，按轻量模板语法（见 data/mockgen.ts）随机生成数据
+ * - 固定数据：未配置模板时，直接返回 staticData
  */
 
 import type { DataSourceConfig } from '../../types/schema'

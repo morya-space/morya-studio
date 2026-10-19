@@ -47,7 +47,7 @@ const primaryLine = computed(() => {
     case 'sql':
       return `${ds.value?.sql?.driver ?? 'mysql'} · ${ds.value?.sql?.host || '（未填写主机）'}`
     default:
-      return ds.value?.mockTemplate ? '自定义 Mock 模板' : `内置 ${ds.value?.staticData?.length ?? 0} 行 Mock 数据`
+      return ds.value?.mockTemplate ? '自定义 Mock 模板' : '未配置 Mock 模板'
   }
 })
 

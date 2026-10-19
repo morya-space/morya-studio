@@ -57,10 +57,21 @@ describe('staticAdapter', () => {
 })
 
 describe('mockAdapter', () => {
-  it('returns staticData after latency', async () => {
-    const config: DataSourceConfig = { type: 'mock', staticData: [{ a: 1 }] }
+  it('generates rows from mockTemplate', async () => {
+    const config: DataSourceConfig = { type: 'mock', mockTemplate: '{"a":1}' }
     const out = await mockAdapter.fetch(config)
     expect(out).toEqual([{ a: 1 }])
+  })
+
+  it('returns staticData when no mockTemplate (fixed-data mode)', async () => {
+    const config: DataSourceConfig = { type: 'mock', staticData: [{ a: 1 }, { a: 2 }] }
+    const out = await mockAdapter.fetch(config)
+    expect(out).toEqual([{ a: 1 }, { a: 2 }])
+  })
+
+  it('returns empty rows when neither mode is configured', async () => {
+    const out = await mockAdapter.fetch({ type: 'mock' })
+    expect(out).toEqual([])
   })
 })
 

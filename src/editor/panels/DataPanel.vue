@@ -5,25 +5,36 @@
  * 结构：来源切换 → 来源专属配置（分区卡片）→ 测试结果 → 过滤器/转换 → 数据映射 → 数据内容
  */
 
-import { computed, ref } from 'vue'
-import { MButton, MFormItem, MInput, MInputNumber, MSelect, MTag, MTextarea, message } from 'morya-ui'
+import { computed, ref, watch } from 'vue'
+import { MButton, MFormItem, MInput, MInputNumber, MSelect, MSegmented, MTag, MTextarea, message } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { useDataStore } from '../../data/store'
 import { listDataSources } from '../../services/datasource'
 import { getAdapter } from '../../data/adapters'
 import type { TestResult } from '../../data/adapters/base'
-import type { DataSourceConfig, DataSourceType, HttpMethod, RequestBodyType } from '../../types/schema'
+import type { ChartConfig, DataSourceConfig, DataSourceType, HttpMethod, RequestBodyType } from '../../types/schema'
 import PanelTabs from '../components/PanelTabs.vue'
 import KeyValueTable from '../components/KeyValueTable.vue'
 import TransformEditor from './TransformEditor.vue'
 import DataResultPanel from './DataResultPanel.vue'
 import { plain } from '../plain'
-import { defaultMockFor } from '../../components/cards/mocks'
+import { defaultMockTemplateFor } from '../../components/cards/mocks'
+import { formatMockTemplate } from '../../data/mockgen'
+import type { DataConfigDraft } from './dataDraft'
 
 const store = useEditorStore()
 const dataStore = useDataStore()
 
+/**
+ * 草稿模式：属性面板的「数据配置」弹窗传入 draft，
+ * 所有编辑只写草稿，点「完成」由弹窗统一提交（弹窗外仍走 store）。
+ */
+const props = defineProps<{ draft?: DataConfigDraft }>()
+
 const card = computed(() => store.selectedCard)
+/** 当前生效的数据源 / 引用（草稿优先） */
+const activeDataSource = computed(() => (props.draft ? props.draft.dataSource : card.value?.dataSource))
+const activeDataSourceId = computed(() => (props.draft ? props.draft.dataSourceId : card.value?.dataSourceId))
 
 type SourceMode = 'api' | 'mock' | 'websocket' | 'sql' | 'reference'
 
@@ -45,18 +56,21 @@ const MODE_TYPE: Record<Exclude<SourceMode, 'reference'>, DataSourceType> = {
 const mode = computed<SourceMode>(() => {
   const c = card.value
   if (!c) return 'mock'
-  if (c.dataSourceId) return 'reference'
-  const t = c.dataSource?.type
-  // 旧的 static 类型统一归入 Mock（mock 适配器会回退 staticData）
+  if (activeDataSourceId.value) return 'reference'
+  const t = activeDataSource.value?.type
   return (t && t in MODE_TYPE ? t : 'mock') as SourceMode
 })
 
-const inlineDs = computed<DataSourceConfig>(() => card.value?.dataSource ?? { type: 'static', staticData: [] })
+const inlineDs = computed<DataSourceConfig>(() => activeDataSource.value ?? { type: 'mock', mockTemplate: '' })
 
 function patchDs(patch: Partial<DataSourceConfig>): void {
+  const next = { ...plain(inlineDs.value), ...plain(patch) } as DataSourceConfig
+  if (props.draft) {
+    props.draft.dataSource = next
+    return
+  }
   if (!card.value) return
-  const base = plain(inlineDs.value)
-  store.updateCardField(card.value.id, 'dataSource', { ...base, ...plain(patch) })
+  store.updateCardField(card.value.id, 'dataSource', next)
 }
 
 function setMode(next: SourceMode): void {
@@ -68,15 +82,18 @@ function setMode(next: SourceMode): void {
       message.warn('还没有数据源，请先在「数据源」页面创建')
       return
     }
-    store.updateCardField(c.id, 'dataSourceId', c.dataSourceId ?? saved[0].id)
+    if (props.draft) props.draft.dataSourceId = props.draft.dataSourceId ?? saved[0].id
+    else store.updateCardField(c.id, 'dataSourceId', c.dataSourceId ?? saved[0].id)
     return
   }
-  store.updateCardField(c.id, 'dataSourceId', undefined)
+  if (props.draft) props.draft.dataSourceId = undefined
+  else store.updateCardField(c.id, 'dataSourceId', undefined)
   const type = MODE_TYPE[next]
   // 保留已填字段，只切换类型；为新类型补齐必要默认值
   const patch: Partial<DataSourceConfig> = { type }
-  if (type === 'mock' && !inlineDs.value.staticData && !inlineDs.value.mockTemplate) {
-    patch.staticData = defaultMockFor(c.type)
+  if (type === 'mock' && !inlineDs.value.mockTemplate) {
+    patch.mockTemplate = defaultMockTemplateFor(c.type)
+    patch.staticData = undefined
   }
   if (type === 'api' && inlineDs.value.method === undefined) patch.method = 'GET'
   if (type === 'websocket' && !inlineDs.value.ws) patch.ws = { aggregate: 'first' }
@@ -99,7 +116,10 @@ function str(key: 'url' | 'dataPath' | 'body' | 'mockTemplate' | 'wsUrl') {
   })
 }
 
-// ==================== 静态 / Mock 数据 ====================
+// ==================== Mock 数据 ====================
+const mockTemplate = str('mockTemplate')
+
+/** 固定数据（JSON）—— Mock 的另一种数据方式 */
 const staticText = computed({
   get: () => JSON.stringify(inlineDs.value.staticData ?? [], null, 2),
   set: (v: string) => {
@@ -109,24 +129,39 @@ const staticText = computed({
     } catch { /* 输入中不合法，忽略 */ }
   },
 })
-const mockTemplate = str('mockTemplate')
 
-const importInput = ref<HTMLInputElement | null>(null)
+/** Mock 数据方式二选一：模板生成 / 固定数据（由配置字段推导） */
+const MOCK_MODE_OPTIONS = [
+  { label: '模板生成', value: 'template' },
+  { label: '固定数据', value: 'static' },
+]
+const mockModeTab = computed({
+  get: (): 'template' | 'static' => (inlineDs.value.mockTemplate !== undefined ? 'template' : 'static'),
+  set: (v: string) => {
+    if (v === 'template') {
+      const c = card.value
+      patchDs({
+        staticData: undefined,
+        mockTemplate: inlineDs.value.mockTemplate ?? (c ? defaultMockTemplateFor(c.type) : ''),
+      })
+    } else {
+      patchDs({ mockTemplate: undefined, staticData: inlineDs.value.staticData ?? [] })
+    }
+  },
+})
 
-function formatStatic() {
-  staticText.value = JSON.stringify(inlineDs.value.staticData ?? [], null, 2)
+/** 美化 Mock 模板（保留 {{repeat N}} 前缀；非法 JSON 原样保留） */
+function formatMockTemplateText() {
+  const tpl = inlineDs.value.mockTemplate
+  if (!tpl) return
+  patchDs({ mockTemplate: formatMockTemplate(tpl) })
   message.success('已格式化')
 }
-function triggerImport() {
-  importInput.value?.click()
-}
-function importStatic(e: Event) {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  input.value = ''
-  if (!file) return
-  void file.text().then(text => { staticText.value = text; message.success('已导入') })
-    .catch(() => message.error('导入失败'))
+
+/** 美化 Mock 固定数据 JSON */
+function formatMockStatic() {
+  staticText.value = JSON.stringify(inlineDs.value.staticData ?? [], null, 2)
+  message.success('已格式化')
 }
 
 // ==================== 动态请求 ====================
@@ -218,14 +253,20 @@ function patchSql(patch: Record<string, unknown>) {
 
 // ==================== 引用数据源 ====================
 const dataSourceId = computed({
-  get: () => card.value?.dataSourceId ?? '',
-  set: (v: string) => { if (card.value) store.updateCardField(card.value.id, 'dataSourceId', v || undefined) },
+  get: () => activeDataSourceId.value ?? '',
+  set: (v: string) => {
+    if (props.draft) {
+      props.draft.dataSourceId = v || undefined
+      return
+    }
+    if (card.value) store.updateCardField(card.value.id, 'dataSourceId', v || undefined)
+  },
 })
 const savedDataSourceOptions = computed(() => [
   { label: '（未选择）', value: '' },
   ...listDataSources().map(ds => ({ label: `${ds.name ?? ds.id} · ${ds.type}`, value: ds.id ?? '' })),
 ])
-const referenced = computed(() => listDataSources().find(d => d.id === card.value?.dataSourceId) ?? null)
+const referenced = computed(() => listDataSources().find(d => d.id === activeDataSourceId.value) ?? null)
 function openDataSources() {
   window.open('/datasources', '_blank')
 }
@@ -254,16 +295,49 @@ async function runTest() {
   } finally {
     testing.value = false
   }
-  // 测试后同步刷新卡片数据（画布/预览即时生效）
-  if (result.value?.ok) {
+  if (!result.value?.ok) return
+  if (props.draft) {
+    // 草稿模式：只刷新弹窗内预览，不写回卡片（点「完成」才生效）
+    await loadDraftRows()
+  } else {
+    // 非草稿：测试后同步刷新卡片数据（画布/预览即时生效）
     try { await dataStore.refreshCard(card.value) } catch { /* ignore */ }
   }
 }
 
+// ==================== 草稿预览（弹窗内，不写回 store） ====================
+const draftRows = ref<Record<string, unknown>[]>([])
+
+async function loadDraftRows(): Promise<void> {
+  const cfg = testConfig.value
+  if (!cfg) { draftRows.value = []; return }
+  try {
+    const adapter = getAdapter(cfg.type)
+    draftRows.value = adapter.fetch ? await adapter.fetch(plain(cfg)) : []
+  } catch {
+    draftRows.value = []
+  }
+}
+
+watch(
+  () => props.draft,
+  async (d) => {
+    draftRows.value = []
+    if (!d) return
+    // 本地类型（mock/static）打开即预览；网络类型点「测试」再拉取
+    const type = testConfig.value?.type
+    if (type === 'mock' || type === 'static') await loadDraftRows()
+  },
+  { immediate: true },
+)
+
 // ==================== 数据映射 / 内容 ====================
-const rows = computed(() => (card.value ? dataStore.cardData.get(card.value.id) ?? [] : []))
+const rows = computed(() => {
+  if (props.draft) return draftRows.value
+  return card.value ? dataStore.cardData.get(card.value.id) ?? [] : []
+})
 const fields = computed(() => (rows.value[0] ? Object.keys(rows.value[0]) : []))
-const chartCfg = computed(() => card.value?.chart ?? null)
+const chartCfg = computed(() => (props.draft ? props.draft.chart ?? card.value?.chart ?? null : card.value?.chart ?? null))
 
 const contentView = ref<string>('table')
 
@@ -280,8 +354,15 @@ function fieldRole(f: string): string | null {
   return null
 }
 function bindRole(f: string, role: 'xField' | 'yField' | 'seriesField') {
-  if (!card.value) return
-  store.updateCardField(card.value.id, `chart.${role}`, f)
+  const c = card.value
+  if (!c) return
+  if (props.draft) {
+    // 草稿模式：字段映射也只写草稿，点「完成」才提交
+    props.draft.chart = { ...plain(props.draft.chart ?? c.chart ?? {}), [role]: f } as ChartConfig
+    message.success('已绑定')
+    return
+  }
+  store.updateCardField(c.id, `chart.${role}`, f)
   message.success('已绑定')
 }
 
@@ -356,24 +437,33 @@ function downloadJson() {
       </div>
 
       <div class="dsec__actions">
-        <MButton type="primary" size="small" :loading="testing" @click="runTest">测试发送</MButton>
+        <MButton type="primary" size="small" :loading="testing" @click="runTest">测试</MButton>
       </div>
     </section>
 
     <!-- Mock -->
     <section v-else-if="mode === 'mock'" class="dsec">
       <p class="dsec__title">Mock 配置</p>
-      <MFormItem label="Mock 模板" help='JSON 模板 + {{int 1 100}} 等占位符；顶层 {{repeat N}} 生成 N 行'>
-        <MTextarea v-model="mockTemplate" :rows="6" fluid placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
+      <MFormItem label="数据方式">
+        <MSegmented v-model="mockModeTab" :options="MOCK_MODE_OPTIONS" />
       </MFormItem>
-      <MFormItem label="数据(JSON)" help="模板留空时使用；组件新建时默认即为可渲染的 Mock 数据">
-        <MTextarea :model-value="staticText" :rows="5" fluid @update:model-value="staticText = $event as string" />
+      <MFormItem v-if="mockModeTab === 'template'" label="Mock 模板" required help='JSON 模板 + {{int 1 100}} 等占位符；顶层 {{repeat N}} 生成 N 行'>
+        <MTextarea v-model="mockTemplate" :rows="8" fluid placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
+      </MFormItem>
+      <MFormItem v-else label="固定数据(JSON)" required help="直接作为结果返回，不随机生成">
+        <MTextarea :model-value="staticText" :rows="8" fluid @update:model-value="staticText = $event as string" />
       </MFormItem>
       <div class="dsec__actions">
-        <MButton type="default" size="small" @click="formatStatic">格式化</MButton>
-        <MButton type="default" size="small" @click="triggerImport">导入 JSON</MButton>
-        <MButton type="default" size="small" :disabled="!rows.length" @click="downloadJson">下载</MButton>
-        <input ref="importInput" type="file" accept=".json,application/json,text/plain" class="dsec__file" @change="importStatic">
+        <MButton
+          v-if="mockModeTab === 'template'"
+          type="default"
+          size="small"
+          :disabled="!inlineDs.mockTemplate"
+          @click="formatMockTemplateText"
+        >
+          格式化
+        </MButton>
+        <MButton v-else type="default" size="small" @click="formatMockStatic">格式化</MButton>
         <MButton type="primary" size="small" :loading="testing" @click="runTest">测试</MButton>
       </div>
     </section>
