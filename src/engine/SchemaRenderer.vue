@@ -11,9 +11,11 @@
  */
 
 import { computed, onBeforeUnmount, onMounted, watch, type CSSProperties } from 'vue'
-import type { ActionConfig, CardSchema, PageSchema } from '../types/schema'
+import type { ActionConfig, BaseEventName, CardSchema, PageSchema } from '../types/schema'
 import { useDataStore } from '../data/store'
-import { sortCards, getCardGridStyle, getCardKey } from './utils'
+import { cardUsesData, sortCards, getCardGridStyle, getCardKey } from './utils'
+import { parseAction } from './events'
+import { resolveInteractionParams, type InteractionPayload } from './interactions'
 import CardNode from '../components/cards/CardNode.vue'
 import GlobalFilterBar from '../components/common/GlobalFilterBar.vue'
 import CanvasWatermark from '../components/common/CanvasWatermark.vue'
@@ -121,11 +123,42 @@ function cardError(id: string) {
 async function loadAll(params?: Record<string, unknown>) {
   if (props.editable) return
   if (params) dataStore.setGlobalParams(params)
-  await dataStore.refreshPage(props.page.cards ?? [])
+  await dataStore.refreshPage((props.page.cards ?? []).filter(cardUsesData))
 }
 
 function onCardAction(cardId: string, action: ActionConfig) {
+  runAction(cardId, action)
   emit('card-action', cardId, action)
+}
+
+function runAction(cardId: string, action: ActionConfig) {
+  const parsed = parseAction(action.action)
+  if (!parsed) return
+  if (parsed.type === 'refresh') {
+    onCardRetry(cardId)
+    return
+  }
+  if (typeof window !== 'undefined') window.location.assign(parsed.url)
+}
+
+function onBaseEvent(card: CardSchema, eventName: BaseEventName) {
+  if (props.editable) return
+
+  const payload: InteractionPayload = {
+    card: { id: card.id, type: card.type },
+    data: cardData(card.id)[0] ?? {},
+    event: { type: eventName },
+  }
+
+  for (const action of card.events?.base?.[eventName] ?? []) runAction(card.id, action)
+  for (const interaction of card.events?.interactions ?? []) {
+    if (interaction.enabled === false || interaction.on !== eventName) continue
+    const target = (props.page.cards ?? []).find(candidate => candidate.id === interaction.targetCardId)
+    if (!target) continue
+    const params = resolveInteractionParams(interaction.bindings, payload)
+    // DataStore supports optional per-refresh params; this does not mutate page filters.
+    void dataStore.refreshCard(target, params)
+  }
 }
 function onCardRetry(cardId: string) {
   const card = (props.page.cards ?? []).find(c => c.id === cardId)
@@ -133,6 +166,12 @@ function onCardRetry(cardId: string) {
 }
 function onSelect(id: string) {
   if (props.editable) emit('select-card', id)
+}
+
+function onCardClick(card: CardSchema, event: MouseEvent) {
+  onSelect(card.id)
+  if ((event.target as Element | null)?.closest('button, a, input, select, textarea, [role="button"]')) return
+  onBaseEvent(card, 'click')
 }
 
 function onFilterChange(params: Record<string, unknown>) {
@@ -167,7 +206,10 @@ onBeforeUnmount(() => {
           <div
             class="schema-renderer__free-cell"
             :style="freeCardStyle(card)"
-            @click="onSelect(card.id)"
+            @click="onCardClick(card, $event)"
+            @dblclick="onBaseEvent(card, 'dblclick')"
+            @mouseenter="onBaseEvent(card, 'mouseenter')"
+            @mouseleave="onBaseEvent(card, 'mouseleave')"
           >
             <CardNode
               :card="card"
@@ -190,7 +232,10 @@ onBeforeUnmount(() => {
           <div
             class="schema-renderer__cell"
             :style="{ ...getCardGridStyle(card, cols), ...(card.height ? { height: `${card.height}px` } : {}) }"
-            @click="onSelect(card.id)"
+            @click="onCardClick(card, $event)"
+            @dblclick="onBaseEvent(card, 'dblclick')"
+            @mouseenter="onBaseEvent(card, 'mouseenter')"
+            @mouseleave="onBaseEvent(card, 'mouseleave')"
           >
             <CardNode
               :card="card"
