@@ -83,4 +83,17 @@ describe('PollScheduler', () => {
     expect(fast).toHaveBeenCalledTimes(4)
     expect(slow).toHaveBeenCalledTimes(1)
   })
+
+  it('does not overlap a slow task for the same card', async () => {
+    let resolveTask: (() => void) | undefined
+    const task = vi.fn(() => new Promise<void>(resolve => { resolveTask = resolve }))
+    scheduler.start('c1', 1000, task)
+
+    await vi.advanceTimersByTimeAsync(3000)
+    expect(task).toHaveBeenCalledTimes(1)
+
+    resolveTask?.()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(task).toHaveBeenCalledTimes(2)
+  })
 })

@@ -14,6 +14,7 @@ export interface ScheduledTask {
 export class PollScheduler {
   private timers = new Map<string, ReturnType<typeof setInterval>>()
   private tasks = new Map<string, ScheduledTask>()
+  private running = new Set<string>()
   private paused = false
   private visibilityBound = false
 
@@ -25,7 +26,7 @@ export class PollScheduler {
     this.stop(cardId)
     this.tasks.set(cardId, { cardId, interval, task })
     if (interval <= 0 || this.paused) return
-    this.timers.set(cardId, setInterval(() => { void task() }, interval))
+    this.timers.set(cardId, setInterval(() => { void this.run(cardId, task) }, interval))
     this.bindVisibility()
   }
 
@@ -49,6 +50,7 @@ export class PollScheduler {
   disposeAll(): void {
     this.stopAll()
     this.tasks.clear()
+    this.running.clear()
   }
 
   /** 当前活跃的定时器数量（测试用） */
@@ -74,7 +76,7 @@ export class PollScheduler {
     this.paused = false
     for (const { cardId, interval, task } of this.tasks.values()) {
       if (interval > 0 && !this.timers.has(cardId)) {
-        this.timers.set(cardId, setInterval(() => { void task() }, interval))
+        this.timers.set(cardId, setInterval(() => { void this.run(cardId, task) }, interval))
       }
     }
   }
@@ -88,6 +90,16 @@ export class PollScheduler {
       if (document.hidden) this.pause()
       else this.resume()
     })
+  }
+
+  private async run(cardId: string, task: () => Promise<void>): Promise<void> {
+    if (this.running.has(cardId)) return
+    this.running.add(cardId)
+    try {
+      await task()
+    } finally {
+      this.running.delete(cardId)
+    }
   }
 }
 

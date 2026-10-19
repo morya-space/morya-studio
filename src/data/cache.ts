@@ -128,13 +128,14 @@ export function buildCacheKey(config: {
   url?: string
   params?: Record<string, unknown>
   staticData?: Record<string, unknown>[]
-}): string {
+}, requestParams?: Record<string, unknown>): string {
   let base = config.id ?? config.url
   if (!base) {
     // 内联数据源（无 id/url）：用内容指纹区分，避免不同内联源撞同一个 key
     base = config.staticData ? `inline:${fingerprint(config.staticData)}` : 'anon'
   }
-  const params = config.params ? stableStringify(config.params) : ''
+  const allParams = { ...(config.params ?? {}), ...(requestParams ?? {}) }
+  const params = Object.keys(allParams).length > 0 ? stableStringify(allParams) : ''
   return `${base}:${params}`
 }
 
@@ -151,7 +152,14 @@ function fingerprint(value: unknown): string {
 /** 键排序后的稳定序列化（保证同参同 key） */
 function stableStringify(obj: Record<string, unknown>): string {
   const keys = Object.keys(obj).sort()
-  return keys.map(k => `${k}=${String(obj[k])}`).join('&')
+  return keys.map(k => `${k}=${stableValue(obj[k])}`).join('&')
+}
+
+function stableValue(value: unknown): string {
+  if (value === null || typeof value !== 'object') return String(value)
+  if (Array.isArray(value)) return `[${value.map(stableValue).join(',')}]`
+  const record = value as Record<string, unknown>
+  return `{${Object.keys(record).sort().map(key => `${key}:${stableValue(record[key])}`).join(',')}}`
 }
 
 /** 全局单例 */

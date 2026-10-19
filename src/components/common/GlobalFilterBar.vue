@@ -34,11 +34,10 @@ watch(
 
 watch(values, () => {
   emit('change', { ...values })
-}, { deep: true })
+}, { deep: true, immediate: true })
 
 function onReset() {
   initValues()
-  emit('change', { ...values })
 }
 </script>
 
@@ -51,7 +50,7 @@ function onReset() {
           v-if="f.type === 'select'"
           v-model="values[f.key] as string | undefined"
           :options="f.options ?? []"
-          allow-clear
+          clearable
           placeholder="全部"
           fluid
         />
@@ -65,7 +64,6 @@ function onReset() {
         <MInputNumber
           v-else-if="f.type === 'number'"
           v-model="values[f.key] as number | null"
-          placeholder="全部"
           fluid
         />
         <MInput

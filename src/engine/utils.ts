@@ -27,9 +27,14 @@ export const DATA_CARD_TYPES = [
   'stat', 'table', 'list', 'scrollTable',
 ] as const
 
+/** 卡片是否消费行数据；非数据型组件不应进入数据加载和错误链路。 */
+export function cardUsesData(card: CardSchema): boolean {
+  return (DATA_CARD_TYPES as readonly string[]).includes(card.type)
+}
+
 /** 卡片是否需要数据源但尚未绑定（编辑态显示占位图） */
 export function cardNeedsDataSource(card: CardSchema): boolean {
-  return (DATA_CARD_TYPES as readonly string[]).includes(card.type)
+  return cardUsesData(card)
     && !card.dataSourceId
     && !card.dataSource
 }

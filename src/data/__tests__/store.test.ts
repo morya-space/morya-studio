@@ -68,6 +68,20 @@ describe('useDataStore', () => {
     expect(store.cardError.get('card-1')?.message).toMatch(/no dataSource/)
   })
 
+  it('skips non-data cards when refreshing a page', async () => {
+    const textCard = makeCard({ id: 'text-1', type: 'text' })
+    const dataCard = makeCard({
+      id: 'stat-1',
+      dataSource: { type: 'static', staticData: [{ value: 42 }] },
+    })
+
+    await store.refreshPage([textCard, dataCard])
+
+    expect(store.cardData.get('stat-1')).toEqual([{ value: 42 }])
+    expect(store.cardError.has('text-1')).toBe(false)
+    expect(store.cardLoading.has('text-1')).toBe(false)
+  })
+
   it('dedupes concurrent requests for the same dataSource', async () => {
     let calls = 0
     const slow: DataSourceAdapter = {
@@ -119,6 +133,56 @@ describe('useDataStore', () => {
     expect(calls).toBe(2)
   })
 
+  it('separates cache and in-flight requests by effective filter params', async () => {
+    const fetch = vi.fn(async (_ds, ctx?: { params?: Record<string, unknown> }) => [{ q: ctx?.params?.q }])
+    registerAdapter('api', { fetch })
+    store.registerDataSource({
+      id: 'filtered', type: 'api', url: 'https://x',
+      cache: { enabled: true, ttl: 60000 },
+    })
+    const card = makeCard({ dataSourceId: 'filtered' })
+
+    await store.loadCardData(card, { params: { q: 'first' } })
+    await store.loadCardData(card, { params: { q: 'second' } })
+    await store.loadCardData(card, { params: { q: 'first' } })
+
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(store.cardData.get('card-1')).toEqual([{ q: 'first' }])
+  })
+
+  it('injects global filter values into data-source requests', async () => {
+    const fetch = vi.fn(async (_ds, ctx?: { params?: Record<string, unknown> }) => [{ region: ctx?.params?.region }])
+    registerAdapter('api', { fetch })
+    store.registerDataSource({ id: 'global-filter', type: 'api', url: 'https://x' })
+    const card = makeCard({ dataSourceId: 'global-filter' })
+
+    store.setGlobalParams({ region: 'east' })
+    await store.loadCardData(card)
+
+    expect(fetch).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      params: { region: 'east' },
+    }))
+    expect(store.cardData.get(card.id)).toEqual([{ region: 'east' }])
+  })
+
+  it('does not let a slower prior filter request overwrite newer data', async () => {
+    let resolveFirst: ((rows: Record<string, unknown>[]) => void) | undefined
+    const first = new Promise<Record<string, unknown>[]>(resolve => { resolveFirst = resolve })
+    const fetch = vi.fn((_ds, ctx?: { params?: Record<string, unknown> }) =>
+      ctx?.params?.q === 'first' ? first : Promise.resolve([{ q: 'second' }]),
+    )
+    registerAdapter('api', { fetch })
+    store.registerDataSource({ id: 'race', type: 'api', url: 'https://x' })
+    const card = makeCard({ dataSourceId: 'race' })
+
+    const oldLoad = store.loadCardData(card, { params: { q: 'first' } })
+    await store.loadCardData(card, { params: { q: 'second' } })
+    resolveFirst?.([{ q: 'first' }])
+    await oldLoad
+
+    expect(store.cardData.get('card-1')).toEqual([{ q: 'second' }])
+  })
+
   it('schedules polling when pollInterval > 0', async () => {
     vi.useFakeTimers()
     const task = vi.fn().mockResolvedValue([{ t: 1 }])
@@ -151,6 +215,39 @@ describe('useDataStore', () => {
     vi.useRealTimers()
   })
 
+  it('replaces the old polling task when a card changes data source', async () => {
+    registerAdapter('api', { fetch: vi.fn().mockResolvedValue([{ t: 1 }]) })
+    store.registerDataSource({ id: 'poll-a', type: 'api', url: 'https://a', pollInterval: 1000 })
+    store.registerDataSource({ id: 'poll-b', type: 'api', url: 'https://b' })
+    const card = makeCard({ dataSourceId: 'poll-a' })
+
+    await store.loadCardData(card)
+    expect(pollScheduler.isRunning(card.id)).toBe(true)
+
+    await store.loadCardData({ ...card, dataSourceId: 'poll-b' })
+    expect(pollScheduler.isRunning(card.id)).toBe(false)
+  })
+
+  it('aborts an in-flight request when its final card consumer is disposed', async () => {
+    let signal: AbortSignal | undefined
+    registerAdapter('api', {
+      fetch: (_ds, ctx) => new Promise((_resolve, reject) => {
+        signal = ctx?.signal
+        signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+      }),
+    })
+    store.registerDataSource({ id: 'abort', type: 'api', url: 'https://x' })
+    const card = makeCard({ dataSourceId: 'abort' })
+
+    const pending = store.loadCardData(card)
+    store.disposeCard(card.id)
+    await pending
+
+    expect(signal?.aborted).toBe(true)
+    expect(store.cardData.has(card.id)).toBe(false)
+    expect(store.cardError.has(card.id)).toBe(false)
+  })
+
   it('refreshPage loads all cards', async () => {
     const cards = [
       makeCard({ id: 'a', dataSource: { type: 'static', staticData: [{ v: 1 }] } }),
@@ -159,5 +256,24 @@ describe('useDataStore', () => {
     await store.refreshPage(cards)
     expect(store.cardData.get('a')).toEqual([{ v: 1 }])
     expect(store.cardData.get('b')).toEqual([{ v: 2 }])
+  })
+
+  it('refreshCard forwards optional params while bypassing cache', async () => {
+    const fetch = vi.fn(async (_ds, ctx?: { params?: Record<string, unknown> }) => [{ q: ctx?.params?.q }])
+    registerAdapter('api', { fetch })
+    store.registerDataSource({
+      id: 'refreshable', type: 'api', url: 'https://x',
+      cache: { enabled: true, ttl: 60000 },
+    })
+    const card = makeCard({ dataSourceId: 'refreshable' })
+
+    await store.refreshCard(card)
+    await store.refreshCard(card, { q: 'fresh' })
+
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(fetch).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({
+      params: { q: 'fresh' },
+    }))
+    expect(store.cardData.get(card.id)).toEqual([{ q: 'fresh' }])
   })
 })

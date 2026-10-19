@@ -103,4 +103,10 @@ describe('buildCacheKey', () => {
     const b = buildCacheKey({ id: 'd', params: { p: 2 } })
     expect(a).not.toBe(b)
   })
+
+  it('includes effective request params in the key', () => {
+    const a = buildCacheKey({ id: 'd', params: { status: '{{status}}' } }, { status: 'open' })
+    const b = buildCacheKey({ id: 'd', params: { status: '{{status}}' } }, { status: 'closed' })
+    expect(a).not.toBe(b)
+  })
 })

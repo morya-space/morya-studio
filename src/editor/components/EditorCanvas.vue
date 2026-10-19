@@ -9,6 +9,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { MButton, MDialog, MEmpty, MInput, MTextarea, message } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { useDataStore } from '../../data/store'
+import { cardUsesData } from '../../engine/utils'
 import { sortCards } from '../../engine/utils'
 import { RULER_THICK } from '../ruler'
 import type { CardType } from '../../types/schema'
@@ -116,8 +117,18 @@ const gridBgStyle = computed(() => {
 })
 
 // 编辑态下也加载数据，让卡片实时预览
+const loadedCardIds = new Set<string>()
+
 async function loadCardData() {
-  await dataStore.refreshPage(editorStore.page.cards)
+  const cards = editorStore.page.cards
+  const dataCards = cards.filter(cardUsesData)
+  const currentCardIds = new Set(dataCards.map(card => card.id))
+  for (const cardId of loadedCardIds) {
+    if (!currentCardIds.has(cardId)) dataStore.disposeCard(cardId)
+  }
+  loadedCardIds.clear()
+  for (const cardId of currentCardIds) loadedCardIds.add(cardId)
+  await dataStore.refreshPage(dataCards)
 }
 
 onMounted(loadCardData)
@@ -174,6 +185,8 @@ watch(isFree, (free) => {
 })
 
 onBeforeUnmount(() => {
+  dataStore.disposeAll()
+  loadedCardIds.clear()
   ro?.disconnect()
   ro = null
   window.removeEventListener('keydown', onSpaceDown)
