@@ -26,12 +26,15 @@ export const mockAdapter: DataSourceAdapter = {
   },
 
   async test(config: DataSourceConfig): Promise<TestResult> {
+    const started = Date.now()
     const rows = rowsOf(config)
     return {
       ok: true,
       message: `Mock 返回 ${rows.length} rows（模拟延迟 ${MOCK_LATENCY}ms）`,
       sampleRows: rows.length,
       sample: rows.slice(0, 3),
+      durationMs: Date.now() - started + MOCK_LATENCY,
+      raw: rows[0],
     }
   },
 }

@@ -19,6 +19,12 @@ export interface TestResult {
   sampleRows?: number
   /** 前几行示例数据 */
   sample?: Record<string, unknown>[]
+  /** v0.4：HTTP 状态码（仅 api） */
+  status?: number
+  /** v0.4：耗时（ms） */
+  durationMs?: number
+  /** v0.4：原始响应（api 为解析后的 JSON，ws 为最后一条消息） */
+  raw?: unknown
 }
 
 export interface DataSourceAdapter {

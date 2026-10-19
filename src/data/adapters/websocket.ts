@@ -1,11 +1,12 @@
 /**
  * WebSocket 数据源适配器（快照模式）
- * 连接 wsUrl，收集首批消息（JSON）后关闭连接返回；用于数据看板的一次性快照。
- * 持续订阅/推送属远期能力（需 adapter 支持流式回调），此处不阻塞使用。
+ * 连接 wsUrl，按 config.ws.aggregate 收集消息（JSON）后返回。
+ * 持久订阅/推送属远期能力（需 adapter 支持流式回调），此处不阻塞使用。
  */
 
 import type { DataSourceConfig } from '../../types/schema'
 import type { DataSourceAdapter, TestResult } from './base'
+import { getByPath } from './base'
 
 function normalizeMessage(data: unknown): Record<string, unknown> {
   if (Array.isArray(data)) return { message: data } as unknown as Record<string, unknown>
@@ -13,8 +14,20 @@ function normalizeMessage(data: unknown): Record<string, unknown> {
   return { value: data }
 }
 
-/** 收集首批消息，超时或收到消息后返回 */
-function collectRows(url: string, timeout: number): Promise<Record<string, unknown>[]> {
+function toRows(parsed: unknown, messagePath?: string): Record<string, unknown>[] {
+  const target = messagePath ? getByPath(parsed, messagePath) : parsed
+  if (Array.isArray(target)) return target.map(normalizeMessage)
+  return [normalizeMessage(target)]
+}
+
+interface CollectOptions {
+  messagePath?: string
+  aggregate: 'first' | 'append' | 'replace'
+  timeout: number
+}
+
+/** 收集消息：first 收到首条即返回；append/replace 累积到超时或关闭 */
+function collectRows(url: string, opts: CollectOptions): Promise<Record<string, unknown>[]> {
   return new Promise((resolve, reject) => {
     let ws: WebSocket
     try {
@@ -24,7 +37,7 @@ function collectRows(url: string, timeout: number): Promise<Record<string, unkno
       return
     }
 
-    const rows: Record<string, unknown>[] = []
+    let rows: Record<string, unknown>[] = []
     let settled = false
 
     const finish = () => {
@@ -35,21 +48,20 @@ function collectRows(url: string, timeout: number): Promise<Record<string, unkno
       resolve(rows)
     }
 
-    const timer = setTimeout(finish, timeout)
+    const timer = setTimeout(finish, opts.timeout)
 
     ws.onopen = () => { /* 等待消息 */ }
     ws.onmessage = (ev) => {
+      let parsed: unknown
       try {
-        const parsed = JSON.parse(String(ev.data)) as unknown
-        if (Array.isArray(parsed)) {
-          for (const item of parsed) rows.push(normalizeMessage(item))
-        } else {
-          rows.push(normalizeMessage(parsed))
-        }
+        parsed = JSON.parse(String(ev.data))
       } catch {
-        rows.push({ value: String(ev.data) })
+        parsed = String(ev.data)
       }
-      finish()
+      const next = toRows(parsed, opts.messagePath)
+      if (opts.aggregate === 'append') rows = [...rows, ...next]
+      else rows = next
+      if (opts.aggregate === 'first') finish()
     }
     ws.onerror = () => {
       clearTimeout(timer)
@@ -62,24 +74,35 @@ function collectRows(url: string, timeout: number): Promise<Record<string, unkno
   })
 }
 
+function optionsOf(config: DataSourceConfig): CollectOptions {
+  return {
+    messagePath: config.ws?.messagePath,
+    aggregate: config.ws?.aggregate ?? 'first',
+    timeout: config.timeoutMs ?? 3000,
+  }
+}
+
 export const websocketAdapter: DataSourceAdapter = {
   async fetch(config: DataSourceConfig) {
     if (!config.wsUrl) throw new Error('[ws adapter] dataSource.wsUrl is required')
-    return collectRows(config.wsUrl, 2000)
+    return collectRows(config.wsUrl, optionsOf(config))
   },
 
   async test(config: DataSourceConfig): Promise<TestResult> {
     if (!config.wsUrl) return { ok: false, message: '缺少 wsUrl' }
+    const started = Date.now()
     try {
-      const rows = await collectRows(config.wsUrl, 1500)
+      const rows = await collectRows(config.wsUrl, optionsOf(config))
       return {
         ok: true,
         message: `已接收 ${rows.length} 条消息`,
         sampleRows: rows.length,
         sample: rows.slice(0, 3),
+        durationMs: Date.now() - started,
+        raw: rows[0],
       }
     } catch (e) {
-      return { ok: false, message: e instanceof Error ? e.message : String(e) }
+      return { ok: false, message: e instanceof Error ? e.message : String(e), durationMs: Date.now() - started }
     }
   },
 }

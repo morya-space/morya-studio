@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { staticAdapter } from '../static'
 import { mockAdapter } from '../mock'
 import { apiAdapter, interpolate } from '../api'
+import { websocketAdapter } from '../websocket'
 import { getAdapter, hasAdapter, getByPath, ensureArray } from '../index'
 import type { DataSourceConfig } from '../../../types/schema'
 
@@ -137,6 +138,60 @@ describe('apiAdapter', () => {
     expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json')
   })
 
+  it('PUT sends JSON body (default bodyType)', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ ok: true }))
+    await apiAdapter.fetch({
+      type: 'api',
+      url: 'https://x.test/update',
+      method: 'PUT',
+      params: { id: 1 },
+    })
+    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(init.method).toBe('PUT')
+    expect(init.body).toBe(JSON.stringify({ id: 1 }))
+  })
+
+  it('form bodyType encodes urlencoded', async () => {
+    mockFetch.mockResolvedValue(jsonResponse([]))
+    await apiAdapter.fetch({
+      type: 'api',
+      url: 'https://x.test/form',
+      method: 'POST',
+      bodyType: 'form',
+      params: { a: '1', b: '2' },
+    })
+    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/x-www-form-urlencoded')
+    expect(init.body).toBe('a=1&b=2')
+  })
+
+  it('bodyType none sends no body and appends query', async () => {
+    mockFetch.mockResolvedValue(jsonResponse([]))
+    await apiAdapter.fetch({
+      type: 'api',
+      url: 'https://x.test/q',
+      method: 'DELETE',
+      bodyType: 'none',
+      params: { id: 5 },
+    })
+    const [calledUrl, init] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(init.body).toBeUndefined()
+    expect(calledUrl).toContain('id=5')
+  })
+
+  it('explicit body string is sent as-is', async () => {
+    mockFetch.mockResolvedValue(jsonResponse([]))
+    await apiAdapter.fetch({
+      type: 'api',
+      url: 'https://x.test/raw',
+      method: 'POST',
+      bodyType: 'json',
+      body: '{"raw":true}',
+    })
+    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(init.body).toBe('{"raw":true}')
+  })
+
   it('injects bearer auth header', async () => {
     mockFetch.mockResolvedValue(jsonResponse([]))
     await apiAdapter.fetch({
@@ -175,6 +230,27 @@ describe('apiAdapter', () => {
     await expect(apiAdapter.fetch({ type: 'api', url: 'https://x.test/x' })).rejects.toThrow(/404/)
   })
 
+  it('retries on failure then succeeds', async () => {
+    mockFetch
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce(jsonResponse([{ id: 1 }]))
+    const out = await apiAdapter.fetch({
+      type: 'api',
+      url: 'https://x.test/retry',
+      retry: { count: 1, delayMs: 0 },
+    })
+    expect(out).toEqual([{ id: 1 }])
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('test() reports status and duration', async () => {
+    mockFetch.mockResolvedValue(jsonResponse([{ id: 1 }]))
+    const r = await apiAdapter.test!({ type: 'api', url: 'https://x.test/x' })
+    expect(r.ok).toBe(true)
+    expect(r.status).toBe(200)
+    expect(typeof r.durationMs).toBe('number')
+  })
+
   it('test() reports success with sample', async () => {
     mockFetch.mockResolvedValue(jsonResponse([{ id: 1 }, { id: 2 }]))
     const r = await apiAdapter.test!({ type: 'api', url: 'https://x.test/x' })
@@ -187,5 +263,30 @@ describe('apiAdapter', () => {
     const r = await apiAdapter.test!({ type: 'api', url: 'https://x.test/x' })
     expect(r.ok).toBe(false)
     expect(r.message).toContain('network down')
+  })
+})
+
+describe('websocketAdapter', () => {
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  it('collects first message and applies messagePath', async () => {
+    class FakeWS {
+      onopen: (() => void) | null = null
+      onmessage: ((ev: { data: string }) => void) | null = null
+      onerror: (() => void) | null = null
+      onclose: (() => void) | null = null
+      constructor(public url: string) {
+        setTimeout(() => this.onmessage?.({ data: JSON.stringify({ data: { list: [{ a: 1 }] } }) }), 0)
+      }
+      close() { /* noop */ }
+    }
+    vi.stubGlobal('WebSocket', FakeWS)
+
+    const out = await websocketAdapter.fetch({
+      type: 'websocket',
+      wsUrl: 'ws://x',
+      ws: { messagePath: 'data.list', aggregate: 'first' },
+    })
+    expect(out).toEqual([{ a: 1 }])
   })
 })

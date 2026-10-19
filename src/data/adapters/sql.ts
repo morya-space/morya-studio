@@ -46,6 +46,7 @@ export const sqlAdapter: DataSourceAdapter = {
   async test(config: DataSourceConfig): Promise<TestResult> {
     if (!config.sql?.query?.trim()) return { ok: false, message: '缺少 SQL 查询语句' }
     if (!config.sql.host) return { ok: false, message: '缺少数据库主机地址' }
+    const started = Date.now()
     try {
       const rows = await this.fetch(config)
       return {
@@ -53,9 +54,11 @@ export const sqlAdapter: DataSourceAdapter = {
         message: `成功，返回 ${rows.length} rows`,
         sampleRows: rows.length,
         sample: rows.slice(0, 3),
+        durationMs: Date.now() - started,
+        raw: rows[0],
       }
     } catch (e) {
-      return { ok: false, message: e instanceof Error ? e.message : String(e) }
+      return { ok: false, message: e instanceof Error ? e.message : String(e), durationMs: Date.now() - started }
     }
   },
 }
