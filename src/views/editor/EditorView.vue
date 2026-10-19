@@ -7,7 +7,7 @@
  */
 
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { MSkeleton, message } from 'morya-ui'
 import EditorTopBar from '../../editor/components/EditorTopBar.vue'
 import EditorLeftPanel from '../../editor/components/EditorLeftPanel.vue'
@@ -20,6 +20,7 @@ import { useDataStore } from '../../data/store'
 import { plain } from '../../editor/plain'
 import { initPages, getPage, genPageId } from '../../services/page'
 import { initDataSources, listDataSources } from '../../services/datasource'
+import { validatePage } from '../../engine/validate'
 
 const route = useRoute()
 const router = useRouter()
@@ -50,11 +51,24 @@ onMounted(async () => {
     ready.value = true
   }
   window.addEventListener('keydown', onKeydown)
+  window.addEventListener('beforeunload', onBeforeUnload)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('beforeunload', onBeforeUnload)
 })
+
+onBeforeRouteLeave(() => {
+  if (!editorStore.dirty) return true
+  return window.confirm('当前看板尚未保存，离开后将丢失这些修改。确定离开吗？')
+})
+
+function onBeforeUnload(e: BeforeUnloadEvent) {
+  if (!editorStore.dirty) return
+  e.preventDefault()
+  e.returnValue = ''
+}
 
 function onKeydown(e: KeyboardEvent) {
   // 输入类控件聚焦时跳过快捷键，避免误触撤销/保存
@@ -134,6 +148,12 @@ function onKeydown(e: KeyboardEvent) {
 
 /** 预览：把当前 Schema 写入 draft，并新开全屏页面预览 */
 function onPreview() {
+  const knownDataSourceIds = new Set(listDataSources().map(ds => ds.id).filter((id): id is string => Boolean(id)))
+  const errors = validatePage(editorStore.page, knownDataSourceIds).issues.filter(issue => issue.level === 'error')
+  if (errors.length > 0) {
+    message.error(`无法预览：${errors[0].message}`)
+    return
+  }
   const id = editorStore.page.id
   try {
     localStorage.setItem(`morya:preview:${id}`, JSON.stringify(plain(editorStore.page)))

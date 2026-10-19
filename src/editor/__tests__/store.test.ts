@@ -1,6 +1,11 @@
-﻿import { describe, it, expect, beforeEach } from 'vitest'
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { reactive } from 'vue'
+
+vi.mock('../../services/page', () => ({
+  savePage: vi.fn().mockResolvedValue(undefined),
+}))
+
 import { useEditorStore } from '../store'
 import { registerBuiltinCards } from '../../components/cards'
 import type { PageSchema } from '../../types/schema'

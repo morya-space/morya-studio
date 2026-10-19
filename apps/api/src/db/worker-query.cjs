@@ -27,13 +27,32 @@ async function getPool() {
 }
 
 parentPort.on('message', async (msg) => {
-  const { sab, port, sql, params } = msg
+  const { sab, port } = msg
   const int32 = new Int32Array(sab)
 
   try {
     const p = await getPool()
-    const [rows] = await p.query(sql, params ?? [])
-    port.postMessage({ ok: true, rows })
+    if (msg.type === 'transaction') {
+      const connection = await p.getConnection()
+      try {
+        await connection.beginTransaction()
+        const results = []
+        for (const query of msg.queries ?? []) {
+          const [rows] = await connection.execute(query.sql, query.params ?? [])
+          results.push(Array.isArray(rows) ? rows : [])
+        }
+        await connection.commit()
+        port.postMessage({ ok: true, results })
+      } catch (e) {
+        await connection.rollback()
+        throw e
+      } finally {
+        connection.release()
+      }
+    } else {
+      const [rows] = await p.query(msg.sql, msg.params ?? [])
+      port.postMessage({ ok: true, rows })
+    }
   } catch (e) {
     port.postMessage({ ok: false, error: e.message || String(e) })
   } finally {

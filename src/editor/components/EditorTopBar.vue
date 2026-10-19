@@ -4,13 +4,15 @@
  * Logo / 页面标题（可编辑）/ 撤销重做 / 预览 / 分享 / 保存
  */
 
-import { computed, ref } from 'vue'
+import { computed, h, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { MButton, MDialog, MInput, MTooltip, message } from 'morya-ui'
-import { useEditorStore, CANVAS_W, CANVAS_H } from '../store'
+import { useEditorStore } from '../store'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 import { getShareStatus, publishPage, unpublishPage, buildShareLink, buildEmbedCode, type ShareStatus } from '../../services/share'
 import { importPage } from '../../services/page'
+import { listDataSources } from '../../services/datasource'
+import { validatePage } from '../../engine/validate'
 
 const emit = defineEmits<{
   (e: 'preview'): void
@@ -20,12 +22,25 @@ const router = useRouter()
 
 const store = useEditorStore()
 
+const BackIcon = () => h(SvgIcon, { name: 'chevron-left', px: 16 })
+const UndoIcon = () => h(SvgIcon, { name: 'arrow-down-right', px: 16 })
+const RedoIcon = () => h(SvgIcon, { name: 'arrow-up-right', px: 16 })
+const FitIcon = () => h(SvgIcon, { name: 'grid', px: 15 })
+
 const title = computed({
   get: () => store.page.title,
   set: (v: string) => store.updatePageField('title', v),
 })
 
 const zoomPct = computed(() => Math.round(store.zoom * 100))
+
+function validateForRuntime(): boolean {
+  const knownDataSourceIds = new Set(listDataSources().map(ds => ds.id).filter((id): id is string => Boolean(id)))
+  const errors = validatePage(store.page, knownDataSourceIds).issues.filter(issue => issue.level === 'error')
+  if (errors.length === 0) return true
+  message.error(`无法运行或分享：${errors[0].message}`)
+  return false
+}
 
 function onUndo() {
   store.undo()
@@ -35,17 +50,6 @@ function onUndo() {
 function onRedo() {
   store.redo()
   message.info('已重做')
-}
-
-function onZoomBy(d: number) {
-  store.zoomBy(d)
-}
-
-function onFit() {
-  const availW = window.innerWidth - 264 - 300 - 140
-  const availH = window.innerHeight - 54 - 150
-  const fit = Math.min(availW / CANVAS_W, availH / CANVAS_H, 1)
-  store.setZoom(Math.max(0.4, fit))
 }
 
 async function onSave() {
@@ -79,13 +83,26 @@ async function refreshShare() {
 }
 
 async function onShareClick() {
-  // 未保存先保存，再读取分享状态
-  if (store.dirty) await onSave()
+  // 新建页面及草稿都先持久化；失败时不能继续发布不存在或过期的版本。
+  if (store.dirty || !store.persisted) {
+    try {
+      await store.save()
+      if (store.dirty) {
+        message.warn('保存期间内容发生变化，请再次保存后分享')
+        return
+      }
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : '保存失败，无法分享')
+      return
+    }
+  }
+  if (!validateForRuntime()) return
   await refreshShare()
   shareVisible.value = true
 }
 
 async function onPublish() {
+  if (!validateForRuntime()) return
   shareLoading.value = true
   try {
     const { token, url } = await publishPage(store.page.id)
@@ -164,7 +181,7 @@ async function onFileChange(e: Event) {
   if (!file) return
   try {
     const text = await file.text()
-    const page = importPage(text)
+    const page = await importPage(text)
     store.loadPage(page)
     message.success('已导入')
   } catch (err) {
@@ -193,11 +210,7 @@ function onExport() {
 <template>
   <header class="editor-topbar">
     <div class="topbar-left">
-      <MButton variant="filled" icon-only aria-label="返回" @click="router.push('/')">
-        <template #icon>
-          <SvgIcon name="chevron-left" :px="16" />
-        </template>
-      </MButton>
+      <MButton variant="filled" :icon="BackIcon" icon-only aria-label="返回" @click="router.push('/')" />
       <span class="topbar-logo">Morya</span>
       <div class="topbar-title">
         <MInput v-model="title" placeholder="看板标题" />
@@ -207,18 +220,10 @@ function onExport() {
 
     <div class="topbar-actions">
       <MTooltip placement="bottom" content="撤销 (Ctrl+Z)">
-        <MButton type="text" :disabled="!store.canUndo" aria-label="撤销" icon-only @click="onUndo">
-          <template #icon>
-            <SvgIcon name="arrow-down-right" :px="16" />
-          </template>
-        </MButton>
+        <MButton type="text" :icon="UndoIcon" :disabled="!store.canUndo" aria-label="撤销" icon-only @click="onUndo" />
       </MTooltip>
       <MTooltip placement="bottom" content="重做 (Ctrl+Shift+Z)">
-        <MButton type="text" :disabled="!store.canRedo" aria-label="重做" icon-only @click="onRedo">
-          <template #icon>
-            <SvgIcon name="arrow-up-right" :px="16" />
-          </template>
-        </MButton>
+        <MButton type="text" :icon="RedoIcon" :disabled="!store.canRedo" aria-label="重做" icon-only @click="onRedo" />
       </MTooltip>
 
       <span class="topbar-divider" />
@@ -230,7 +235,7 @@ function onExport() {
           size="small"
           :disabled="store.zoom <= 0.4"
           aria-label="缩小"
-          @click="onZoomBy(-0.1)"
+          @click="store.zoomBy(-0.1)"
         >−</MButton>
         <span class="zoom-box__label">{{ zoomPct }}%</span>
         <MButton
@@ -238,15 +243,11 @@ function onExport() {
           size="small"
           :disabled="store.zoom >= 1.5"
           aria-label="放大"
-          @click="onZoomBy(0.1)"
+          @click="store.zoomBy(0.1)"
         >＋</MButton>
       </div>
       <MTooltip placement="bottom" content="适应画布">
-        <MButton type="text" aria-label="适应画布" icon-only @click="onFit">
-          <template #icon>
-            <SvgIcon name="grid" :px="15" />
-          </template>
-        </MButton>
+        <MButton type="text" :icon="FitIcon" aria-label="适应画布" icon-only @click="store.fitCanvas" />
       </MTooltip>
 
       <span class="topbar-divider" />

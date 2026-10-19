@@ -29,6 +29,8 @@ const BACKUP_TABLES = [
   'components',
   'templates',
   'datasources',
+  'page_versions',
+  'page_shares',
   'pages',
 ]
 

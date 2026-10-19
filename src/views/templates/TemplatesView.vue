@@ -68,6 +68,7 @@ const builtinTemplates = computed<BuiltinTemplate[]>(() => [
 
 const customs = ref<PanelTemplate[]>([])
 const loading = ref(true)
+const creatingTemplate = ref<string | null>(null)
 
 function refreshCustoms() {
   customs.value = listTemplates()
@@ -83,28 +84,42 @@ onMounted(async () => {
   }
 })
 
-function persistDemoDataSources() {
+async function persistDemoDataSources() {
   for (const ds of demoDataSources) {
-    if (!getDataSource(ds.id!)) saveDataSource(ds)
+    if (!getDataSource(ds.id!)) await saveDataSource(ds)
   }
 }
 
-function useBuiltin(tpl: BuiltinTemplate) {
+async function useBuiltin(tpl: BuiltinTemplate) {
   const page = tpl.build()
-  persistDemoDataSources()
-  savePage(page)
-  message.success(t('templates.used', { title: tpl.title }))
-  router.push(`/editor/${page.id}`)
+  creatingTemplate.value = tpl.key
+  try {
+    await persistDemoDataSources()
+    await savePage(page)
+    message.success(t('templates.used', { title: tpl.title }))
+    await router.push(`/editor/${page.id}`)
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '创建面板失败，请重试')
+  } finally {
+    creatingTemplate.value = null
+  }
 }
 
-function useCustom(tpl: PanelTemplate) {
+async function useCustom(tpl: PanelTemplate) {
   const page: PageSchema = JSON.parse(JSON.stringify(tpl.page)) as PageSchema
   page.id = genPageId()
   page.meta = { ...page.meta, version: SCHEMA_VERSION, createdAt: new Date().toISOString() }
-  persistDemoDataSources()
-  savePage(page)
-  message.success(t('templates.used', { title: tpl.title }))
-  router.push(`/editor/${page.id}`)
+  creatingTemplate.value = tpl.id
+  try {
+    await persistDemoDataSources()
+    await savePage(page)
+    message.success(t('templates.used', { title: tpl.title }))
+    await router.push(`/editor/${page.id}`)
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '创建面板失败，请重试')
+  } finally {
+    creatingTemplate.value = null
+  }
 }
 
 function onDeleteCustom(tpl: PanelTemplate) {
@@ -128,7 +143,7 @@ function onDeleteCustom(tpl: PanelTemplate) {
             <p class="template-card__desc">{{ tpl.description }}</p>
             <div class="template-card__foot">
               <span class="template-card__count">{{ t('templates.cardCount', { n: tpl.cardCount }) }}</span>
-              <MButton type="primary" size="small" @click="useBuiltin(tpl)">{{ t('templates.use') }}</MButton>
+              <MButton type="primary" size="small" :loading="creatingTemplate === tpl.key" @click="useBuiltin(tpl)">{{ t('templates.use') }}</MButton>
             </div>
           </MCard>
         </div>
@@ -152,7 +167,7 @@ function onDeleteCustom(tpl: PanelTemplate) {
                 <span class="template-card__count">{{ t('templates.cardCount', { n: tpl.cardCount }) }}</span>
                 <div class="template-card__btns">
                   <MButton type="text" size="small" danger @click="onDeleteCustom(tpl)">{{ t('templates.delete') }}</MButton>
-                  <MButton type="primary" size="small" @click="useCustom(tpl)">{{ t('templates.use') }}</MButton>
+                  <MButton type="primary" size="small" :loading="creatingTemplate === tpl.id" @click="useCustom(tpl)">{{ t('templates.use') }}</MButton>
                 </div>
               </div>
             </MCard>

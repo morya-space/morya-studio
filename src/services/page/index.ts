@@ -1,8 +1,6 @@
-﻿/**
- * 面板持久化服务：后端 API 为权威源，内存缓存提供同步读取。
- * - 写操作（save/delete/import）同步更新内存，异步写后端（fire-and-forget + 错误上报）。
- * - 读操作（list/get/export）读内存缓存；initPages() 在登录后拉取后端数据填充缓存。
- * 这样编辑器/列表/工作台等既有同步调用方无需改动。
+/**
+ * 面板持久化服务：后端为权威源，内存缓存只保存已确认的服务端结果。
+ * 读操作保持同步；写操作返回 Promise，调用方必须处理失败。
  */
 
 import type { PageSchema } from '../../types/schema'
@@ -11,37 +9,57 @@ import { migrateSchema } from '../../engine/migrate'
 import { http } from '../../lib/http'
 
 const cache = new Map<string, PageSchema>()
+const writes = new Map<string, Promise<void>>()
 let loaded = false
 let loading: Promise<void> | null = null
 
-/** 标记后端可用性；网络失败时降级为纯内存（不阻塞本地编辑） */
-function reportSyncError(e: unknown): void {
-  console.warn('[page service] 后端同步失败，本次变更仅保存在内存', e)
+function normalizePage(page: PageSchema): PageSchema {
+  const now = new Date().toISOString()
+  const migrated = migrateSchema(page)
+  return {
+    ...migrated,
+    meta: {
+      ...migrated.meta,
+      version: SCHEMA_VERSION,
+      createdAt: migrated.meta?.createdAt ?? now,
+      updatedAt: now,
+    },
+  }
 }
 
-/** 登录后调用：从后端拉取面板填充缓存（幂等） */
+function queueWrite(id: string, write: () => Promise<void>): Promise<void> {
+  const previous = writes.get(id) ?? Promise.resolve()
+  const next = previous.catch(() => undefined).then(write)
+  writes.set(id, next)
+  void next.finally(() => {
+    if (writes.get(id) === next) writes.delete(id)
+  }).catch(() => undefined)
+  return next
+}
+
+/** 登录后调用：从后端拉取面板填充缓存；失败会保留旧缓存并允许重试。 */
 export async function initPages(force = false): Promise<void> {
   if (loaded && !force) return
   if (loading) return loading
   loading = (async () => {
-    try {
-      const { items } = await http.get<{ items: PageSchema[] }>('/pages')
-      cache.clear()
-      for (const p of items) cache.set(p.id, p)
-      loaded = true
-    } catch (e) {
-      reportSyncError(e)
-    } finally {
-      loading = null
-    }
+    const { items } = await http.get<{ items: PageSchema[] }>('/pages')
+    cache.clear()
+    for (const page of items) cache.set(page.id, migrateSchema(page))
+    loaded = true
   })()
-  return loading
+  try {
+    await loading
+  } finally {
+    loading = null
+  }
 }
 
-/** 登出/切换账号时清空缓存 */
+/** 登出/切换账号时清空缓存。 */
 export function resetPages(): void {
   cache.clear()
+  writes.clear()
   loaded = false
+  loading = null
 }
 
 export function listPages(): PageSchema[] {
@@ -56,30 +74,25 @@ export function getPage(id: string): PageSchema | null {
   return cache.get(id) ?? null
 }
 
-export function savePage(page: PageSchema): void {
-  const now = new Date().toISOString()
-  const migrated = migrateSchema(page)
-  const exists = cache.has(migrated.id)
-  const next: PageSchema = {
-    ...migrated,
-    meta: {
-      ...migrated.meta,
-      version: SCHEMA_VERSION,
-      createdAt: migrated.meta?.createdAt ?? now,
-      updatedAt: now,
-    },
-  }
-  cache.set(next.id, next)
-  // 异步写后端：已存在用 PUT，否则 POST
-  const req = exists
-    ? http.put(`/pages/${next.id}`, next)
-    : http.post('/pages', next)
-  Promise.resolve(req).catch(reportSyncError)
+/** 保存页面；同一 pageId 的操作按调用顺序完成，失败时缓存不改变。 */
+export function savePage(page: PageSchema): Promise<void> {
+  const next = normalizePage(page)
+  return queueWrite(next.id, async () => {
+    const exists = cache.has(next.id)
+    const response = exists
+      ? await http.put<{ page: PageSchema }>(`/pages/${next.id}`, next)
+      : await http.post<{ page: PageSchema }>('/pages', next)
+    cache.set(next.id, migrateSchema(response.page))
+    loaded = true
+  })
 }
 
-export function deletePage(id: string): void {
-  cache.delete(id)
-  http.delete(`/pages/${id}`).catch(reportSyncError)
+/** 删除页面；只有服务端确认删除后才移除缓存。 */
+export function deletePage(id: string): Promise<void> {
+  return queueWrite(id, async () => {
+    await http.delete(`/pages/${id}`)
+    cache.delete(id)
+  })
 }
 
 export function exportPage(id: string): string | null {
@@ -87,17 +100,22 @@ export function exportPage(id: string): string | null {
   return page ? JSON.stringify(page, null, 2) : null
 }
 
-export function importPage(json: string): PageSchema {
-  const raw = JSON.parse(json) as PageSchema
-  if (!raw.id || !Array.isArray(raw.cards)) {
+/** 解析、迁移并可靠保存导入的页面。 */
+export async function importPage(json: string): Promise<PageSchema> {
+  const raw: unknown = JSON.parse(json)
+  if (!raw || typeof raw !== 'object' || !('id' in raw) || !Array.isArray((raw as PageSchema).cards)) {
     throw new Error('非法的页面 JSON：缺少 id 或 cards')
   }
-  const page = migrateSchema(raw)
-  savePage(page)
-  return page
+  const imported = migrateSchema(raw)
+  // 导入绝不覆盖同 ID 的现有面板；面板列表据返回 ID 提示用户。
+  const page = cache.has(imported.id)
+    ? { ...imported, id: genPageId(), meta: { ...imported.meta, createdAt: undefined, updatedAt: undefined } }
+    : imported
+  await savePage(page)
+  return getPage(page.id) ?? page
 }
 
-/** 生成新页面 id */
+/** 生成新页面 id。 */
 export function genPageId(): string {
   return `page-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
 }
@@ -112,25 +130,20 @@ export interface PageVersion {
   schema: PageSchema
 }
 
-/** 拉取面板版本列表（后端保存快照） */
 export async function listVersions(pageId: string): Promise<PageVersion[]> {
-  try {
-    const { items } = await http.get<{ items: PageVersion[] }>(`/pages/${pageId}/versions`)
-    return items
-  } catch (e) {
-    reportSyncError(e)
-    return []
-  }
+  const { items } = await http.get<{ items: PageVersion[] }>(`/pages/${pageId}/versions`)
+  return items.map(item => ({ ...item, schema: migrateSchema(item.schema) }))
 }
 
-/** 回滚到指定版本（成功后刷新内存缓存） */
-export async function restoreVersion(pageId: string, versionId: string): Promise<PageSchema | null> {
-  try {
+/** 回滚前由服务端保存当前快照；确认成功后再替换本地缓存。 */
+export function restoreVersion(pageId: string, versionId: string): Promise<PageSchema> {
+  return queueWrite(pageId, async () => {
     const { page } = await http.post<{ page: PageSchema }>(`/pages/${pageId}/restore/${versionId}`)
-    cache.set(page.id, page)
+    cache.set(page.id, migrateSchema(page))
+    loaded = true
+  }).then(() => {
+    const page = getPage(pageId)
+    if (!page) throw new Error('回滚成功但未返回页面数据')
     return page
-  } catch (e) {
-    reportSyncError(e)
-    return null
-  }
+  })
 }

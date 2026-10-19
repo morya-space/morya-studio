@@ -7,7 +7,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { randomBytes, randomUUID } from 'node:crypto'
 import type { PageSchema } from '@morya-studio/shared'
-import type { DatabaseSync } from '../db/mysql'
+import type { DatabaseSync, TransactionQuery } from '../db/mysql'
 import { all, get, run } from '../db/database'
 import type { AppBindings } from '../types/context'
 import { requireAuth, requirePermission } from '../middleware/auth'
@@ -15,7 +15,7 @@ import { ApiError } from '../middleware/error-handler'
 import { createEntityStore, type EntityStore } from '../db/entity-store'
 
 const pageSchema = z.object({
-  id: z.string().optional(),
+  id: z.string().min(1),
   title: z.string().min(1),
   description: z.string().optional(),
   layout: z.enum(['grid', 'free']).default('grid'),
@@ -23,8 +23,11 @@ const pageSchema = z.object({
   cards: z.array(z.record(z.unknown())).default([]),
   theme: z.record(z.unknown()).optional(),
   filters: z.array(z.record(z.unknown())).optional(),
+  mode: z.enum(['dashboard', 'screen']).optional(),
+  groups: z.array(z.record(z.unknown())).optional(),
+  canvas: z.record(z.unknown()).optional(),
   meta: z.record(z.unknown()).optional(),
-})
+}).passthrough()
 
 export interface PageStores {
   pages: EntityStore<PageSchema>
@@ -95,35 +98,23 @@ export function createPageRoutes(stores: PageStores, db: DatabaseSync) {
     const ownerId = c.get('user').id
     const id = c.req.param('id')
 
-    // 更新前落一份版本快照（仅内容有变化时）
-    const existing = stores.pages.get(ownerId, id)
-    if (existing) {
-      const count = all<{ n: number }>(
-        db,
-        `SELECT COUNT(*) AS n FROM page_versions WHERE page_id = ? AND owner_id = ?`,
-        id, ownerId,
-      )[0]?.n ?? 0
-      run(
-        db,
-        `INSERT INTO page_versions (id, page_id, owner_id, version, \`schema\`, created_at, created_by) VALUES (?,?,?,?,?,?,?)`,
-        randomUUID(), id, ownerId, count + 1,
-        JSON.stringify(existing.payload), now(), c.get('user').id,
-      )
+    const payload = { ...parsed.data, id } as unknown as PageSchema
+    if (!updateWithVersion(db, id, ownerId, payload, c.get('user').id)) {
+      throw new ApiError(404, 'not_found', '面板不存在')
     }
-
-    const rec = stores.pages.update(ownerId, id, parsed.data as unknown as PageSchema)
-    if (!rec) throw new ApiError(404, 'not_found', '面板不存在')
-    return c.json({ page: rec.payload })
+    return c.json({ page: payload })
   })
 
   app.delete('/:id', requirePermission('panel:write'), (c) => {
     const ownerId = c.get('user').id
     const id = c.req.param('id')
-    // 无外键，需手动清理关联数据
-    run(db, `DELETE FROM page_shares WHERE page_id = ? AND owner_id = ?`, id, ownerId)
-    run(db, `DELETE FROM page_versions WHERE page_id = ? AND owner_id = ?`, id, ownerId)
-    const ok = stores.pages.remove(ownerId, id)
-    if (!ok) throw new ApiError(404, 'not_found', '面板不存在')
+    const results = db.transaction([
+      { sql: 'SELECT id FROM pages WHERE id = ? AND owner_id = ? FOR UPDATE', params: [id, ownerId] },
+      { sql: 'DELETE FROM page_shares WHERE page_id = ? AND owner_id = ?', params: [id, ownerId] },
+      { sql: 'DELETE FROM page_versions WHERE page_id = ? AND owner_id = ?', params: [id, ownerId] },
+      { sql: 'DELETE FROM pages WHERE owner_id = ? AND id = ?', params: [ownerId, id] },
+    ])
+    if (results[0]?.length === 0) throw new ApiError(404, 'not_found', '面板不存在')
     return c.json({ ok: true })
   })
 
@@ -197,13 +188,45 @@ export function createPageRoutes(stores: PageStores, db: DatabaseSync) {
       versionId, id, ownerId,
     )
     if (!row) throw new ApiError(404, 'not_found', '版本不存在')
-    const restored = safeParseSchema(row.schema) as PageSchema
-    const rec = stores.pages.update(ownerId, id, restored)
-    if (!rec) throw new ApiError(404, 'not_found', '面板不存在')
-    return c.json({ page: rec.payload })
+    const restored = safeParseSchema(row.schema)
+    const parsed = pageSchema.safeParse(restored)
+    if (!parsed.success) throw new ApiError(500, 'invalid_schema', '版本数据损坏')
+    const payload = { ...parsed.data, id } as unknown as PageSchema
+    // 回滚同样先保存当前状态，以保证可以恢复回滚前的版本。
+    if (!updateWithVersion(db, id, ownerId, payload, c.get('user').id)) {
+      throw new ApiError(404, 'not_found', '面板不存在')
+    }
+    return c.json({ page: payload })
   })
 
   return app
+}
+
+function updateWithVersion(
+  db: DatabaseSync,
+  pageId: string,
+  ownerId: string,
+  next: PageSchema,
+  createdBy: string,
+): boolean {
+  const timestamp = now()
+  const queries: TransactionQuery[] = [
+    // 先锁定父记录，同一面板的保存与回滚按顺序生成版本号。
+    { sql: 'SELECT id FROM pages WHERE id = ? AND owner_id = ? FOR UPDATE', params: [pageId, ownerId] },
+    {
+      sql: `INSERT INTO page_versions (id, page_id, owner_id, version, \`schema\`, created_at, created_by)
+        SELECT ?, pages.id, ?,
+          COALESCE((SELECT MAX(version) FROM page_versions WHERE page_id = ? AND owner_id = ?), 0) + 1,
+          pages.\`schema\`, ?, ?
+        FROM pages WHERE pages.id = ? AND pages.owner_id = ?`,
+      params: [randomUUID(), ownerId, pageId, ownerId, timestamp, createdBy, pageId, ownerId],
+    },
+    {
+      sql: 'UPDATE pages SET title = ?, description = ?, `schema` = ?, updated_at = ? WHERE owner_id = ? AND id = ?',
+      params: [next.title, next.description ?? null, JSON.stringify(next), timestamp, ownerId, pageId],
+    },
+  ]
+  return db.transaction(queries)[0]?.length > 0
 }
 
 function safeParseSchema(json: string): unknown {

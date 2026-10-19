@@ -79,6 +79,11 @@ export const useEditorStore = defineStore('editor', () => {
   const future = ref<PageSchema[]>([])
   const dirty = ref(false)
   const saving = ref(false)
+  /** 当前页面是否已有成功持久化的服务端记录。 */
+  const persisted = ref(false)
+  /** 每次 Schema 变更递增；用于判断保存期间是否又产生新草稿。 */
+  const revision = ref(0)
+  let savePromise: Promise<void> | null = null
   /** 画布缩放（0.4 ~ 1.5） */
   const zoom = ref(0.85)
   /** 画布平移偏移（画布视口内的左上角位置，屏幕像素） */
@@ -144,6 +149,11 @@ export const useEditorStore = defineStore('editor', () => {
     const draft = clone(snapshot)
     mutator(draft)
     page.value = draft
+    markDirty()
+  }
+
+  function markDirty(): void {
+    revision.value += 1
     dirty.value = true
   }
 
@@ -152,7 +162,7 @@ export const useEditorStore = defineStore('editor', () => {
     if (!prev) return
     future.value.push(clone(page.value))
     page.value = prev
-    dirty.value = true
+    markDirty()
     // 选中项可能已被撤销掉
     if (selectedCardId.value && !page.value.cards.some(c => c.id === selectedCardId.value)) {
       selectedCardId.value = null
@@ -164,7 +174,7 @@ export const useEditorStore = defineStore('editor', () => {
     if (!next) return
     past.value.push(clone(page.value))
     page.value = next
-    dirty.value = true
+    markDirty()
   }
 
   // ---- 选中 ----
@@ -288,7 +298,7 @@ export const useEditorStore = defineStore('editor', () => {
     if (geom.w !== undefined) card.w = clamp(Math.round(geom.w), 24, cw - (card.x ?? 0))
     if (geom.h !== undefined) card.h = clamp(Math.round(geom.h), 1, ch - (card.y ?? 0))
     if (card.groupId) syncGroupGeometry([card.groupId])
-    dirty.value = true
+    markDirty()
   }
 
   // ---- 分组 / 多选移动 / 锁定隐藏 / 层级（v0.3） ----
@@ -354,7 +364,7 @@ export const useEditorStore = defineStore('editor', () => {
       c.y = Math.round(o.y + ddy)
     }
     syncGroupGeometry(targets.map(c => c.groupId).filter((g): g is string => Boolean(g)))
-    dirty.value = true
+    markDirty()
   }
 
   /** 实时移动一批卡片（含同组成员），受锁定与画布边界约束；不入撤销栈 */
@@ -379,7 +389,7 @@ export const useEditorStore = defineStore('editor', () => {
       c.y = Math.round((c.y ?? 0) + ddy)
     }
     syncGroupGeometry(targets.map(c => c.groupId).filter((g): g is string => Boolean(g)))
-    dirty.value = true
+    markDirty()
   }
 
   /** 成组：把当前多选（≥2）合并为一个分组 */
@@ -657,7 +667,7 @@ export const useEditorStore = defineStore('editor', () => {
     past.value.push(clone(page.value))
     if (past.value.length > MAX_HISTORY) past.value.shift()
     future.value = []
-    dirty.value = true
+    markDirty()
   }
 
   /** 实时修改卡片跨度（不入撤销栈，配合 beginChange 使用） */
@@ -666,7 +676,7 @@ export const useEditorStore = defineStore('editor', () => {
     if (!card) return
     const cols = page.value.grid?.cols ?? 12
     card.span = Math.min(cols, Math.max(1, Math.round(span)))
-    dirty.value = true
+    markDirty()
   }
 
   /** 更新卡片任意字段（属性面板用，path 为 lodash 路径） */
@@ -698,30 +708,48 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ---- 加载 / 保存 ----
   function loadPage(schema: PageSchema): void {
+    // 使正在进行的旧页面保存失效，避免完成后覆盖刚加载的页面。
+    revision.value += 1
     page.value = migrateSchema(clone(schema))
     selectedCardId.value = null
     past.value = []
     future.value = []
     dirty.value = false
+    persisted.value = true
   }
 
   function newPage(id: string): void {
     loadPage(createEmptyPage(id))
+    persisted.value = false
   }
 
   async function save(): Promise<void> {
-    saving.value = true
-    try {
-      page.value.meta = {
-        ...page.value.meta,
-        version: SCHEMA_VERSION,
-        updatedAt: new Date().toISOString(),
-      }
-      persistSavePage(page.value)
-      dirty.value = false
-    } finally {
-      saving.value = false
+    if (savePromise) return savePromise
+
+    const snapshot = clone(page.value)
+    const revisionAtStart = revision.value
+    snapshot.meta = {
+      ...snapshot.meta,
+      version: SCHEMA_VERSION,
+      updatedAt: new Date().toISOString(),
     }
+
+    saving.value = true
+    savePromise = (async () => {
+      try {
+        await persistSavePage(snapshot)
+        // 只在保存的快照仍是当前版本时清除草稿；保存过程中继续编辑必须保留 dirty。
+        if (revision.value === revisionAtStart) {
+          page.value = snapshot
+          dirty.value = false
+          persisted.value = true
+        }
+      } finally {
+        saving.value = false
+        savePromise = null
+      }
+    })()
+    return savePromise
   }
 
   return {
@@ -733,6 +761,7 @@ export const useEditorStore = defineStore('editor', () => {
     future,
     dirty,
     saving,
+    persisted,
     zoom,
     pan,
     viewport,

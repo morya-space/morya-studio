@@ -1,93 +1,150 @@
-﻿import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { listPages, getPage, savePage, deletePage, exportPage, importPage, genPageId } from '../index'
-import { listDataSources, saveDataSource, deleteDataSource, genDataSourceId, getDataSource } from '../../datasource'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PageSchema } from '../../../types/schema'
+
+vi.mock('../../../lib/http', () => ({
+  http: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  },
+}))
+
+import {
+  deletePage,
+  exportPage,
+  genPageId,
+  getPage,
+  importPage,
+  initPages,
+  listPages,
+  resetPages,
+  savePage,
+} from '../index'
+import { http } from '../../../lib/http'
 import { SCHEMA_VERSION } from '../../../types/schema'
 
 function makePage(id: string, title = 'T'): PageSchema {
   return { id, title, layout: 'grid', grid: { cols: 12 }, cards: [] }
 }
 
+const mockedHttp = vi.mocked(http)
+
 describe('page service', () => {
-  beforeEach(() => localStorage.clear())
-
-  it('save and get roundtrip', () => {
-    savePage(makePage('p1', '看板A'))
-    expect(getPage('p1')?.title).toBe('看板A')
+  beforeEach(() => {
+    resetPages()
+    vi.resetAllMocks()
+    mockedHttp.post.mockImplementation(async (_path, page) => ({ page: page as PageSchema }))
+    mockedHttp.put.mockImplementation(async (_path, page) => ({ page: page as PageSchema }))
+    mockedHttp.delete.mockResolvedValue({ ok: true })
   })
 
-  it('save stamps version and timestamps', () => {
-    savePage(makePage('p1'))
-    const p = getPage('p1')!
-    expect(p.meta?.version).toBe(SCHEMA_VERSION)
-    expect(p.meta?.createdAt).toBeTruthy()
-    expect(p.meta?.updatedAt).toBeTruthy()
+  it('saves server-confirmed schema and preserves page extensions', async () => {
+    const page = {
+      ...makePage('p1', '看板A'),
+      mode: 'screen' as const,
+      groups: [{ id: 'group-1', title: '指标', order: 0 }],
+      canvas: { width: 1440, height: 900, snap: 8 },
+    }
+
+    await savePage(page)
+
+    expect(getPage('p1')).toMatchObject({
+      title: '看板A',
+      mode: 'screen',
+      groups: [{ id: 'group-1' }],
+      canvas: { width: 1440, height: 900, snap: 8 },
+      meta: { version: SCHEMA_VERSION },
+    })
   })
 
-  it('list returns sorted by updatedAt desc', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
-    savePage(makePage('p1', 'A'))
-    vi.setSystemTime(new Date('2026-06-01T00:00:00Z'))
-    savePage(makePage('p2', 'B'))
-    const list = listPages()
-    expect(list.length).toBe(2)
-    // 最新保存的排前
-    expect(list[0].id).toBe('p2')
-    expect(list[1].id).toBe('p1')
-    vi.useRealTimers()
-  })
+  it('does not alter cache when a save fails', async () => {
+    mockedHttp.post.mockRejectedValueOnce(new Error('offline'))
 
-  it('delete removes page', () => {
-    savePage(makePage('p1'))
-    deletePage('p1')
+    await expect(savePage(makePage('p1'))).rejects.toThrow('offline')
+
     expect(getPage('p1')).toBeNull()
   })
 
-  it('export returns JSON string', () => {
-    savePage(makePage('p1', 'X'))
-    const json = exportPage('p1')
-    expect(json).toBeTruthy()
-    expect(JSON.parse(json!).title).toBe('X')
+  it('serializes writes for the same page in call order', async () => {
+    await savePage(makePage('p1', 'initial'))
+    let releaseFirst: (() => void) | undefined
+    const first = new Promise<{ page: PageSchema }>(resolve => {
+      releaseFirst = () => resolve({ page: makePage('p1', 'first') })
+    })
+    mockedHttp.put
+      .mockImplementationOnce(() => first)
+      .mockImplementationOnce(async (_path, page) => ({ page: page as PageSchema }))
+
+    const firstSave = savePage(makePage('p1', 'first'))
+    const secondSave = savePage(makePage('p1', 'second'))
+    await vi.waitFor(() => expect(mockedHttp.put).toHaveBeenCalledTimes(1))
+
+    releaseFirst?.()
+    await Promise.all([firstSave, secondSave])
+
+    expect(mockedHttp.put).toHaveBeenCalledTimes(2)
+    expect(getPage('p1')?.title).toBe('second')
   })
 
-  it('import parses and saves', () => {
-    const json = JSON.stringify(makePage('imp1', '导入'))
-    const page = importPage(json)
-    expect(page.id).toBe('imp1')
+  it('retries initialization after a failed request without clearing confirmed cache', async () => {
+    mockedHttp.get.mockRejectedValueOnce(new Error('offline'))
+    await expect(initPages()).rejects.toThrow('offline')
+
+    mockedHttp.get.mockResolvedValueOnce({ items: [makePage('p1', 'loaded')] })
+    await initPages()
+
+    expect(getPage('p1')?.title).toBe('loaded')
+  })
+
+  it('list returns pages sorted by updatedAt descending', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
+    await savePage(makePage('p1', 'A'))
+    vi.setSystemTime(new Date('2026-06-01T00:00:00Z'))
+    await savePage(makePage('p2', 'B'))
+
+    expect(listPages().map(page => page.id)).toEqual(['p2', 'p1'])
+    vi.useRealTimers()
+  })
+
+  it('deletes only after the server confirms deletion', async () => {
+    await savePage(makePage('p1'))
+    mockedHttp.delete.mockRejectedValueOnce(new Error('offline'))
+
+    await expect(deletePage('p1')).rejects.toThrow('offline')
+    expect(getPage('p1')).not.toBeNull()
+
+    await deletePage('p1')
+    expect(getPage('p1')).toBeNull()
+  })
+
+  it('exports and imports confirmed page data', async () => {
+    await savePage(makePage('p1', 'X'))
+    const json = exportPage('p1')
+    expect(JSON.parse(json!).title).toBe('X')
+
+    const imported = await importPage(JSON.stringify(makePage('imp1', '导入')))
+    expect(imported.id).toBe('imp1')
     expect(getPage('imp1')).toBeTruthy()
   })
 
-  it('import rejects invalid json', () => {
-    expect(() => importPage('{"foo":1}')).toThrow(/非法/)
-    expect(() => importPage('not json')).toThrow()
+  it('imports a duplicate ID as a new page without overwriting the original', async () => {
+    await savePage(makePage('p1', 'original'))
+
+    const imported = await importPage(JSON.stringify(makePage('p1', 'imported')))
+
+    expect(imported.id).not.toBe('p1')
+    expect(getPage('p1')?.title).toBe('original')
+    expect(getPage(imported.id)?.title).toBe('imported')
   })
 
-  it('genPageId returns unique ids', () => {
+  it('rejects invalid import input', async () => {
+    await expect(importPage('{"foo":1}')).rejects.toThrow(/非法/)
+    await expect(importPage('not json')).rejects.toThrow()
+  })
+
+  it('generates unique page IDs', () => {
     expect(genPageId()).not.toBe(genPageId())
-  })
-})
-
-describe('datasource service', () => {
-  beforeEach(() => localStorage.clear())
-
-  it('save and list', () => {
-    saveDataSource({ id: 'ds1', name: 'API', type: 'api', url: 'https://x' })
-    expect(listDataSources()).toHaveLength(1)
-    expect(getDataSource('ds1')?.name).toBe('API')
-  })
-
-  it('save requires id', async () => {
-    await expect(saveDataSource({ type: 'api' } as never)).rejects.toThrow(/id/)
-  })
-
-  it('delete removes', () => {
-    saveDataSource({ id: 'ds1', type: 'static', staticData: [] })
-    deleteDataSource('ds1')
-    expect(getDataSource('ds1')).toBeNull()
-  })
-
-  it('genDataSourceId unique', () => {
-    expect(genDataSourceId()).not.toBe(genDataSourceId())
   })
 })

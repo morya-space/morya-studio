@@ -13,10 +13,17 @@ import mysql from 'mysql2/promise'
 
 export type SqlValue = string | number | bigint | null
 
+export interface TransactionQuery {
+  sql: string
+  params?: SqlValue[]
+}
+
 /** 模拟 node:sqlite 的 DatabaseSync 接口 */
 export interface DatabaseSync {
   exec(sql: string): void
   prepare(sql: string): PreparedStatement
+  /** 在同一个 MySQL 连接中顺序执行参数化语句，任一步失败则回滚。 */
+  transaction(queries: TransactionQuery[]): Record<string, unknown>[][]
 }
 
 export interface PreparedStatement {
@@ -48,14 +55,30 @@ function getWorker(): Worker {
 }
 
 /** 同步执行 SQL：发送给 worker 线程，用 Atomics.wait + receiveMessageOnPort 等待结果 */
-function syncQuery(sql: string, params: SqlValue[]): { rows: Record<string, unknown>[]; fields: unknown[] } {
+function syncQuery(
+  sql: string,
+  params: SqlValue[],
+): { rows: Record<string, unknown>[]; fields: unknown[] } {
+  return syncRequest({ type: 'query', sql, params })
+}
+
+function syncTransaction(queries: TransactionQuery[]): Record<string, unknown>[][] {
+  const result = syncRequest({ type: 'transaction', queries })
+  return (result.results ?? []) as Record<string, unknown>[][]
+}
+
+function syncRequest(request: { type: 'query'; sql: string; params: SqlValue[] } | { type: 'transaction'; queries: TransactionQuery[] }): {
+  rows: Record<string, unknown>[]
+  fields: unknown[]
+  results?: Record<string, unknown>[][]
+} {
   const w = getWorker()
   const sab = new SharedArrayBuffer(4)
   const int32 = new Int32Array(sab)
   Atomics.store(int32, 0, 0)
 
   const { port1: mainPort, port2: workerPort } = new MessageChannel()
-  w.postMessage({ sab, port: workerPort, sql, params }, [workerPort as never])
+  w.postMessage({ sab, port: workerPort, ...request }, [workerPort as never])
 
   // 主线程阻塞等待 worker 完成（worker 在不同线程，不会被阻塞）
   Atomics.wait(int32, 0, 0)
@@ -64,9 +87,14 @@ function syncQuery(sql: string, params: SqlValue[]): { rows: Record<string, unkn
   mainPort.close()
 
   if (!msg) throw new Error('Worker did not respond')
-  const result = msg.message as { ok: boolean; rows?: Record<string, unknown>[]; error?: string }
+  const result = msg.message as {
+    ok: boolean
+    rows?: Record<string, unknown>[]
+    results?: Record<string, unknown>[][]
+    error?: string
+  }
   if (!result.ok) throw new Error(result.error ?? 'Unknown worker error')
-  return { rows: result.rows ?? [], fields: [] }
+  return { rows: result.rows ?? [], fields: [], results: result.results }
 }
 
 /** 同步执行写操作 */
@@ -99,6 +127,11 @@ class MysqlDatabaseSync implements DatabaseSync {
 
   prepare(sql: string): PreparedStatement {
     return new MysqlPreparedStatement(sql)
+  }
+
+  transaction(queries: TransactionQuery[]): Record<string, unknown>[][] {
+    if (queries.length === 0) return []
+    return syncTransaction(queries)
   }
 }
 
