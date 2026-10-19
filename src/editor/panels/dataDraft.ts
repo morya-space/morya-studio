@@ -4,10 +4,11 @@
  * 点「完成」才一次性提交回卡片（关闭或取消则丢弃）。
  */
 
-import type { ChartConfig, DataSourceConfig } from '../../types/schema'
+import type { DataSourceConfig } from '../../types/schema'
 
 export interface DataConfigDraft {
   dataSource?: DataSourceConfig
   dataSourceId?: string
-  chart?: ChartConfig
+  /** Role-field path to value patch, committed atomically with the data source. */
+  bindings: Record<string, unknown>
 }

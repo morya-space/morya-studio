@@ -6,13 +6,19 @@
  */
 
 import { computed } from 'vue'
+import { MButton } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { listDataSources } from '../../services/datasource'
+import { getCardRegistration } from '../../engine/registry'
+import { cardUsesData } from '../../engine/utils'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 
 const store = useEditorStore()
 const card = computed(() => store.selectedCard)
 const ds = computed(() => card.value?.dataSource)
+const supportsDataConfig = computed(() => Boolean(card.value && (
+  cardUsesData(card.value) || (getCardRegistration(card.value.type)?.dataContract?.roles.length ?? 0) > 0
+)))
 
 type Mode = 'api' | 'mock' | 'websocket' | 'sql' | 'reference'
 
@@ -88,7 +94,7 @@ const emit = defineEmits<{ (e: 'edit'): void }>()
 </script>
 
 <template>
-  <div v-if="card" class="data-card" role="button" tabindex="0" @click="emit('edit')" @keydown.enter="emit('edit')">
+  <MButton v-if="supportsDataConfig" type="default" class="data-card" aria-label="编辑数据配置" @click="emit('edit')">
     <div class="data-card__head">
       <span class="data-card__icon"><SvgIcon name="database" :px="16" /></span>
       <span class="data-card__title">数据配置</span>
@@ -100,7 +106,7 @@ const emit = defineEmits<{ (e: 'edit'): void }>()
       <span v-for="c in chips" :key="c" class="data-card__chip">{{ c }}</span>
     </div>
     <span class="data-card__action">编辑配置</span>
-  </div>
+  </MButton>
 </template>
 
 <style scoped>
@@ -113,8 +119,11 @@ const emit = defineEmits<{ (e: 'edit'): void }>()
   border: 1px solid var(--m-color-border);
   border-radius: var(--m-radius-lg, var(--m-radius-md));
   background: var(--m-color-surface);
-  cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  width: 100%;
+  height: auto;
+  text-align: left;
+  font: inherit;
+  transition: border-color var(--m-motion-fast, 150ms) var(--m-motion-ease, ease), box-shadow var(--m-motion-fast, 150ms) var(--m-motion-ease, ease), background-color var(--m-motion-fast, 150ms) var(--m-motion-ease, ease);
 }
 
 .data-card:hover {

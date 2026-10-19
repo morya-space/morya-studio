@@ -5,7 +5,7 @@
  */
 
 import { computed } from 'vue'
-import { MFormItem, MSelect } from 'morya-ui'
+import { MForm, MFormItem, MSelect } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { CARD_ANIMATIONS } from '../../engine/animations'
 
@@ -23,9 +23,11 @@ const animation = computed({
 
 <template>
   <div v-if="card" class="animation-panel">
-    <MFormItem label="入场动画">
+    <MForm>
+      <MFormItem label="入场动画" help="选择无可关闭入场动画">
       <MSelect v-model="animation" :options="CARD_ANIMATIONS" fluid />
-    </MFormItem>
+      </MFormItem>
+    </MForm>
   </div>
 </template>
 

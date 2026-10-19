@@ -5,7 +5,7 @@
  */
 
 import { computed, ref } from 'vue'
-import { MButton, MColorPicker, MForm, MFormItem, MInput, MInputNumber, MSelect, MSegmented, MSwitch } from 'morya-ui'
+import { MButton, MColorPicker, MForm, MFormItem, MInput, MInputNumber, MSelect, MSegmented, MSwitch, message } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { plain } from '../plain'
 
@@ -114,6 +114,10 @@ function onBgFile(e: Event) {
   const file = input.files?.[0]
   input.value = ''
   if (!file) return
+  if (!file.type.startsWith('image/')) {
+    message.error('请选择图片文件')
+    return
+  }
   const reader = new FileReader()
   reader.onload = () => updateCanvas('backgroundImage', String(reader.result ?? '') || undefined)
   reader.readAsDataURL(file)
@@ -123,18 +127,29 @@ function onBgFile(e: Event) {
 <template>
   <div class="canvas-panel">
     <MForm>
-      <div class="field-2">
+      <section class="canvas-panel__section">
+        <div class="canvas-panel__head">
+          <h4>画布基础</h4>
+          <p>设置页面的尺寸和预览适配方式。</p>
+        </div>
+        <div class="field-2">
         <MFormItem label="画布宽(px)"><MInputNumber v-model="width" :min="320" :max="6000" fluid /></MFormItem>
         <MFormItem label="画布高(px)"><MInputNumber v-model="height" :min="240" :max="6000" fluid /></MFormItem>
-      </div>
-      <MFormItem label="背景色" help="留空用 token 默认">
+        </div>
+      </section>
+      <section class="canvas-panel__section">
+        <div class="canvas-panel__head">
+          <h4>背景与主题</h4>
+          <p>背景设置会随页面一同保存和分享。</p>
+        </div>
+      <MFormItem label="背景色" help="留空使用默认表面色">
         <MColorPicker v-model="bgColor" format="hex" clearable />
       </MFormItem>
       <MFormItem label="背景图 URL">
         <div class="bg-row">
           <MInput v-model="bgImage" placeholder="https://… 或 dataURL" fluid />
           <MButton type="default" size="small" @click="triggerBgUpload">上传</MButton>
-          <input ref="bgInput" type="file" accept="image/*" class="bg-file" @change="onBgFile">
+          <input ref="bgInput" type="file" accept="image/*" aria-label="上传画布背景图" class="bg-file" @change="onBgFile">
         </div>
       </MFormItem>
       <MFormItem label="画布主题">
@@ -148,7 +163,13 @@ function onBgFile(e: Event) {
       <MFormItem label="预览缩放">
         <MSelect v-model="scaleType" :options="SCALE_TYPE_OPTIONS" fluid />
       </MFormItem>
-      <MFormItem label="选中框颜色" help="留空用主色">
+      </section>
+      <section class="canvas-panel__section">
+        <div class="canvas-panel__head">
+          <h4>编辑辅助</h4>
+          <p>仅影响画布中的辅助显示与拖拽对齐。</p>
+        </div>
+      <MFormItem label="选中框颜色" help="留空使用主色">
         <MColorPicker v-model="selectColor" format="hex" clearable />
       </MFormItem>
 
@@ -164,8 +185,13 @@ function onBgFile(e: Event) {
       </MFormItem>
       <MFormItem label="网格大小(px)"><MInputNumber v-model="gridSize" :min="4" :max="40" fluid /></MFormItem>
       <MFormItem label="对齐吸附(px)" help="0 关闭"><MInputNumber v-model="snap" :min="0" :max="40" fluid /></MFormItem>
+      </section>
 
-      <p class="canvas-panel__section">画布滤镜</p>
+      <section class="canvas-panel__section">
+        <div class="canvas-panel__head">
+          <h4>高级视觉</h4>
+          <p>调整整体滤镜和水印，默认值为不应用效果。</p>
+        </div>
       <div class="field-2">
         <MFormItem label="透明度"><MInputNumber v-model="fOpacity" :min="0" :max="1" :step="0.05" clearable fluid /></MFormItem>
         <MFormItem label="亮度"><MInputNumber v-model="fBrightness" :min="0" :max="3" :step="0.1" clearable fluid /></MFormItem>
@@ -174,12 +200,11 @@ function onBgFile(e: Event) {
         <MFormItem label="色相(deg)"><MInputNumber v-model="fHue" :min="-180" :max="180" :step="1" clearable fluid /></MFormItem>
         <MFormItem label="混合模式"><MSelect v-model="fBlend" :options="BLEND_MODES" fluid /></MFormItem>
       </div>
-
-      <p class="canvas-panel__section">水印</p>
       <MFormItem label="显示水印"><MSwitch v-model="watermarkShow" /></MFormItem>
       <MFormItem v-if="watermarkShow" label="水印文本">
         <MInput v-model="watermarkText" placeholder="Morya" fluid />
       </MFormItem>
+      </section>
     </MForm>
   </div>
 </template>
@@ -200,14 +225,38 @@ function onBgFile(e: Event) {
   display: none;
 }
 
+.canvas-panel :deep(.m-form) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-5, 20px);
+}
+
 .canvas-panel__section {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: 12px 0 8px;
-  padding-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-3, 12px);
+}
+
+.canvas-panel__head {
+  padding-bottom: var(--m-space-2, 8px);
   border-bottom: 1px solid var(--m-color-split);
+}
+
+.canvas-panel__head h4,
+.canvas-panel__head p {
+  margin: 0;
+}
+
+.canvas-panel__head h4 {
+  color: var(--m-color-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.canvas-panel__head p {
+  margin-top: 3px;
+  color: var(--m-color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 </style>

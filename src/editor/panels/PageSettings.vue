@@ -105,8 +105,11 @@ function onOptionsChange(index: number, text: string) {
             block
           />
         </MFormItem>
-        <MFormItem label="栅格列数"><MInputNumber v-model="gridCols" :min="4" :max="24" fluid /></MFormItem>
-        <MFormItem label="卡片间距(px)"><MInputNumber v-model="gridGap" :min="0" fluid /></MFormItem>
+        <template v-if="layout === 'grid'">
+          <MFormItem label="栅格列数"><MInputNumber v-model="gridCols" :min="4" :max="24" fluid /></MFormItem>
+          <MFormItem label="卡片间距(px)"><MInputNumber v-model="gridGap" :min="0" fluid /></MFormItem>
+        </template>
+        <p v-else class="panel-section-hint">自由布局使用每个组件的位置与尺寸；切回网格布局后会保留当前栅格设置。</p>
       </MForm>
     </div>
 

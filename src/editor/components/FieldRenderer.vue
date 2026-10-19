@@ -12,7 +12,9 @@ const props = defineProps<{
   field: EditorFieldSchema
   modelValue: unknown
   /** 'auto:dataFields' 时从数据推断的字段选项 */
-  dataFieldOptions?: { label: string; value: unknown }[]
+  dataFieldOptions?: { label: string; value: string }[]
+  /** auto:dataFields 无可选字段时的说明 */
+  dataFieldHint?: string
 }>()
 
 const emit = defineEmits<{
@@ -47,7 +49,8 @@ const selectOptions = computed(() => {
       v-model="(value as string | number | undefined)"
       :options="selectOptions"
       fluid
-      allow-clear
+      clearable
+      :not-found-content="dataFieldHint ?? '暂无可选字段'"
       v-bind="field.props"
     />
     <MTextarea
@@ -71,4 +74,14 @@ const selectOptions = computed(() => {
       v-bind="field.props"
     />
   </div>
+  <p v-if="dataFieldHint" class="field-renderer__hint">{{ dataFieldHint }}</p>
 </template>
+
+<style scoped>
+.field-renderer__hint {
+  margin: var(--m-space-1) 0 0;
+  color: var(--m-color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+</style>

@@ -12,7 +12,11 @@ import { useDataStore } from '../../data/store'
 import { listDataSources } from '../../services/datasource'
 import { getAdapter } from '../../data/adapters'
 import type { TestResult } from '../../data/adapters/base'
-import type { ChartConfig, DataSourceConfig, DataSourceType, HttpMethod, RequestBodyType } from '../../types/schema'
+import type { DataSourceConfig, DataSourceType, HttpMethod, RequestBodyType } from '../../types/schema'
+import type { DataRole } from '../../engine/data-role'
+import { getCardRegistration } from '../../engine/registry'
+import { filterFieldsForDataRole } from '../../engine/data-binding'
+import { inferFieldProfiles, type FieldProfile } from '../../data/field-profile'
 import PanelTabs from '../components/PanelTabs.vue'
 import KeyValueTable from '../components/KeyValueTable.vue'
 import TransformEditor from './TransformEditor.vue'
@@ -337,33 +341,63 @@ const rows = computed(() => {
   return card.value ? dataStore.cardData.get(card.value.id) ?? [] : []
 })
 const fields = computed(() => (rows.value[0] ? Object.keys(rows.value[0]) : []))
-const chartCfg = computed(() => (props.draft ? props.draft.chart ?? card.value?.chart ?? null : card.value?.chart ?? null))
+const registration = computed(() => (card.value ? getCardRegistration(card.value.type) : undefined))
+const dataRoles = computed(() => registration.value?.dataContract?.roles.filter((role): role is DataRole & { field: string } => Boolean(role.field)) ?? [])
+const fieldProfiles = computed(() => inferFieldProfiles(rows.value))
 
 const contentView = ref<string>('table')
 
 const contentJson = computed(() => JSON.stringify(rows.value, null, 2))
 const previewRows = computed(() => rows.value.slice(0, 50))
 
-function fieldRole(f: string): string | null {
-  const c = chartCfg.value
-  if (!c) return null
-  if (c.xField === f) return '维度'
-  if (c.yField === f) return '数值'
-  if (c.seriesField === f) return '系列'
-  if (c.subField === f) return '折线'
-  return null
+function getByPath(source: Record<string, unknown>, path: string): unknown {
+  let value: unknown = source
+  for (const key of path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean)) {
+    if (!value || typeof value !== 'object') return undefined
+    value = (value as Record<string, unknown>)[key]
+  }
+  return value
 }
-function bindRole(f: string, role: 'xField' | 'yField' | 'seriesField') {
+
+function roleValue(role: DataRole & { field: string }): string {
+  const value = props.draft && Object.prototype.hasOwnProperty.call(props.draft.bindings, role.field)
+    ? props.draft.bindings[role.field]
+    : card.value ? getByPath(card.value as unknown as Record<string, unknown>, role.field) : undefined
+  return typeof value === 'string' ? value : ''
+}
+
+function roleOptions(role: DataRole): { label: string; value: string }[] {
+  const options = filterFieldsForDataRole(fieldProfiles.value, role).map(profileOption)
+  const selected = roleValue(role as DataRole & { field: string })
+  if (selected && !options.some(option => option.value === selected)) {
+    const profile = fieldProfiles.value.find(candidate => candidate.key === selected)
+    options.push({
+      label: profile ? `${profileLabel(profile)}（不兼容）` : `${selected}（当前数据中不存在）`,
+      value: selected,
+    })
+  }
+  return options
+}
+
+function profileOption(profile: FieldProfile): { label: string; value: string } {
+  return { label: profileLabel(profile), value: profile.key }
+}
+
+function profileLabel(profile: FieldProfile): string {
+  const sample = profile.sampleValues.length
+    ? `，样例：${profile.sampleValues.map(value => String(value)).join('、')}`
+    : ''
+  return `${profile.label}（${profile.key} · ${profile.valueKind}${sample}）`
+}
+
+function setRole(role: DataRole & { field: string }, value: string) {
   const c = card.value
   if (!c) return
   if (props.draft) {
-    // 草稿模式：字段映射也只写草稿，点「完成」才提交
-    props.draft.chart = { ...plain(props.draft.chart ?? c.chart ?? {}), [role]: f } as ChartConfig
-    message.success('已绑定')
+    props.draft.bindings[role.field] = value || undefined
     return
   }
-  store.updateCardField(c.id, `chart.${role}`, f)
-  message.success('已绑定')
+  store.updateCardField(c.id, role.field, value || undefined)
 }
 
 function downloadJson() {
@@ -541,18 +575,25 @@ function downloadJson() {
 
     <!-- 数据映射 -->
     <p class="data-sec">数据映射</p>
-    <div v-if="fields.length" class="dfields">
-      <div v-for="f in fields" :key="f" class="dfields__row">
-        <span class="dfields__name">{{ f }}</span>
-        <span v-if="fieldRole(f)" class="dfields__role">{{ fieldRole(f) }}</span>
-        <span v-if="chartCfg" class="dfields__bind">
-          <MButton type="text" size="small" @click="bindRole(f, 'xField')">维度</MButton>
-          <MButton type="text" size="small" @click="bindRole(f, 'yField')">数值</MButton>
-          <MButton type="text" size="small" @click="bindRole(f, 'seriesField')">系列</MButton>
-        </span>
-      </div>
+    <div v-if="dataRoles.length" class="dfields">
+      <MFormItem
+        v-for="role in dataRoles"
+        :key="role.name"
+        :label="role.label"
+        :required="role.required"
+        :help="fieldProfiles.length ? undefined : '暂无数据，先测试或绑定数据源'"
+      >
+        <MSelect
+          :model-value="roleValue(role)"
+          :options="roleOptions(role)"
+          :disabled="!fieldProfiles.length"
+          clearable
+          fluid
+          @update:model-value="setRole(role, $event as string)"
+        />
+      </MFormItem>
     </div>
-    <p v-else class="dsec__hint">暂无数据，先测试或绑定数据源</p>
+    <p v-else class="dsec__hint">该组件暂无可配置的数据字段映射</p>
 
     <!-- 数据内容 -->
     <div class="data-sec-row">

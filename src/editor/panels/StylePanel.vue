@@ -5,7 +5,7 @@
  */
 
 import { computed } from 'vue'
-import { MFormItem, MInputNumber, MSelect, MSwitch } from 'morya-ui'
+import { MForm, MFormItem, MInputNumber, MSelect, MSwitch } from 'morya-ui'
 import { useEditorStore } from '../store'
 
 const store = useEditorStore()
@@ -66,31 +66,33 @@ function getByPath(obj: Record<string, unknown>, path: string): unknown {
 
 <template>
   <div v-if="card" class="style-panel">
-    <div class="field-2">
-      <MFormItem label="透明度" help="0~1">
+    <MForm>
+      <div class="field-2">
+      <MFormItem label="透明度" help="1 为完全不透明">
         <MInputNumber v-model="opacity" :min="0" :max="1" :step="0.05" clearable fluid />
       </MFormItem>
-      <MFormItem label="旋转(deg)">
+      <MFormItem label="旋转(deg)" help="0° 为默认">
         <MInputNumber v-model="rotateZ" :step="1" clearable fluid />
       </MFormItem>
-    </div>
-    <div class="field-3">
-      <MFormItem label="饱和度">
+      </div>
+      <div class="field-2">
+      <MFormItem label="饱和度" help="1 为默认">
         <MInputNumber v-model="saturate" :min="0" :step="0.1" clearable fluid />
       </MFormItem>
-      <MFormItem label="对比度">
+      <MFormItem label="对比度" help="1 为默认">
         <MInputNumber v-model="contrast" :min="0" :step="0.1" clearable fluid />
       </MFormItem>
-      <MFormItem label="亮度">
+      <MFormItem label="亮度" help="1 为默认">
         <MInputNumber v-model="brightness" :min="0" :step="0.1" clearable fluid />
       </MFormItem>
-    </div>
-    <MFormItem label="混合模式">
+      </div>
+      <MFormItem label="混合模式">
       <MSelect v-model="blendMode" :options="BLEND_MODES" fluid />
-    </MFormItem>
-    <MFormItem label="内容裁剪" help="开启后内容超出卡片时隐藏">
+      </MFormItem>
+      <MFormItem label="内容裁剪" help="开启后，内容超出组件边界时隐藏">
       <MSwitch v-model="overflowHidden" />
-    </MFormItem>
+      </MFormItem>
+    </MForm>
   </div>
 </template>
 

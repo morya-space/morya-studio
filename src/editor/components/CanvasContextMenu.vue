@@ -4,13 +4,18 @@
  * 组件菜单 / 画布菜单。
  */
 
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { MConfirmDialog } from 'morya-ui'
 import { useEditorStore } from '../store'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 
 const store = useEditorStore()
 
 const menu = computed(() => store.contextMenu)
+const menuElement = ref<HTMLElement | null>(null)
+const menuPosition = ref({ x: 0, y: 0 })
+const restoreFocusTo = ref<HTMLElement | null>(null)
+const confirmClearVisible = ref(false)
 
 interface MenuItem { label: string; icon?: string; danger?: boolean; disabled?: boolean; run: () => void }
 
@@ -24,7 +29,7 @@ const items = computed<MenuItem[]>(() => {
     return [
       { label: '全选', icon: 'grid', run: () => store.selectAll() },
       { label: '粘贴', icon: 'plus', disabled: !store.clipboard, run: () => resume(store.pasteCard) },
-      { label: '清空画布', icon: 'x', danger: true, disabled: store.page.cards.length === 0, run: () => store.clearAll() },
+      { label: '清空画布', icon: 'x', danger: true, disabled: store.page.cards.length === 0, run: () => { confirmClearVisible.value = true } },
     ]
   }
 
@@ -48,7 +53,7 @@ function resume(fn: () => string | null) {
   fn()
 }
 
-const style = computed(() => ({ left: `${menu.value?.x ?? 0}px`, top: `${menu.value?.y ?? 0}px` }))
+const style = computed(() => ({ left: `${menuPosition.value.x}px`, top: `${menuPosition.value.y}px` }))
 
 function run(item: MenuItem) {
   if (item.disabled) return
@@ -56,27 +61,83 @@ function run(item: MenuItem) {
   store.closeContextMenu()
 }
 
+function enabledIndices(): number[] {
+  return items.value.flatMap((item, index) => item.disabled ? [] : [index])
+}
+
+function focusItem(index: number) {
+  menuElement.value?.querySelectorAll<HTMLButtonElement>('button')[index]?.focus()
+}
+
+function onMenuKeydown(e: KeyboardEvent) {
+  const enabled = enabledIndices()
+  if (!enabled.length) return
+  const current = [...(menuElement.value?.querySelectorAll<HTMLButtonElement>('button') ?? [])]
+    .findIndex(button => button === document.activeElement)
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    store.closeContextMenu()
+    return
+  }
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault()
+    const item = items.value[current]
+    if (item) run(item)
+    return
+  }
+  let target: number | undefined
+  if (e.key === 'ArrowDown') target = enabled[(enabled.indexOf(current) + 1) % enabled.length]
+  if (e.key === 'ArrowUp') target = enabled[(enabled.indexOf(current) - 1 + enabled.length) % enabled.length]
+  if (e.key === 'Home') target = enabled[0]
+  if (e.key === 'End') target = enabled[enabled.length - 1]
+  if (target === undefined) return
+  e.preventDefault()
+  focusItem(target)
+}
+
+watch(menu, async (next) => {
+  if (!next) {
+    restoreFocusTo.value?.focus()
+    restoreFocusTo.value = null
+    return
+  }
+  restoreFocusTo.value = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  menuPosition.value = { x: next.x, y: next.y }
+  await nextTick()
+  const rect = menuElement.value?.getBoundingClientRect()
+  if (rect) {
+    menuPosition.value = {
+      x: Math.max(8, Math.min(next.x, window.innerWidth - rect.width - 8)),
+      y: Math.max(8, Math.min(next.y, window.innerHeight - rect.height - 8)),
+    }
+  }
+  await nextTick()
+  focusItem(enabledIndices()[0] ?? 0)
+})
+
 function onGlobalDown(e: MouseEvent) {
   const el = e.target as HTMLElement | null
   if (el?.closest('.canvas-context-menu')) return
   store.closeContextMenu()
 }
-function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape') store.closeContextMenu()
-}
-
 onMounted(() => {
   window.addEventListener('mousedown', onGlobalDown)
-  window.addEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => {
   window.removeEventListener('mousedown', onGlobalDown)
-  window.removeEventListener('keydown', onKey)
 })
 </script>
 
 <template>
-  <div v-if="menu" class="canvas-context-menu" :style="style" role="menu">
+  <div
+    v-if="menu"
+    ref="menuElement"
+    class="canvas-context-menu"
+    :style="style"
+    role="menu"
+    aria-label="画布操作"
+    @keydown="onMenuKeydown"
+  >
     <button
       v-for="(item, i) in items"
       :key="i"
@@ -84,12 +145,24 @@ onBeforeUnmount(() => {
       class="canvas-context-menu__item"
       :class="{ 'is-danger': item.danger, 'is-disabled': item.disabled }"
       role="menuitem"
+      :disabled="item.disabled"
+      :aria-disabled="item.disabled || undefined"
       @click="run(item)"
     >
       <SvgIcon v-if="item.icon" :name="item.icon" :px="13" />
       <span>{{ item.label }}</span>
     </button>
   </div>
+  <MConfirmDialog
+    v-model="confirmClearVisible"
+    header="清空画布"
+    message="确定清空画布中的全部组件吗？此操作可以在清空后撤销。"
+    accept-label="清空"
+    reject-label="取消"
+    accept-color="danger"
+    type="warning"
+    @accept="store.clearAll()"
+  />
 </template>
 
 <style scoped>

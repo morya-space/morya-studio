@@ -4,29 +4,59 @@
  * 左侧面板与右侧面板共用。
  */
 
+import { getCurrentInstance, nextTick } from 'vue'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 
-defineProps<{
+const props = defineProps<{
   modelValue: string
   options: { label: string; value: string; icon?: string }[]
+  panelIdPrefix?: string
 }>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
+
+const tabIdPrefix = props.panelIdPrefix ?? `panel-tab-${getCurrentInstance()?.uid ?? 'panel'}`
+
+function selectAndFocus(index: number) {
+  const option = props.options[index]
+  if (!option) return
+  emit('update:modelValue', option.value)
+  void nextTick(() => {
+    document.querySelector<HTMLButtonElement>(`#${tabIdPrefix}-${option.value}`)?.focus()
+  })
+}
+
+function onKeydown(e: KeyboardEvent, index: number) {
+  const count = props.options.length
+  if (!count) return
+  let next: number | null = null
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (index + 1) % count
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (index - 1 + count) % count
+  if (e.key === 'Home') next = 0
+  if (e.key === 'End') next = count - 1
+  if (next === null) return
+  e.preventDefault()
+  selectAndFocus(next)
+}
 </script>
 
 <template>
   <div class="panel-tabs" role="tablist">
     <button
-      v-for="o in options"
+      v-for="(o, index) in options"
       :key="o.value"
+      :id="`${tabIdPrefix}-${o.value}`"
       type="button"
       role="tab"
       class="panel-tabs__item"
       :class="{ 'is-active': o.value === modelValue }"
       :aria-selected="o.value === modelValue"
+      :aria-controls="panelIdPrefix ? `${panelIdPrefix}-panel-${o.value}` : undefined"
+      :tabindex="o.value === modelValue ? 0 : -1"
       @click="emit('update:modelValue', o.value)"
+      @keydown="onKeydown($event, index)"
     >
       <SvgIcon v-if="o.icon" :name="o.icon" :px="13" />
       <span>{{ o.label }}</span>

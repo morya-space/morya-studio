@@ -9,11 +9,18 @@ import { MDialog, MForm, MFormItem, MInput, MButton, message } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { useDataStore } from '../../data/store'
 import { getCardRegistration, type EditorFieldSchema } from '../../engine/registry'
+import { cardUsesData } from '../../engine/utils'
 import FieldRenderer from '../components/FieldRenderer.vue'
 import DataConfigCard from './DataConfigCard.vue'
 import DataPanel from './DataPanel.vue'
 import { plain } from '../plain'
 import type { DataConfigDraft } from './dataDraft'
+
+const props = withDefaults(defineProps<{
+  mode?: 'content' | 'data'
+}>(), {
+  mode: 'content',
+})
 
 const store = useEditorStore()
 const dataStore = useDataStore()
@@ -21,15 +28,9 @@ const dataStore = useDataStore()
 const card = computed(() => store.selectedCard)
 const registration = computed(() => (card.value ? getCardRegistration(card.value.type) : undefined))
 const editorSchema = computed<EditorFieldSchema[]>(() => registration.value?.editorSchema ?? [])
-
-/** 从已加载数据推断字段（auto:dataFields），并排除 'title' 字段自身 */
-const dataFieldOptions = computed(() => {
-  if (!card.value) return []
-  const rows = dataStore.cardData.get(card.value.id) ?? []
-  const first = rows[0]
-  if (!first) return []
-  return Object.keys(first).map(k => ({ label: k, value: k }))
-})
+const supportsDataConfig = computed(() => Boolean(card.value && (
+  cardUsesData(card.value) || (registration.value?.dataContract?.roles.length ?? 0) > 0
+)))
 
 function fieldValue(field: EditorFieldSchema): unknown {
   if (!card.value) return undefined
@@ -61,7 +62,7 @@ function openDataDialog() {
   draft.value = {
     dataSource: c.dataSource ? plain(c.dataSource) : undefined,
     dataSourceId: c.dataSourceId,
-    chart: c.chart ? plain(c.chart) : undefined,
+    bindings: {},
   }
   dataDialog.value = true
 }
@@ -74,7 +75,7 @@ function closeDataDialog(commit: boolean) {
     store.updateCardFields(c.id, {
       dataSource: d.dataSource,
       dataSourceId: d.dataSourceId,
-      chart: d.chart,
+      ...d.bindings,
     })
     // 提交后刷新卡片数据，画布即时生效
     const committed = store.selectedCard
@@ -91,35 +92,38 @@ watch(dataDialog, open => { if (!open) draft.value = null })
 
 <template>
   <div v-if="card" class="properties-panel">
-    <!-- 数据配置卡片（置顶） -->
-    <p class="properties-panel__section">数据</p>
-    <DataConfigCard @edit="openDataDialog" />
+    <template v-if="mode === 'data' && supportsDataConfig">
+      <p class="properties-panel__section">数据</p>
+      <p class="properties-panel__hint">配置数据源、转换规则和字段映射。</p>
+      <DataConfigCard @edit="openDataDialog" />
+    </template>
 
-    <p class="properties-panel__section">内容</p>
-    <MForm>
-      <MFormItem label="标题">
-        <MInput
-          :model-value="card.title ?? ''"
-          placeholder="组件标题"
-          fluid
-          @update:model-value="store.updateCardField(card.id, 'title', $event || undefined)"
-        />
-      </MFormItem>
-      <MFormItem
-        v-for="field in editorSchema"
-        :key="field.field"
-        :label="field.label"
-        :help="field.help"
-      >
-        <FieldRenderer
-          :field="field"
-          :model-value="fieldValue(field)"
-          :data-field-options="dataFieldOptions"
-          @update:model-value="onFieldChange(field, $event)"
-        />
-      </MFormItem>
-    </MForm>
-    <p v-if="!editorSchema.length" class="properties-panel__empty">该组件无可配置内容</p>
+    <template v-else-if="mode === 'content'">
+      <p class="properties-panel__section">内容</p>
+      <MForm>
+        <MFormItem label="标题">
+          <MInput
+            :model-value="card.title ?? ''"
+            placeholder="组件标题"
+            fluid
+            @update:model-value="store.updateCardField(card.id, 'title', $event || undefined)"
+          />
+        </MFormItem>
+        <MFormItem
+          v-for="field in editorSchema.filter(field => field.field !== 'title' && field.options !== 'auto:dataFields')"
+          :key="field.field"
+          :label="field.label"
+          :help="field.help"
+        >
+          <FieldRenderer
+            :field="field"
+            :model-value="fieldValue(field)"
+            @update:model-value="onFieldChange(field, $event)"
+          />
+        </MFormItem>
+      </MForm>
+      <p v-if="!editorSchema.length" class="properties-panel__empty">该组件无可配置内容</p>
+    </template>
 
     <MDialog v-model="dataDialog" title="数据配置" width="760px">
       <div class="data-dialog-body">
@@ -155,6 +159,13 @@ watch(dataDialog, open => { if (!open) draft.value = null })
   margin: 16px 0 10px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--m-color-split);
+}
+
+.properties-panel__hint {
+  margin: -2px 0 12px;
+  color: var(--m-color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .data-dialog-body {

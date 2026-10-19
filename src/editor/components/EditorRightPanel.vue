@@ -7,17 +7,16 @@
  */
 
 import { computed, ref, watch } from 'vue'
-import { MButton, MScrollbar } from 'morya-ui'
+import { MButton, MScrollbar, useConfirm } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { getCardRegistration } from '../../engine/registry'
+import { cardUsesData } from '../../engine/utils'
 import SvgIcon from '../../components/common/SvgIcon.vue'
 import PanelTabs from './PanelTabs.vue'
 import CanvasPanel from '../panels/CanvasPanel.vue'
 import PageSettings from '../panels/PageSettings.vue'
 import PropertiesPanel from '../panels/PropertiesPanel.vue'
-import LayoutPanel from '../panels/LayoutPanel.vue'
-import StylePanel from '../panels/StylePanel.vue'
-import AnimationPanel from '../panels/AnimationPanel.vue'
+import AppearancePanel from '../panels/AppearancePanel.vue'
 import EventPanel from '../panels/EventPanel.vue'
 
 const store = useEditorStore()
@@ -26,23 +25,39 @@ const card = computed(() => store.selectedCard)
 const hasSelection = computed(() => store.selectionCount === 1)
 const isMulti = computed(() => store.selectionCount > 1)
 
-type TabKey = 'canvas' | 'page' | 'props' | 'layout' | 'style' | 'anim' | 'event'
+type TabKey = 'canvas' | 'page' | 'content' | 'appearance' | 'data' | 'event'
 
 const PAGE_TABS: { label: string; value: TabKey }[] = [
   { label: '画布', value: 'canvas' },
   { label: '页面', value: 'page' },
 ]
 const CARD_TABS: { label: string; value: TabKey }[] = [
-  { label: '属性', value: 'props' },
-  { label: '布局', value: 'layout' },
-  { label: '样式', value: 'style' },
-  { label: '动画', value: 'anim' },
+  { label: '内容', value: 'content' },
+  { label: '外观', value: 'appearance' },
   { label: '事件', value: 'event' },
 ]
 
 const tab = ref<string>('canvas')
 
-const tabs = computed(() => (hasSelection.value ? CARD_TABS : PAGE_TABS))
+const tabs = computed(() => {
+  if (!hasSelection.value) return PAGE_TABS
+  return card.value && cardUsesData(card.value)
+    ? [CARD_TABS[0], CARD_TABS[1], { label: '数据', value: 'data' as const }, CARD_TABS[2]]
+    : CARD_TABS
+})
+
+const confirm = useConfirm()
+
+async function confirmRemoveSelection() {
+  const ok = await confirm.require({
+    header: '删除所选组件？',
+    message: `将删除当前选中的 ${store.selectionCount} 个组件。`,
+    acceptLabel: '删除',
+    rejectLabel: '取消',
+    acceptColor: 'danger',
+  })
+  if (ok) store.removeSelection()
+}
 
 // 选中态变化时，把 tab 归位到可用集合
 watch(tabs, list => {
@@ -51,13 +66,13 @@ watch(tabs, list => {
 
 const title = computed(() => {
   if (isMulti.value) return `已选中 ${store.selectionCount} 个组件`
-  if (!card.value) return '画布配置'
+  if (!card.value) return tab.value === 'page' ? '页面设置' : '画布设置'
   return card.value.title || getCardRegistration(card.value.type)?.label || card.value.type
 })
 
 const sub = computed(() => {
   if (isMulti.value) return '可拖动、成组、锁定或删除'
-  if (!card.value) return '未选中组件'
+  if (!card.value) return tab.value === 'page' ? '页面信息、布局与筛选器' : '尺寸、背景与编辑辅助'
   const reg = getCardRegistration(card.value.type)
   if (store.page.layout === 'free') {
     return `${reg?.label ?? card.value.type} · ${card.value.w ?? 0} × ${card.value.h ?? 0}`
@@ -89,24 +104,30 @@ const sub = computed(() => {
         </MButton>
         <MButton type="default" size="small" block @click="store.toggleSelectionHide()">隐藏/显示</MButton>
       </div>
-      <MButton danger size="small" block @click="store.removeSelection()">
+      <MButton danger size="small" block @click="confirmRemoveSelection">
         <SvgIcon name="x" :px="12" /> 删除所选
       </MButton>
     </div>
 
     <template v-else>
       <div class="rp-tabs">
-        <PanelTabs v-model="tab" :options="tabs" />
+        <PanelTabs v-model="tab" :options="tabs" panel-id-prefix="editor-right" />
       </div>
-      <MScrollbar class="panel-body" view-class="panel-body__view">
-        <CanvasPanel v-if="tab === 'canvas'" />
-        <PageSettings v-else-if="tab === 'page'" />
-        <PropertiesPanel v-else-if="tab === 'props'" />
-        <LayoutPanel v-else-if="tab === 'layout'" />
-        <StylePanel v-else-if="tab === 'style'" />
-        <AnimationPanel v-else-if="tab === 'anim'" />
-        <EventPanel v-else-if="tab === 'event'" />
-      </MScrollbar>
+      <div
+        :id="`editor-right-panel-${tab}`"
+        class="panel-region"
+        role="tabpanel"
+        :aria-labelledby="`editor-right-${tab}`"
+      >
+        <MScrollbar class="panel-body" view-class="panel-body__view" aria-label="配置内容">
+          <CanvasPanel v-if="tab === 'canvas'" />
+          <PageSettings v-else-if="tab === 'page'" />
+          <PropertiesPanel v-else-if="tab === 'content'" />
+          <AppearancePanel v-else-if="tab === 'appearance'" />
+          <PropertiesPanel v-else-if="tab === 'data'" mode="data" />
+          <EventPanel v-else-if="tab === 'event'" />
+        </MScrollbar>
+      </div>
     </template>
   </aside>
 </template>
@@ -170,12 +191,23 @@ const sub = computed(() => {
   gap: 4px;
 }
 
+.panel-region,
 .panel-body {
   flex: 1;
   min-height: 0;
+}
+
+.panel-body {
 
   :deep(.panel-body__view) {
     padding: 12px 16px 24px;
   }
+}
+
+:deep(.field-2),
+:deep(.field-3) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--m-space-3, 12px);
 }
 </style>
