@@ -1,17 +1,18 @@
 <script setup lang="ts">
 /**
- * 自由布局卡片（编辑态）
- * 绝对定位，支持拖拽移动 + 8 向缩放（吸附 10px 网格）、选中态、悬浮工具栏。
- * 内部复用真实卡片组件渲染。
+ * 自由布局卡片（编辑态，v0.3）
+ * 绝对定位；支持多选联动、整组拖动、8 向缩放、对齐辅助线吸附、锁定/隐藏、右键菜单。
  */
 
 import { computed } from 'vue'
 import type { CardSchema } from '../../types/schema'
 import { useEditorStore } from '../store'
 import { useDataStore } from '../../data/store'
-import { getCardComponent, getCardRegistration } from '../../engine/registry'
+import { getCardRegistration } from '../../engine/registry'
 import { cardNeedsDataSource } from '../../engine/utils'
+import { computeAlignGuides, type Rect } from '../align'
 import SvgIcon from '../../components/common/SvgIcon.vue'
+import CardNode from '../../components/cards/CardNode.vue'
 import NoDataPlaceholder from './NoDataPlaceholder.vue'
 
 const props = defineProps<{
@@ -25,14 +26,14 @@ const emit = defineEmits<{
 const editorStore = useEditorStore()
 const dataStore = useDataStore()
 
-const isSelected = computed(() => editorStore.selectedCardId === props.schema.id)
-const component = computed(() => getCardComponent(props.schema.type))
+const isSelected = computed(() => editorStore.isSelected(props.schema.id))
+const isLocked = computed(() => Boolean(props.schema.status?.lock))
+const isHidden = computed(() => Boolean(props.schema.status?.hide))
 const registration = computed(() => getCardRegistration(props.schema.type))
 
 const data = computed(() => dataStore.cardData.get(props.schema.id) ?? [])
 const loading = computed(() => dataStore.cardLoading.get(props.schema.id) ?? false)
 const error = computed(() => dataStore.cardError.get(props.schema.id) ?? null)
-
 const needsDataSource = computed(() => cardNeedsDataSource(props.schema))
 
 const style = computed(() => ({
@@ -40,11 +41,18 @@ const style = computed(() => ({
   top: `${props.schema.y ?? 0}px`,
   width: `${props.schema.w ?? 0}px`,
   height: `${props.schema.h ?? 0}px`,
+  zIndex: (props.schema.order ?? 0) + 1,
 }))
 
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const
 
-/** 双击进入内联编辑：文本/自定义卡编辑内容，其余编辑标题 */
+function onContextMenu(e: MouseEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+  if (!editorStore.isSelected(props.schema.id)) editorStore.selectCard(props.schema.id)
+  editorStore.openContextMenu({ x: e.clientX, y: e.clientY, cardId: props.schema.id })
+}
+
 function onDblClick() {
   const card = props.schema
   const path = card.type === 'text' ? 'text.content'
@@ -57,8 +65,10 @@ function onDblClick() {
 // ==================== 拖拽 / 缩放 ====================
 type DragMode = 'move' | 'resize'
 
+const ALIGN_TOLERANCE = 6
+
 let mode: DragMode = 'move'
-let dir: string = ''
+let dir = ''
 let sx = 0
 let sy = 0
 let origX = 0
@@ -67,58 +77,110 @@ let origW = 0
 let origH = 0
 let active = false
 let moved = false
+let origins: Record<string, { x: number; y: number }> = {}
+let selIds: string[] = []
+let bbox = { x: 0, y: 0, w: 0, h: 0 }
 
 function snap(v: number): number {
   const step = editorStore.snapStep
   return step > 0 ? Math.round(v / step) * step : Math.round(v)
 }
-function clamp(v: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, v))
-}
 
-function onDragStart(e: PointerEvent, d?: string) {
+function onPointerDown(e: PointerEvent, d?: string) {
   if (e.button !== 0) return
+  const card = props.schema
+
+  if (e.ctrlKey || e.metaKey) {
+    e.preventDefault()
+    e.stopPropagation()
+    editorStore.toggleSelection(card.id)
+    return
+  }
+  if (isLocked.value) {
+    e.stopPropagation()
+    editorStore.selectCard(card.id)
+    return
+  }
+
   e.preventDefault()
   e.stopPropagation()
-  editorStore.selectCard(props.schema.id)
+  if (!editorStore.isSelected(card.id)) editorStore.selectCard(card.id)
+
   mode = d ? 'resize' : 'move'
   dir = d ?? ''
   sx = e.clientX
   sy = e.clientY
-  origX = props.schema.x ?? 0
-  origY = props.schema.y ?? 0
-  origW = props.schema.w ?? 0
-  origH = props.schema.h ?? 0
+  origX = card.x ?? 0
+  origY = card.y ?? 0
+  origW = card.w ?? 0
+  origH = card.h ?? 0
   active = true
   moved = false
+
+  if (mode === 'move') {
+    selIds = editorStore.expandIds(editorStore.selectedIds)
+    origins = {}
+    for (const id of selIds) {
+      const c = editorStore.page.cards.find(x => x.id === id)
+      if (c) origins[id] = { x: c.x ?? 0, y: c.y ?? 0 }
+    }
+    bbox = selectionBBox(origins)
+  }
+
   window.addEventListener('pointermove', onMove)
   window.addEventListener('pointerup', onEnd)
 }
 
+function selectionBBox(o: Record<string, { x: number; y: number }>): { x: number; y: number; w: number; h: number } {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  for (const id of Object.keys(o)) {
+    const c = editorStore.page.cards.find(x => x.id === id)
+    if (!c) continue
+    minX = Math.min(minX, o[id].x)
+    minY = Math.min(minY, o[id].y)
+    maxX = Math.max(maxX, o[id].x + (c.w ?? 0))
+    maxY = Math.max(maxY, o[id].y + (c.h ?? 0))
+  }
+  if (!Number.isFinite(minX)) return { x: 0, y: 0, w: 0, h: 0 }
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
+}
+
+function alignRefs(): Rect[] {
+  const sel = new Set(selIds)
+  const refs: Rect[] = editorStore.page.cards
+    .filter(c => !sel.has(c.id))
+    .map(c => ({ id: c.id, x: c.x ?? 0, y: c.y ?? 0, w: c.w ?? 0, h: c.h ?? 0 }))
+  const { w: cw, h: ch } = editorStore.canvasSize
+  refs.push({ id: '__canvas__', x: 0, y: 0, w: cw, h: ch })
+  return refs
+}
+
 function onMove(e: PointerEvent) {
   if (!active) return
-  const dx = e.clientX - sx
-  const dy = e.clientY - sy
-  if (!moved && Math.hypot(dx, dy) < 3) return
-  // 手势真正开始时入撤销栈一次，避免点击选中产生空撤销步骤
+  const rawDx = e.clientX - sx
+  const rawDy = e.clientY - sy
+  if (!moved && Math.hypot(rawDx, rawDy) < 3) return
   if (!moved) {
     moved = true
     editorStore.beginChange()
   }
-  const card = props.schema
-  const { w: cw, h: ch } = editorStore.canvasSize
+  const z = editorStore.zoom || 1
+  const dx = rawDx / z
+  const dy = rawDy / z
 
   if (mode === 'move') {
-    editorStore.setCardGeometry(card.id, {
-      x: clamp(snap(origX + dx), 0, cw - (card.w ?? 0)),
-      y: clamp(snap(origY + dy), 0, ch - (card.h ?? 0)),
-    })
+    const sdx = snap(dx)
+    const sdy = snap(dy)
+    const moving: Rect = { id: '__sel__', x: bbox.x + sdx, y: bbox.y + sdy, w: bbox.w, h: bbox.h }
+    const { dx: adx, dy: ady, guides } = computeAlignGuides(moving, alignRefs(), ALIGN_TOLERANCE)
+    editorStore.setGuides(guides)
+    editorStore.moveCardsFrom(origins, sdx + adx, sdy + ady)
     return
   }
 
-  // resize
-  const MIN_W = 60
-  const MIN_H = 40
+  const MIN_W = 24
+  const MIN_H = 1
+  const { w: cw, h: ch } = editorStore.canvasSize
   let nx = origX
   let ny = origY
   let nw = origW
@@ -137,7 +199,7 @@ function onMove(e: PointerEvent) {
   if (nx + nw > cw) nw = cw - nx
   if (ny + nh > ch) nh = ch - ny
 
-  editorStore.setCardGeometry(card.id, {
+  editorStore.setCardGeometry(props.schema.id, {
     x: snap(nx),
     y: snap(ny),
     w: Math.max(MIN_W, Math.round(nw)),
@@ -147,60 +209,76 @@ function onMove(e: PointerEvent) {
 
 function onEnd() {
   active = false
+  editorStore.setGuides([])
   window.removeEventListener('pointermove', onMove)
   window.removeEventListener('pointerup', onEnd)
 }
 
 // ==================== 工具栏操作 ====================
-function onDuplicate(e: MouseEvent) {
+function stop(e: MouseEvent) {
   e.stopPropagation()
+}
+function onDuplicate(e: MouseEvent) {
+  stop(e)
   editorStore.duplicateCard(props.schema.id)
 }
 function onBring(pos: 'front' | 'back', e: MouseEvent) {
-  e.stopPropagation()
+  stop(e)
   editorStore.bringTo(props.schema.id, pos)
 }
 function onRemove(e: MouseEvent) {
-  e.stopPropagation()
+  stop(e)
   editorStore.removeCard(props.schema.id)
+}
+function onToggleLock(e: MouseEvent) {
+  stop(e)
+  editorStore.selectCard(props.schema.id)
+  editorStore.toggleSelectionLock()
+}
+function onToggleHide(e: MouseEvent) {
+  stop(e)
+  editorStore.setCardStatus(props.schema.id, { hide: !isHidden.value })
 }
 </script>
 
 <template>
   <div
     class="free-card"
-    :class="{ selected: isSelected }"
+    :class="{
+      selected: isSelected,
+      locked: isLocked,
+      hidden: isHidden,
+    }"
     :style="style"
-    @pointerdown="onDragStart($event)"
+    @pointerdown="onPointerDown($event)"
     @click.stop
+    @contextmenu.prevent.stop="onContextMenu"
     @dblclick.stop="onDblClick"
   >
-    <!-- 真实卡片渲染（禁用内部交互） -->
     <div class="free-card__content">
       <NoDataPlaceholder v-if="needsDataSource" />
-      <component
-        :is="component"
-        v-else-if="component"
-        :schema="schema"
+      <CardNode
+        v-else
+        :card="schema"
         :data="data"
         :loading="loading"
         :error="error"
       />
-      <div v-else class="free-card__unknown">未知类型：{{ schema.type }}</div>
     </div>
 
-    <!-- 8 向缩放手柄 -->
+    <!-- 8 向缩放手柄（单选且未锁定） -->
     <span
       v-for="h in HANDLES"
+      v-show="isSelected && !isLocked"
       :key="h"
       class="handle"
       :class="`handle--${h}`"
       :data-dir="h"
-      @pointerdown.stop="onDragStart($event, h)"
+      @pointerdown.stop="onPointerDown($event, h)"
     />
 
     <!-- 悬浮工具栏 -->
-    <div v-if="isSelected" class="free-card__toolbar">
+    <div v-if="isSelected && !isHidden" class="free-card__toolbar">
       <span class="free-card__label">{{ registration?.label ?? schema.type }}</span>
       <button type="button" title="复制" @pointerdown.stop @click="onDuplicate">
         <SvgIcon name="plus" :px="13" />
@@ -211,13 +289,20 @@ function onRemove(e: MouseEvent) {
       <button type="button" title="置底" @pointerdown.stop @click="onBring('back', $event)">
         <SvgIcon name="arrow-down-right" :px="13" />
       </button>
+      <button type="button" :title="isLocked ? '解锁' : '锁定'" @pointerdown.stop @click="onToggleLock">
+        <SvgIcon name="lock" :px="13" />
+      </button>
+      <button type="button" title="隐藏" @pointerdown.stop @click="onToggleHide">
+        <SvgIcon name="eye-off" :px="13" />
+      </button>
       <button type="button" class="danger" title="删除" @pointerdown.stop @click="onRemove">
         <SvgIcon name="x" :px="13" />
       </button>
     </div>
 
-    <!-- 尺寸角标 -->
-    <span v-if="isSelected" class="free-card__badge">{{ schema.w }} × {{ schema.h }}</span>
+    <!-- 状态角标 -->
+    <span v-if="isLocked" class="free-card__flag"><SvgIcon name="lock" :px="11" /></span>
+    <span v-if="isSelected && !isLocked" class="free-card__badge">{{ schema.w }} x {{ schema.h }}</span>
   </div>
 </template>
 
@@ -233,28 +318,32 @@ function onRemove(e: MouseEvent) {
 }
 
 .free-card:hover {
-  border-color: color-mix(in srgb, var(--m-color-primary) 60%, transparent);
+  border-color: color-mix(in srgb, var(--m-select-color, var(--m-color-primary)) 60%, transparent);
   box-shadow: var(--m-shadow-card);
 }
 
 .free-card.selected {
-  border-color: var(--m-color-primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--m-color-primary) 22%, transparent);
-  z-index: 5;
+  border-color: var(--m-select-color, var(--m-color-primary));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--m-select-color, var(--m-color-primary)) 22%, transparent);
+}
+
+.free-card.locked {
+  cursor: default;
+  border-style: dashed;
+}
+
+.free-card.hidden {
+  opacity: 0.35;
+  border-style: dashed;
+  pointer-events: none;
 }
 
 .free-card__content {
   width: 100%;
   height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
   pointer-events: none;
-}
-
-.free-card__unknown {
-  height: 100%;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  color: var(--m-color-text-muted);
 }
 
 /* 缩放手柄 */
@@ -263,14 +352,10 @@ function onRemove(e: MouseEvent) {
   width: 9px;
   height: 9px;
   background: var(--m-color-surface);
-  border: 1.5px solid var(--m-color-primary);
+  border: 1.5px solid var(--m-select-color, var(--m-color-primary));
   border-radius: 2px;
-  display: none;
-  z-index: 6;
-}
-
-.free-card.selected .handle {
   display: block;
+  z-index: 6;
 }
 
 .handle--nw { left: -5px; top: -5px; cursor: nwse-resize; }
@@ -291,7 +376,7 @@ function onRemove(e: MouseEvent) {
   align-items: center;
   gap: 2px;
   padding: 3px 6px;
-  background: var(--m-color-primary);
+  background: var(--m-select-color, var(--m-color-primary));
   border-radius: var(--m-radius-sm);
   box-shadow: var(--m-shadow-card);
   z-index: 8;
@@ -330,11 +415,24 @@ function onRemove(e: MouseEvent) {
   bottom: 6px;
   padding: 1px 6px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--m-color-primary) 14%, transparent);
-  color: var(--m-color-primary);
+  background: color-mix(in srgb, var(--m-select-color, var(--m-color-primary)) 14%, transparent);
+  color: var(--m-select-color, var(--m-color-primary));
   font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.free-card__flag {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--m-radius-xs, 4px);
+  background: color-mix(in srgb, var(--m-color-text-muted) 20%, transparent);
+  color: var(--m-color-text-muted);
   z-index: 6;
   pointer-events: none;
 }

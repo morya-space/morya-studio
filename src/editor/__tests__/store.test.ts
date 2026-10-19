@@ -1,5 +1,6 @@
 ﻿import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
+import { reactive } from 'vue'
 import { useEditorStore } from '../store'
 import { registerBuiltinCards } from '../../components/cards'
 import type { PageSchema } from '../../types/schema'
@@ -131,5 +132,122 @@ describe('useEditorStore', () => {
     store.loadPage(makePage([]))
     expect(store.dirty).toBe(false)
     expect(store.canUndo).toBe(false)
+  })
+
+  it('multi-select: set/toggle/clear and primary sync', () => {
+    const a = store.addCard('stat')
+    const b = store.addCard('chart')
+    store.setSelection([a, b])
+    expect(store.selectionCount).toBe(2)
+    expect(store.selectedCardId).toBeNull()
+    store.toggleSelection(a)
+    expect(store.selectedIds).toEqual([b])
+    expect(store.selectedCardId).toBe(b)
+    store.clearSelection()
+    expect(store.selectionCount).toBe(0)
+  })
+
+  it('moveCardsBy moves selection and clamps to canvas', () => {
+    store.newPage('free')
+    store.setLayout('free')
+    const id = store.addCardAt('stat', 10, 10)
+    store.setSelection([id])
+    store.moveCardsBy([id], 40, 30)
+    const card = store.page.cards[0]
+    expect(card.x).toBe(50)
+    expect(card.y).toBe(40)
+    // clamp at left edge
+    store.moveCardsBy([id], -999, -999)
+    expect(store.page.cards[0].x).toBe(0)
+    expect(store.page.cards[0].y).toBe(0)
+  })
+
+  it('groupSelection groups >=2 cards and tracks bbox; ungroup clears it', () => {
+    store.newPage('free')
+    store.setLayout('free')
+    const a = store.addCardAt('stat', 0, 0)
+    const b = store.addCardAt('stat', 400, 0)
+    store.setSelection([a, b])
+    const gid = store.groupSelection()
+    expect(gid).toBeTruthy()
+    expect(store.page.groups).toHaveLength(1)
+    const g = store.page.groups![0]
+    expect(g.x).toBe(0)
+    expect(g.w).toBeGreaterThanOrEqual(400)
+    expect(store.page.cards.every(c => c.groupId === gid)).toBe(true)
+
+    // 拖动单个成员会带着整组移动
+    store.moveCardsBy([a], 50, 0)
+    expect(store.page.cards[1].x).toBe(450)
+
+    store.setSelection([a])
+    store.ungroupSelection()
+    expect(store.page.groups).toHaveLength(0)
+    expect(store.page.cards.every(c => c.groupId === undefined)).toBe(true)
+  })
+
+  it('toggleSelectionLock prevents movement', () => {
+    store.newPage('free')
+    store.setLayout('free')
+    const id = store.addCardAt('stat', 100, 100)
+    store.setSelection([id])
+    store.toggleSelectionLock()
+    expect(store.page.cards[0].status?.lock).toBe(true)
+    store.moveCardsBy([id], 50, 50)
+    expect(store.page.cards[0].x).toBe(100)
+    store.toggleSelectionLock()
+    expect(store.page.cards[0].status?.lock).toBe(false)
+    store.moveCardsBy([id], 50, 50)
+    expect(store.page.cards[0].x).toBe(150)
+  })
+
+  it('removeSelection deletes all selected and prunes empty groups', () => {
+    store.newPage('free')
+    store.setLayout('free')
+    const a = store.addCardAt('stat', 0, 0)
+    const b = store.addCardAt('stat', 300, 0)
+    store.setSelection([a, b])
+    store.groupSelection()
+    store.setSelection([a, b])
+    store.removeSelection()
+    expect(store.page.cards).toHaveLength(0)
+    expect(store.page.groups).toHaveLength(0)
+  })
+
+  it('new data components default to renderable Mock data', () => {
+    const chartId = store.addCard('chart')
+    const chartCard = store.page.cards.find(c => c.id === chartId)!
+    expect(chartCard.dataSource?.type).toBe('mock')
+    expect(chartCard.dataSource?.staticData?.length ?? 0).toBeGreaterThan(0)
+
+    const statId = store.addCard('stat')
+    const statCard = store.page.cards.find(c => c.id === statId)!
+    expect(statCard.dataSource?.staticData?.length ?? 0).toBeGreaterThan(0)
+
+    // 非数据型组件不注入数据源
+    const textId = store.addCard('text')
+    const textCard = store.page.cards.find(c => c.id === textId)!
+    expect(textCard.dataSource).toBeUndefined()
+  })
+
+  it('does not crash when a panel writes reactive-derived objects into schema', () => {
+    const id = store.addCard('stat')
+    // 模拟数据面板：把由响应式对象展开/派生得到的对象写入 schema
+    const derived = reactive({ type: 'api', params: { page: 1 }, auth: reactive({ type: 'bearer' }) })
+    expect(() => store.updateCardField(id, 'dataSource', { ...derived })).not.toThrow()
+    // 之后任意一次更新都会 clone 整个 page，必须仍然可用（旧实现会抛 DataCloneError 卡死）
+    expect(() => store.updateCardField(id, 'title', 'T')).not.toThrow()
+    expect(store.page.cards.find(c => c.id === id)?.title).toBe('T')
+    // 再次切换/重写数据源也应正常
+    expect(() => store.updateCardField(id, 'dataSourceId', 'ds-1')).not.toThrow()
+  })
+
+  it('bringForward / sendBackward swap adjacent order', () => {
+    const a = store.addCard('stat')
+    const b = store.addCard('chart')
+    store.bringForward(a)
+    expect(store.page.cards.map(c => c.id)).toEqual([b, a])
+    store.sendBackward(a)
+    expect(store.page.cards.map(c => c.id)).toEqual([a, b])
   })
 })

@@ -9,9 +9,10 @@ import { MTooltip } from 'morya-ui'
 import type { CardSchema } from '../../types/schema'
 import { useEditorStore } from '../store'
 import { useDataStore } from '../../data/store'
-import { getCardComponent, getCardRegistration } from '../../engine/registry'
+import { getCardRegistration } from '../../engine/registry'
 import { cardNeedsDataSource } from '../../engine/utils'
 import SvgIcon from '../../components/common/SvgIcon.vue'
+import CardNode from '../../components/cards/CardNode.vue'
 import NoDataPlaceholder from './NoDataPlaceholder.vue'
 
 const props = defineProps<{
@@ -26,8 +27,7 @@ const emit = defineEmits<{
 const editorStore = useEditorStore()
 const dataStore = useDataStore()
 
-const isSelected = computed(() => editorStore.selectedCardId === props.schema.id)
-const component = computed(() => getCardComponent(props.schema.type))
+const isSelected = computed(() => editorStore.isSelected(props.schema.id))
 const registration = computed(() => getCardRegistration(props.schema.type))
 
 const data = computed(() => dataStore.cardData.get(props.schema.id) ?? [])
@@ -162,15 +162,13 @@ function onResizeEnd() {
     <!-- 真实卡片渲染（禁用内部交互） -->
     <div class="card-wrapper__content">
       <NoDataPlaceholder v-if="needsDataSource" />
-      <component
-        :is="component"
-        v-else-if="component"
-        :schema="schema"
+      <CardNode
+        v-else
+        :card="schema"
         :data="data"
         :loading="loading"
         :error="error"
       />
-      <div v-else class="card-wrapper__unknown">未知类型：{{ schema.type }}</div>
     </div>
 
     <!-- 右边缘拖拽调整跨度 -->
@@ -279,6 +277,7 @@ function onResizeEnd() {
 .card-wrapper__content {
   pointer-events: none;
   height: 100%;
+  overflow: hidden;
 }
 
 .card-wrapper__unknown {

@@ -11,12 +11,12 @@
  */
 
 import { computed, onBeforeUnmount, onMounted, watch, type CSSProperties } from 'vue'
-import type { ActionConfig, PageSchema } from '../types/schema'
+import type { ActionConfig, CardSchema, PageSchema } from '../types/schema'
 import { useDataStore } from '../data/store'
-import { getCardComponent } from './registry'
 import { sortCards, getCardGridStyle, getCardKey } from './utils'
-import ErrorBoundary from './ErrorBoundary.vue'
+import CardNode from '../components/cards/CardNode.vue'
 import GlobalFilterBar from '../components/common/GlobalFilterBar.vue'
+import CanvasWatermark from '../components/common/CanvasWatermark.vue'
 
 const props = withDefaults(defineProps<{
   page: PageSchema
@@ -39,7 +39,12 @@ const isFree = computed(() => props.page.layout === 'free')
 const cols = computed(() => props.page.grid?.cols ?? 12)
 const gap = computed(() => `${props.page.grid?.gap ?? 24}px`)
 
-const sortedCards = computed(() => sortCards(props.page.cards ?? []))
+const sortedCards = computed<CardSchema[]>(() => sortCards(props.page.cards ?? []))
+
+/** 运行时隐藏 status.hide 的卡片（编辑态由编辑器自行处理） */
+const visibleCards = computed<CardSchema[]>(() =>
+  props.editable ? sortedCards.value : sortedCards.value.filter(c => !c.status?.hide),
+)
 
 /** 页面级主题覆盖：作用域到渲染容器 */
 const themeVars = computed<Record<string, string>>(() => {
@@ -62,7 +67,7 @@ const containerStyle = computed(() => ({
 /** 自由布局：固定画布容器 + 绝对定位卡片；背景/尺寸来自 page.canvas */
 const freeCanvasStyle = computed<CSSProperties>(() => {
   const c = props.page.canvas
-  return {
+  const style: CSSProperties = {
     position: 'relative',
     width: '100%',
     minWidth: `${c?.width ?? 1200}px`,
@@ -70,7 +75,27 @@ const freeCanvasStyle = computed<CSSProperties>(() => {
     background: c?.bgColor ?? 'var(--m-color-surface)',
     ...themeVars.value,
   }
+  if (c?.backgroundImage) {
+    style.backgroundImage = `url(${c.backgroundImage})`
+    style.backgroundRepeat = 'no-repeat'
+    style.backgroundSize = 'cover'
+  }
+  const cf = c?.filter
+  if (cf) {
+    const filters: string[] = []
+    if (cf.brightness !== undefined && cf.brightness !== 1) filters.push(`brightness(${cf.brightness})`)
+    if (cf.contrast !== undefined && cf.contrast !== 1) filters.push(`contrast(${cf.contrast})`)
+    if (cf.saturate !== undefined && cf.saturate !== 1) filters.push(`saturate(${cf.saturate})`)
+    if (cf.hueRotate) filters.push(`hue-rotate(${cf.hueRotate}deg)`)
+    if (filters.length) style.filter = filters.join(' ')
+    if (cf.opacity !== undefined && cf.opacity !== 1) style.opacity = cf.opacity
+    if (cf.blendMode && cf.blendMode !== 'normal') style.mixBlendMode = cf.blendMode
+  }
+  return style
 })
+
+const watermarkShow = computed(() => Boolean(props.page.canvas?.watermark?.show))
+const watermarkText = computed(() => props.page.canvas?.watermark?.text ?? '')
 
 function freeCardStyle(card: PageSchema['cards'][number]) {
   return {
@@ -81,10 +106,6 @@ function freeCardStyle(card: PageSchema['cards'][number]) {
     height: `${card.h ?? 200}px`,
     zIndex: card.order ?? 0,
   }
-}
-
-function resolveComponent(type: string) {
-  return getCardComponent(type as never)
 }
 
 function cardData(id: string) {
@@ -133,7 +154,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="schema-renderer">
+    <div class="schema-renderer" :data-theme="page.canvas?.theme === 'dark' ? 'dark' : undefined">
       <GlobalFilterBar
         v-if="!editable && page.filters?.length"
         :filters="page.filters"
@@ -142,54 +163,43 @@ onBeforeUnmount(() => {
 
       <!-- 自由布局：绝对定位 -->
       <div v-if="isFree" class="schema-renderer__free" :style="freeCanvasStyle">
-        <template v-for="card in sortedCards" :key="getCardKey(card)">
+        <template v-for="card in visibleCards" :key="getCardKey(card)">
           <div
             class="schema-renderer__free-cell"
             :style="freeCardStyle(card)"
             @click="onSelect(card.id)"
           >
-            <ErrorBoundary>
-              <component
-                :is="resolveComponent(card.type)"
-                v-if="resolveComponent(card.type)"
-                :schema="card"
-                :data="cardData(card.id)"
-                :loading="cardLoading(card.id)"
-                :error="cardError(card.id)"
-                @action="onCardAction(card.id, $event)"
-                @retry="onCardRetry(card.id)"
-              />
-              <div v-else class="schema-renderer__unknown">
-                未知卡片类型：{{ card.type }}
-              </div>
-            </ErrorBoundary>
+            <CardNode
+              :card="card"
+              :data="cardData(card.id)"
+              :loading="cardLoading(card.id)"
+              :error="cardError(card.id)"
+              @action="onCardAction(card.id, $event as ActionConfig)"
+              @retry="onCardRetry(card.id)"
+            />
           </div>
         </template>
+
+        <!-- 水印 -->
+        <CanvasWatermark v-if="watermarkShow" :text="watermarkText" />
       </div>
 
       <!-- 网格布局 -->
       <div v-else class="schema-renderer__grid" :style="containerStyle">
-        <template v-for="card in sortedCards" :key="getCardKey(card)">
+        <template v-for="card in visibleCards" :key="getCardKey(card)">
           <div
             class="schema-renderer__cell"
             :style="{ ...getCardGridStyle(card, cols), ...(card.height ? { height: `${card.height}px` } : {}) }"
             @click="onSelect(card.id)"
           >
-            <ErrorBoundary>
-              <component
-                :is="resolveComponent(card.type)"
-                v-if="resolveComponent(card.type)"
-                :schema="card"
-                :data="cardData(card.id)"
-                :loading="cardLoading(card.id)"
-                :error="cardError(card.id)"
-                @action="onCardAction(card.id, $event)"
-                @retry="onCardRetry(card.id)"
-              />
-              <div v-else class="schema-renderer__unknown">
-                未知卡片类型：{{ card.type }}
-              </div>
-            </ErrorBoundary>
+            <CardNode
+              :card="card"
+              :data="cardData(card.id)"
+              :loading="cardLoading(card.id)"
+              :error="cardError(card.id)"
+              @action="onCardAction(card.id, $event as ActionConfig)"
+              @retry="onCardRetry(card.id)"
+            />
           </div>
         </template>
       </div>
@@ -215,6 +225,7 @@ onBeforeUnmount(() => {
 
 .schema-renderer__free-cell {
   min-width: 0;
+  overflow: hidden;
 }
 
 /* 响应式：窄屏时所有卡片整行 */
