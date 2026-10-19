@@ -7,6 +7,7 @@
 import { computed, ref } from 'vue'
 import { MButton, MForm, MFormItem, MInput, MInputNumber, MSelect, MTextarea } from 'morya-ui'
 import { useEditorStore } from '../store'
+import { plain } from '../plain'
 import type { TransformStep } from '../../types/schema'
 
 const store = useEditorStore()
@@ -16,7 +17,7 @@ const steps = computed<TransformStep[]>(() => card.value?.transform ?? [])
 
 function writeSteps(next: TransformStep[]) {
   if (!card.value) return
-  store.updateCardField(card.value.id, 'transform', next)
+  store.updateCardField(card.value.id, 'transform', plain(next))
 }
 
 // ---------- 新增 ----------
