@@ -12,18 +12,20 @@ import { useDataStore } from '../../data/store'
 import { listDataSources } from '../../services/datasource'
 import { getAdapter } from '../../data/adapters'
 import type { TestResult } from '../../data/adapters/base'
-import type { DataSourceConfig, DataSourceType, HttpMethod, RequestBodyType } from '../../types/schema'
+import type { ComputedField, DataSourceConfig, DataSourceType, HttpMethod, RequestBodyType } from '../../types/schema'
 import type { DataRole } from '../../engine/data-role'
 import { getCardRegistration } from '../../engine/registry'
-import { filterFieldsForDataRole } from '../../engine/data-binding'
 import { inferFieldProfiles, type FieldProfile } from '../../data/field-profile'
 import PanelTabs from '../components/PanelTabs.vue'
 import KeyValueTable from '../components/KeyValueTable.vue'
+import FieldSelect from '../components/FieldSelect.vue'
 import TransformEditor from './TransformEditor.vue'
+import ComputedFieldsEditor from './ComputedFieldsEditor.vue'
 import DataResultPanel from './DataResultPanel.vue'
 import { plain } from '../plain'
 import { defaultMockTemplateFor } from '../../components/cards/mocks'
 import { formatMockTemplate } from '../../data/mockgen'
+import { applyComputedFields } from '../../data/transform/pipeline'
 import type { DataConfigDraft } from './dataDraft'
 
 const store = useEditorStore()
@@ -311,15 +313,19 @@ async function runTest() {
 
 // ==================== 草稿预览（弹窗内，不写回 store） ====================
 const draftRows = ref<Record<string, unknown>[]>([])
+const sampleLoading = ref(false)
 
 async function loadDraftRows(): Promise<void> {
   const cfg = testConfig.value
   if (!cfg) { draftRows.value = []; return }
+  sampleLoading.value = true
   try {
     const adapter = getAdapter(cfg.type)
     draftRows.value = adapter.fetch ? await adapter.fetch(plain(cfg)) : []
   } catch {
     draftRows.value = []
+  } finally {
+    sampleLoading.value = false
   }
 }
 
@@ -335,9 +341,37 @@ watch(
   { immediate: true },
 )
 
+// 引用已保存数据源：选中即自动拉取 sample，字段选择器无需先手动测试
+watch(
+  () => props.draft?.dataSourceId,
+  async (id) => {
+    if (!props.draft || !id) {
+      if (props.draft && !id) draftRows.value = []
+      return
+    }
+    await loadDraftRows()
+  },
+)
+
+function setComputedFields(fields: ComputedField[]) {
+  if (props.draft) {
+    props.draft.computedFields = fields
+    return
+  }
+  if (card.value) store.updateCardField(card.value.id, 'computedFields', fields.length ? fields : undefined)
+}
+
+function getComputedFields(): ComputedField[] {
+  if (props.draft) return props.draft.computedFields ?? []
+  return card.value?.computedFields ?? []
+}
+
 // ==================== 数据映射 / 内容 ====================
 const rows = computed(() => {
-  if (props.draft) return draftRows.value
+  if (props.draft) {
+    const computedFields = props.draft.computedFields
+    return computedFields?.length ? applyComputedFields(draftRows.value, computedFields) : draftRows.value
+  }
   return card.value ? dataStore.cardData.get(card.value.id) ?? [] : []
 })
 const fields = computed(() => (rows.value[0] ? Object.keys(rows.value[0]) : []))
@@ -359,45 +393,23 @@ function getByPath(source: Record<string, unknown>, path: string): unknown {
   return value
 }
 
-function roleValue(role: DataRole & { field: string }): string {
+function roleValue(role: DataRole & { field: string }): string | string[] {
   const value = props.draft && Object.prototype.hasOwnProperty.call(props.draft.bindings, role.field)
     ? props.draft.bindings[role.field]
     : card.value ? getByPath(card.value as unknown as Record<string, unknown>, role.field) : undefined
+  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string')
   return typeof value === 'string' ? value : ''
 }
 
-function roleOptions(role: DataRole): { label: string; value: string }[] {
-  const options = filterFieldsForDataRole(fieldProfiles.value, role).map(profileOption)
-  const selected = roleValue(role as DataRole & { field: string })
-  if (selected && !options.some(option => option.value === selected)) {
-    const profile = fieldProfiles.value.find(candidate => candidate.key === selected)
-    options.push({
-      label: profile ? `${profileLabel(profile)}（不兼容）` : `${selected}（当前数据中不存在）`,
-      value: selected,
-    })
-  }
-  return options
-}
-
-function profileOption(profile: FieldProfile): { label: string; value: string } {
-  return { label: profileLabel(profile), value: profile.key }
-}
-
-function profileLabel(profile: FieldProfile): string {
-  const sample = profile.sampleValues.length
-    ? `，样例：${profile.sampleValues.map(value => String(value)).join('、')}`
-    : ''
-  return `${profile.label}（${profile.key} · ${profile.valueKind}${sample}）`
-}
-
-function setRole(role: DataRole & { field: string }, value: string) {
+function setRole(role: DataRole & { field: string }, value: string | string[]) {
   const c = card.value
   if (!c) return
   if (props.draft) {
-    props.draft.bindings[role.field] = value || undefined
+    if (role.multiple) props.draft.bindings[role.field] = (value as string[]).length ? value : undefined
+    else props.draft.bindings[role.field] = value || undefined
     return
   }
-  store.updateCardField(c.id, role.field, value || undefined)
+  store.updateCardField(c.id, role.field, role.multiple ? (Array.isArray(value) && value.length ? value : undefined) : (value || undefined))
 }
 
 function downloadJson() {
@@ -573,6 +585,15 @@ function downloadJson() {
     <p class="data-sec">过滤器 / 数据转换</p>
     <TransformEditor />
 
+    <!-- 计算列 -->
+    <p class="data-sec">计算列</p>
+    <p class="dsec__hint">基于原始字段派生新字段，可在下方字段映射中使用</p>
+    <ComputedFieldsEditor
+      :fields="getComputedFields()"
+      :profiles="fieldProfiles"
+      @update:fields="setComputedFields"
+    />
+
     <!-- 数据映射 -->
     <p class="data-sec">数据映射</p>
     <div v-if="dataRoles.length" class="dfields">
@@ -583,13 +604,13 @@ function downloadJson() {
         :required="role.required"
         :help="fieldProfiles.length ? undefined : '暂无数据，先测试或绑定数据源'"
       >
-        <MSelect
-          :model-value="roleValue(role)"
-          :options="roleOptions(role)"
+        <FieldSelect
+          :profiles="fieldProfiles"
+          :accepted-types="role.acceptedTypes"
+          :value="roleValue(role)"
+          :multiple="role.multiple"
           :disabled="!fieldProfiles.length"
-          clearable
-          fluid
-          @update:model-value="setRole(role, $event as string)"
+          @update:value="setRole(role, $event)"
         />
       </MFormItem>
     </div>

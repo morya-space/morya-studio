@@ -118,15 +118,15 @@ const SIZES: Record<string, { w: number; h: number }> = {
 type ChartKind = 'cartesian' | 'pie' | 'radar' | 'gauge' | 'funnel'
 
 const CATEGORY_ROLE = { name: 'category', label: '维度', field: 'chart.xField', acceptedTypes: ['string', 'number', 'date'] } as const
-const METRIC_ROLE = { name: 'metric', label: '数值', field: 'chart.yField', acceptedTypes: ['number'], required: true } as const
+const METRIC_ROLE = { name: 'metric', label: '数值', field: 'chart.yField', acceptedTypes: ['number'], required: true, multiple: true } as const
 const SERIES_ROLE = { name: 'series', label: '系列', field: 'chart.seriesField', acceptedTypes: ['string', 'number'] } as const
 
 /** 图表字段角色按实际渲染配置裁剪，供编辑器和插件复用。 */
 function chartDataContract(kind: ChartKind): DataRoleContract {
-  if (kind === 'gauge') return { roles: [{ ...METRIC_ROLE }] }
-  if (kind === 'funnel') return { roles: [{ ...CATEGORY_ROLE, name: 'label', label: '标签' }, { ...METRIC_ROLE }] }
-  if (kind === 'pie') return { roles: [{ ...CATEGORY_ROLE, name: 'label', label: '标签' }, { ...METRIC_ROLE }] }
-  if (kind === 'radar') return { roles: [{ ...CATEGORY_ROLE }, { ...METRIC_ROLE }] }
+  if (kind === 'gauge') return { roles: [{ ...METRIC_ROLE, multiple: false }] }
+  if (kind === 'funnel') return { roles: [{ ...CATEGORY_ROLE, name: 'label', label: '标签' }, { ...METRIC_ROLE, multiple: false }] }
+  if (kind === 'pie') return { roles: [{ ...CATEGORY_ROLE, name: 'label', label: '标签' }, { ...METRIC_ROLE, multiple: false }] }
+  if (kind === 'radar') return { roles: [{ ...CATEGORY_ROLE }, { ...METRIC_ROLE, multiple: false }] }
   return { roles: [{ ...CATEGORY_ROLE, required: true }, { ...METRIC_ROLE }, { ...SERIES_ROLE }] }
 }
 
@@ -135,7 +135,7 @@ function relationDataContract(): DataRoleContract {
     roles: [
       { name: 'source', label: '来源', field: 'chart.xField', acceptedTypes: ['string', 'number'], required: true },
       { name: 'target', label: '去向', field: 'chart.seriesField', acceptedTypes: ['string', 'number'], required: true },
-      { ...METRIC_ROLE },
+      { ...METRIC_ROLE, multiple: false },
     ],
   }
 }

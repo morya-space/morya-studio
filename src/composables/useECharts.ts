@@ -89,6 +89,12 @@ export function useECharts(config: Ref<ChartConfig>, data: Ref<Row[]>): UseEChar
   const surfaceColor = () => getToken('--m-chart-surface')
   const textColor = () => getToken('--m-chart-text')
 
+  /** 标准化 yField 为数组（支持多度量） */
+  function yFields(): string[] {
+    const f = cfg().yField ?? 'y'
+    return Array.isArray(f) ? (f.length > 0 ? f : ['y']) : [f]
+  }
+
   /** 按 seriesField 把数据拆成多系列 */
   function groupBySeries(items: Row[]): Map<string, Row[]> {
     const field = cfg().seriesField
@@ -126,30 +132,48 @@ export function useECharts(config: Ref<ChartConfig>, data: Ref<Row[]>): UseEChar
     }
   }
 
+  /** 生成系列数据：多 y 字段优先，否则按 seriesField 分组 */
+  function buildSeries(items: Row[]): { name: string; data: number[] }[] {
+    const yfs = yFields()
+    // 多度量：每个 y 字段一个系列
+    if (yfs.length > 1) {
+      return yfs.map(field => ({
+        name: field,
+        data: items.map(item => Number(item[field] ?? 0)),
+      }))
+    }
+    // 单度量 + 系列字段：按 seriesField 分组
+    const yField = yfs[0]
+    const groups = groupBySeries(items)
+    const names = [...groups.keys()]
+    return names.map(name => ({
+      name: name || undefined as unknown as string,
+      data: (groups.get(name) ?? []).map(item => Number(item[yField] ?? 0)),
+    }))
+  }
+
   function buildOption(): echarts.EChartsCoreOption {
     const c = cfg()
     const items = data.value
     const xField = c.xField ?? 'x'
-    const yField = c.yField ?? 'y'
+    const yField = yFields()[0]
     const xData = items.map(item => String(item[xField] ?? ''))
-    const groups = groupBySeries(items)
-    const seriesNames = [...groups.keys()]
-    const multi = c.seriesField ? seriesNames.length : 1
     const stackName = c.stack ? 'total' : undefined
 
     let option: echarts.EChartsCoreOption
 
     switch (c.chartType) {
       case 'bar': {
+        const seriesEntries = buildSeries(items)
         option = {
           ...baseCartesian(xData),
           color: palette(),
-          series: seriesNames.map(name => ({
-            name: name || undefined,
+          series: seriesEntries.map(s => ({
+            name: s.name || undefined,
             type: 'bar',
             stack: stackName,
-            data: (groups.get(name) ?? []).map(item => Number(item[yField] ?? 0)),
-            barWidth: multi > 1 ? undefined : '60%',
+            data: s.data,
+            barWidth: seriesEntries.length > 1 ? undefined : '60%',
             itemStyle: { borderRadius: [4, 4, 0, 0] },
           })),
         }
@@ -157,6 +181,7 @@ export function useECharts(config: Ref<ChartConfig>, data: Ref<Row[]>): UseEChar
       }
 
       case 'barH': {
+        const seriesEntries = buildSeries(items)
         option = {
           grid: { show: false, left: 0, right: 10, top: 10, bottom: 0, containLabel: true },
           tooltip: { show: c.showTooltip !== false, trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -170,11 +195,11 @@ export function useECharts(config: Ref<ChartConfig>, data: Ref<Row[]>): UseEChar
             axisTick: { show: false },
             axisLabel: { color: axisColor(), fontSize: 12 },
           },
-          series: seriesNames.map(name => ({
-            name: name || undefined,
+          series: seriesEntries.map(s => ({
+            name: s.name || undefined,
             type: 'bar',
             stack: stackName,
-            data: (groups.get(name) ?? []).map(item => Number(item[yField] ?? 0)),
+            data: s.data,
             itemStyle: { borderRadius: [0, 4, 4, 0] },
           })),
         }
@@ -183,14 +208,15 @@ export function useECharts(config: Ref<ChartConfig>, data: Ref<Row[]>): UseEChar
 
       case 'barLine': {
         const sub = c.subField
+        const seriesEntries = buildSeries(items)
         option = {
           ...baseCartesian(xData),
           color: palette(),
           series: [
-            ...seriesNames.map(name => ({
-              name: name || undefined,
+            ...seriesEntries.map(s => ({
+              name: s.name || undefined,
               type: 'bar',
-              data: (groups.get(name) ?? []).map(item => Number(item[yField] ?? 0)),
+              data: s.data,
               barWidth: '40%',
               itemStyle: { borderRadius: [4, 4, 0, 0] },
             })),
@@ -211,14 +237,15 @@ export function useECharts(config: Ref<ChartConfig>, data: Ref<Row[]>): UseEChar
       case 'line':
       case 'area': {
         const isArea = c.chartType === 'area'
+        const seriesEntries = buildSeries(items)
         option = {
           ...baseCartesian(xData),
           color: palette(),
-          series: seriesNames.map(name => ({
-            name: name || undefined,
+          series: seriesEntries.map(s => ({
+            name: s.name || undefined,
             type: 'line',
             stack: stackName,
-            data: (groups.get(name) ?? []).map(item => Number(item[yField] ?? 0)),
+            data: s.data,
             smooth: c.smooth ?? true,
             lineStyle: { width: 3 },
             areaStyle: isArea ? { opacity: 0.15 } : undefined,
@@ -267,13 +294,14 @@ export function useECharts(config: Ref<ChartConfig>, data: Ref<Row[]>): UseEChar
       }
 
       case 'scatter': {
+        const seriesEntries = buildSeries(items)
         option = {
           ...baseCartesian(xData),
           color: palette(),
-          series: seriesNames.map(name => ({
-            name: name || undefined,
+          series: seriesEntries.map(s => ({
+            name: s.name || undefined,
             type: 'scatter',
-            data: (groups.get(name) ?? []).map(item => Number(item[yField] ?? 0)),
+            data: s.data,
             symbolSize: 12,
           })),
         }

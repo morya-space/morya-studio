@@ -63,6 +63,7 @@ function openDataDialog() {
     dataSource: c.dataSource ? plain(c.dataSource) : undefined,
     dataSourceId: c.dataSourceId,
     bindings: {},
+    computedFields: c.computedFields ? plain(c.computedFields) : [],
   }
   dataDialog.value = true
 }
@@ -75,6 +76,7 @@ function closeDataDialog(commit: boolean) {
     store.updateCardFields(c.id, {
       dataSource: d.dataSource,
       dataSourceId: d.dataSourceId,
+      computedFields: d.computedFields?.length ? d.computedFields : undefined,
       ...d.bindings,
     })
     // 提交后刷新卡片数据，画布即时生效

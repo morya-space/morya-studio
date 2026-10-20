@@ -6,7 +6,6 @@
  */
 
 import { computed } from 'vue'
-import { MButton } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { listDataSources } from '../../services/datasource'
 import { getCardRegistration } from '../../engine/registry'
@@ -94,7 +93,7 @@ const emit = defineEmits<{ (e: 'edit'): void }>()
 </script>
 
 <template>
-  <MButton v-if="supportsDataConfig" type="default" class="data-card" aria-label="编辑数据配置" @click="emit('edit')">
+  <button v-if="supportsDataConfig" type="button" class="data-card" aria-label="编辑数据配置" @click="emit('edit')">
     <div class="data-card__head">
       <span class="data-card__icon"><SvgIcon name="database" :px="16" /></span>
       <span class="data-card__title">数据配置</span>
@@ -106,7 +105,7 @@ const emit = defineEmits<{ (e: 'edit'): void }>()
       <span v-for="c in chips" :key="c" class="data-card__chip">{{ c }}</span>
     </div>
     <span class="data-card__action">编辑配置</span>
-  </MButton>
+  </button>
 </template>
 
 <style scoped>
@@ -114,15 +113,19 @@ const emit = defineEmits<{ (e: 'edit'): void }>()
   position: relative;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 6px;
   padding: 14px;
   border: 1px solid var(--m-color-border);
   border-radius: var(--m-radius-lg, var(--m-radius-md));
   background: var(--m-color-surface);
   width: 100%;
-  height: auto;
+  cursor: pointer;
   text-align: left;
   font: inherit;
+  color: inherit;
+  appearance: none;
+  -webkit-appearance: none;
   transition: border-color var(--m-motion-fast, 150ms) var(--m-motion-ease, ease), box-shadow var(--m-motion-fast, 150ms) var(--m-motion-ease, ease), background-color var(--m-motion-fast, 150ms) var(--m-motion-ease, ease);
 }
 

@@ -91,6 +91,15 @@ export interface SqlConfig {
   limit?: number
 }
 
+// ==================== 计算列（v0.5） ====================
+
+export interface ComputedField {
+  /** 新字段名（不能与已有字段重名） */
+  name: string
+  /** 表达式（行上下文，如 row.revenue - row.cost） */
+  expr: string
+}
+
 // ==================== 数据转换管道（v0.2） ====================
 
 export type TransformStep =
@@ -121,7 +130,8 @@ export interface ChartYAxisConfig {
 export interface ChartConfig {
   chartType: ChartType
   xField?: string
-  yField?: string
+  /** 单字段或多字段（多度量时生成多个 series） */
+  yField?: string | string[]
   seriesField?: string
   /** 颜色调色板；缺省读 --m-chart-* token */
   colors?: string[]
@@ -344,6 +354,8 @@ export interface CardSchema {
   dataSource?: DataSourceConfig
   /** v0.2：数据转换管道（数据到达卡片前执行） */
   transform?: TransformStep[]
+  /** 计算列：在原始字段之上用表达式派生新字段，先于 transform 执行 */
+  computedFields?: ComputedField[]
 
   chart?: ChartConfig
   stat?: StatConfig

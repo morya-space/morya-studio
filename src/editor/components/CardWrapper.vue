@@ -36,6 +36,36 @@ const error = computed(() => dataStore.cardError.get(props.schema.id) ?? null)
 
 const needsDataSource = computed(() => cardNeedsDataSource(props.schema))
 
+interface BindingChip {
+  role: string
+  fields: string[]
+}
+
+/** 字段绑定摘要：根据注册契约从 schema 对应路径读出已绑字段 */
+const bindingChips = computed<BindingChip[]>(() => {
+  const roles = registration.value?.dataContract?.roles
+  if (!roles?.length) return []
+  const chips: BindingChip[] = []
+  for (const role of roles) {
+    if (!role.field) continue
+    const value = getByPath(props.schema as unknown as Record<string, unknown>, role.field)
+    const fields = Array.isArray(value)
+      ? value.filter((v): v is string => typeof v === 'string' && v.length > 0)
+      : typeof value === 'string' && value ? [value] : []
+    if (fields.length) chips.push({ role: role.label, fields })
+  }
+  return chips
+})
+
+function getByPath(source: Record<string, unknown>, path: string): unknown {
+  let value: unknown = source
+  for (const key of path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean)) {
+    if (!value || typeof value !== 'object') return undefined
+    value = (value as Record<string, unknown>)[key]
+  }
+  return value
+}
+
 const cols = computed(() => editorStore.page.grid?.cols ?? 12)
 const span = computed(() => Math.min(props.schema.span ?? cols.value, cols.value))
 const gridStyle = computed(() => ({ gridColumn: `span ${span}` }))
@@ -180,6 +210,14 @@ function onResizeEnd() {
       @click.stop
     />
 
+    <!-- 字段绑定摘要 -->
+    <div v-if="bindingChips.length" class="binding-summary">
+      <span v-for="chip in bindingChips" :key="chip.role" class="binding-chip">
+        <span class="binding-chip__role">{{ chip.role }}</span>
+        {{ chip.fields.join(', ') }}
+      </span>
+    </div>
+
     <!-- 选中指示角标 -->
     <div v-if="isSelected" class="card-wrapper__span-badge">{{ span }}/{{ cols }}</div>
   </div>
@@ -300,6 +338,42 @@ function onResizeEnd() {
   font-size: 11px;
   font-weight: 600;
   z-index: 5;
+}
+
+.binding-summary {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: calc(100% - 12px);
+  z-index: 6;
+  opacity: 0;
+  transition: opacity var(--m-motion-fast, 0.15s);
+  pointer-events: none;
+}
+
+.card-wrapper:hover .binding-summary,
+.card-wrapper.selected .binding-summary {
+  opacity: 1;
+}
+
+.binding-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: var(--m-radius-full, 999px);
+  background: color-mix(in srgb, var(--m-color-text) 78%, transparent);
+  color: var(--m-color-surface);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.binding-chip__role {
+  font-weight: 600;
+  opacity: 0.85;
 }
 
 /* 拖拽调整宽度手柄：选中/悬浮时可见 */

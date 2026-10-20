@@ -8,7 +8,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { CardSchema, DataSourceConfig } from '../types/schema'
 import { getAdapter } from './adapters'
-import { applyTransform } from './transform/pipeline'
+import { applyTransform, applyComputedFields } from './transform/pipeline'
 import { dataCache, buildCacheKey } from './cache'
 import { pollScheduler } from './scheduler'
 import { cardUsesData } from '../engine/utils'
@@ -167,7 +167,8 @@ export const useDataStore = defineStore('data', () => {
         if (cardRequests.get(card.id)?.consumerKey === consumerKey) cardRequests.delete(card.id)
       }
       if (activeLoads.get(card.id) !== loadId) return
-      const rows = applyTransform(raw, card.transform)
+      const enriched = applyComputedFields(raw, card.computedFields)
+      const rows = applyTransform(enriched, card.transform)
       cardData.value.set(card.id, rows)
 
       // 调度轮询（pollInterval > 0 才启动）

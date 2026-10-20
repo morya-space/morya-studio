@@ -4,10 +4,34 @@
  * 契约见 docs/DESIGN-DEV.md §5.5。
  */
 
-import type { TransformStep } from '../../types/schema'
+import type { ComputedField, TransformStep } from '../../types/schema'
 import { compileExpr } from './expr'
 
 type Row = Record<string, unknown>
+
+/**
+ * 计算列：为每行派生出新字段。
+ * 编译错误的字段跳过该行写入（不影响其它字段与原始数据）。
+ */
+export function applyComputedFields(rows: Row[], fields: ComputedField[] = []): Row[] {
+  if (!Array.isArray(rows) || fields.length === 0) return rows
+  const compiled = fields
+    .filter(f => f.name.trim() && f.expr.trim())
+    .map(f => {
+      try {
+        return { name: f.name.trim(), fn: compileExpr(f.expr) }
+      } catch {
+        return null
+      }
+    })
+    .filter((f): f is { name: string; fn: (row: Row) => unknown } => f !== null)
+  if (compiled.length === 0) return rows
+  return rows.map(row => {
+    const next: Row = { ...row }
+    for (const f of compiled) next[f.name] = f.fn(row)
+    return next
+  })
+}
 
 /**
  * 对 rows 依次应用 steps，返回处理后的新数组。
