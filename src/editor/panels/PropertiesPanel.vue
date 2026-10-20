@@ -127,10 +127,8 @@ watch(dataDialog, open => { if (!open) draft.value = null })
       <p v-if="!editorSchema.length" class="properties-panel__empty">该组件无可配置内容</p>
     </template>
 
-    <MDialog v-model="dataDialog" title="数据配置" width="760px">
-      <div class="data-dialog-body">
-        <DataPanel v-if="draft" :draft="draft" />
-      </div>
+    <MDialog v-model="dataDialog" class="data-dialog" title="数据配置">
+      <DataPanel v-if="draft" :draft="draft" />
       <template #footer>
         <MButton type="default" @click="closeDataDialog(false)">取消</MButton>
         <MButton type="primary" @click="closeDataDialog(true)">完成</MButton>
@@ -138,6 +136,15 @@ watch(dataDialog, open => { if (!open) draft.value = null })
     </MDialog>
   </div>
 </template>
+
+<style lang="scss">
+.data-dialog {
+
+  .m-dialog {
+    --m-dialog-width: 80rem;
+  }
+}
+</style>
 
 <style scoped>
 .properties-panel {
@@ -170,9 +177,4 @@ watch(dataDialog, open => { if (!open) draft.value = null })
   line-height: 1.5;
 }
 
-.data-dialog-body {
-  max-height: 66vh;
-  overflow: auto;
-  padding-right: 4px;
-}
 </style>

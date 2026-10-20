@@ -6,7 +6,7 @@
  */
 
 import { computed, ref, watch } from 'vue'
-import { MButton, MFormItem, MInput, MInputNumber, MSelect, MSegmented, MTag, MTextarea, message } from 'morya-ui'
+import { MButton, MFormItem, MInput, MInputNumber, MSelect, MSegmented, MTag, MTextarea, message, MScrollbar } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { useDataStore } from '../../data/store'
 import { listDataSources } from '../../services/datasource'
@@ -427,220 +427,269 @@ function downloadJson() {
   <div v-if="card" class="data-panel">
     <PanelTabs v-model="modeTab" :options="SOURCE_TABS" />
 
-    <!-- 动态请求 -->
-    <section v-if="mode === 'api'" class="dsec">
-      <p class="dsec__title">请求配置</p>
-      <MFormItem label="请求地址">
-        <div class="drow">
-          <MSelect v-model="method" :options="METHOD_OPTIONS" class="drow__method" />
-          <MInput v-model="url" placeholder="https://api.example.com/data" fluid />
+    <div class="flex-auto h-0">
+      <MScrollbar view-class="flex flex-col gap-4">
+        <!-- 动态请求 -->
+        <section v-if="mode === 'api'" class="dsec">
+          <p class="dsec__title">请求配置</p>
+          <MFormItem label="请求地址">
+            <div class="drow">
+              <MSelect v-model="method" :options="METHOD_OPTIONS" class="drow__method" />
+              <MInput v-model="url" placeholder="https://api.example.com/data" fluid />
+            </div>
+          </MFormItem>
+          <div class="dgrid">
+            <MFormItem label="更新间隔" help="0 = 仅初始化">
+              <MInputNumber v-model="pollInterval" :min="0" fluid />
+            </MFormItem>
+            <MFormItem label="单位">
+              <MSelect v-model="intervalUnit" :options="INTERVAL_OPTIONS" fluid />
+            </MFormItem>
+            <MFormItem label="超时(ms)" help="0 = 默认 15000">
+              <MInputNumber v-model="timeoutMs" :min="0" fluid />
+            </MFormItem>
+            <MFormItem label="取数路径" help="如 data.list">
+              <MInput v-model="dataPath" placeholder="留空取整个响应" fluid />
+            </MFormItem>
+            <MFormItem label="失败重试次数">
+              <MInputNumber v-model="retryCount" :min="0" :max="5" fluid />
+            </MFormItem>
+            <MFormItem label="重试间隔(ms)">
+              <MInputNumber v-model="retryDelay" :min="0" fluid />
+            </MFormItem>
+          </div>
+
+          <MFormItem label="请求参数">
+            <PanelTabs v-model="requestTab" :options="REQUEST_TABS" />
+          </MFormItem>
+          <KeyValueTable v-if="requestTab === 'params'" v-model="params" key-placeholder="参数名"
+            value-placeholder="值（支持 {{var}}）" />
+          <KeyValueTable v-else-if="requestTab === 'headers'" v-model="headers" key-placeholder="Header"
+            value-placeholder="值" />
+          <template v-else>
+            <MFormItem label="Body 类型">
+              <MSelect v-model="bodyType" :options="BODY_TYPE_OPTIONS" fluid />
+            </MFormItem>
+            <MFormItem v-if="bodyType === 'json' || bodyType === 'form'" label="Body 内容" help="留空则用请求参数生成">
+              <MTextarea v-model="body" :rows="4" fluid />
+            </MFormItem>
+          </template>
+
+          <p class="dsec__title">认证</p>
+          <div class="dgrid">
+            <MFormItem label="认证方式">
+              <MSelect v-model="authType" :options="[
+                { label: '无', value: 'none' },
+                { label: 'Bearer Token', value: 'bearer' },
+                { label: 'API Key', value: 'apikey' },
+                { label: 'Basic', value: 'basic' },
+              ]" fluid />
+            </MFormItem>
+          </div>
+          <template v-if="authType === 'bearer'">
+            <MFormItem label="Token">
+              <MInput :model-value="inlineDs.auth?.token ?? ''"
+                @update:model-value="patchAuth({ token: $event as string })" fluid />
+            </MFormItem>
+          </template>
+          <div v-else-if="authType === 'apikey'" class="dgrid">
+            <MFormItem label="Header 名">
+              <MInput :model-value="inlineDs.auth?.apiKeyName ?? ''" placeholder="X-API-Key"
+                @update:model-value="patchAuth({ apiKeyName: $event as string })" fluid />
+            </MFormItem>
+            <MFormItem label="值">
+              <MInput :model-value="inlineDs.auth?.apiKeyValue ?? ''"
+                @update:model-value="patchAuth({ apiKeyValue: $event as string })" fluid />
+            </MFormItem>
+          </div>
+          <div v-else-if="authType === 'basic'" class="dgrid">
+            <MFormItem label="用户名">
+              <MInput :model-value="inlineDs.auth?.username ?? ''"
+                @update:model-value="patchAuth({ username: $event as string })" fluid />
+            </MFormItem>
+            <MFormItem label="密码">
+              <MInput type="password" :model-value="inlineDs.auth?.password ?? ''"
+                @update:model-value="patchAuth({ password: $event as string })" fluid />
+            </MFormItem>
+          </div>
+
+          <div class="dsec__actions">
+            <MButton type="primary" size="small" :loading="testing" @click="runTest">测试</MButton>
+          </div>
+        </section>
+
+        <!-- Mock -->
+        <section v-else-if="mode === 'mock'" class="dsec">
+          <p class="dsec__title">Mock 配置</p>
+          <MFormItem label="数据方式">
+            <MSegmented v-model="mockModeTab" :options="MOCK_MODE_OPTIONS" />
+          </MFormItem>
+          <MFormItem v-if="mockModeTab === 'template'" label="Mock 模板" required
+            help='JSON 模板 + {{int 1 100}} 等占位符；顶层 {{repeat N}} 生成 N 行'>
+            <MTextarea v-model="mockTemplate" :rows="8" fluid
+              placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
+          </MFormItem>
+          <MFormItem v-else label="固定数据(JSON)" required help="直接作为结果返回，不随机生成">
+            <MTextarea :model-value="staticText" :rows="8" fluid @update:model-value="staticText = $event as string" />
+          </MFormItem>
+          <div class="dsec__actions">
+            <MButton v-if="mockModeTab === 'template'" type="default" size="small" :disabled="!inlineDs.mockTemplate"
+              @click="formatMockTemplateText">
+              格式化
+            </MButton>
+            <MButton v-else type="default" size="small" @click="formatMockStatic">格式化</MButton>
+            <MButton type="primary" size="small" :loading="testing" @click="runTest">测试</MButton>
+          </div>
+        </section>
+
+        <!-- WebSocket -->
+        <section v-else-if="mode === 'websocket'" class="dsec">
+          <p class="dsec__title">WebSocket 配置</p>
+          <MFormItem label="地址(wsUrl)">
+            <MInput v-model="wsUrl" placeholder="wss://example.com/live" fluid />
+          </MFormItem>
+          <div class="dgrid">
+            <MFormItem label="消息路径" help="如 data.list">
+              <MInput v-model="wsMessagePath" placeholder="留空取整条消息" fluid />
+            </MFormItem>
+            <MFormItem label="聚合方式">
+              <MSelect v-model="wsAggregate" :options="[
+                { label: '首条', value: 'first' },
+                { label: '追加', value: 'append' },
+                { label: '覆盖', value: 'replace' },
+              ]" fluid />
+            </MFormItem>
+            <MFormItem label="超时(ms)" help="收集窗口">
+              <MInputNumber v-model="timeoutMs" :min="0" fluid />
+            </MFormItem>
+          </div>
+          <div class="dsec__actions">
+            <MButton type="primary" size="small" :loading="testing" @click="runTest">测试</MButton>
+          </div>
+        </section>
+
+        <!-- SQL -->
+        <section v-else-if="mode === 'sql'" class="dsec">
+          <p class="dsec__title">SQL 配置</p>
+          <p class="dsec__hint">经后端代理执行只读查询（仅允许 SELECT / WITH）</p>
+          <div class="dgrid">
+            <MFormItem label="数据库类型">
+              <MSelect :model-value="sql.driver ?? 'mysql'" @update:model-value="patchSql({ driver: $event })" :options="[
+                { label: 'MySQL', value: 'mysql' },
+                { label: 'PostgreSQL', value: 'postgresql' },
+                { label: 'SQL Server', value: 'sqlserver' },
+              ]" fluid />
+            </MFormItem>
+            <MFormItem label="主机">
+              <MInput :model-value="sql.host ?? ''" placeholder="localhost"
+                @update:model-value="patchSql({ host: $event })" fluid />
+            </MFormItem>
+            <MFormItem label="端口">
+              <MInputNumber :model-value="sql.port ?? 3306" :min="1" :max="65535"
+                @update:model-value="patchSql({ port: $event })" fluid />
+            </MFormItem>
+            <MFormItem label="数据库名">
+              <MInput :model-value="sql.database ?? ''" @update:model-value="patchSql({ database: $event })" fluid />
+            </MFormItem>
+            <MFormItem label="用户名">
+              <MInput :model-value="sql.user ?? ''" @update:model-value="patchSql({ user: $event })" fluid />
+            </MFormItem>
+            <MFormItem label="密码">
+              <MInput type="password" :model-value="sql.password ?? ''"
+                @update:model-value="patchSql({ password: $event })" fluid />
+            </MFormItem>
+            <MFormItem label="行数上限">
+              <MInputNumber :model-value="sql.limit ?? 1000" :min="1" :max="5000"
+                @update:model-value="patchSql({ limit: $event })" fluid />
+            </MFormItem>
+          </div>
+          <MFormItem label="查询语句" help="仅允许 SELECT / WITH 只读查询">
+            <MTextarea :model-value="sql.query ?? ''" :rows="5" placeholder="SELECT * FROM orders LIMIT 100"
+              @update:model-value="patchSql({ query: $event })" fluid />
+          </MFormItem>
+          <div class="dsec__actions">
+            <MButton type="primary" size="small" :loading="testing" @click="runTest">测试查询</MButton>
+          </div>
+        </section>
+
+        <!-- 引用数据源 -->
+        <section v-else class="dsec">
+          <p class="dsec__title">引用数据源</p>
+          <MFormItem label="选择数据源">
+            <MSelect v-model="dataSourceId" :options="savedDataSourceOptions" fluid allow-clear />
+          </MFormItem>
+          <div v-if="referenced" class="dinfo">
+            <MTag type="primary" size="small">{{ referenced.type }}</MTag>
+            <span class="dinfo__name">{{ referenced.name }}</span>
+          </div>
+          <p v-else class="dsec__hint">未选择数据源</p>
+          <div class="dsec__actions">
+            <MButton type="default" size="small" @click="openDataSources">去数据源管理</MButton>
+            <MButton type="primary" size="small" :disabled="!referenced" :loading="testing" @click="runTest">测试
+            </MButton>
+          </div>
+        </section>
+
+        <!-- 测试结果 -->
+        <DataResultPanel :result="result" :loading="testing" />
+
+        <!-- 过滤器 / 转换 -->
+        <p class="data-sec">过滤器 / 数据转换</p>
+        <TransformEditor />
+
+        <!-- 计算列 -->
+        <p class="data-sec">计算列</p>
+        <p class="dsec__hint">基于原始字段派生新字段，可在下方字段映射中使用</p>
+        <ComputedFieldsEditor :fields="getComputedFields()" :profiles="fieldProfiles"
+          @update:fields="setComputedFields" />
+
+        <!-- 数据映射 -->
+        <p class="data-sec">数据映射</p>
+        <div v-if="dataRoles.length" class="dfields">
+          <MFormItem v-for="role in dataRoles" :key="role.name" :label="role.label" :required="role.required"
+            :help="fieldProfiles.length ? undefined : '暂无数据，先测试或绑定数据源'">
+            <FieldSelect :profiles="fieldProfiles" :accepted-types="role.acceptedTypes" :value="roleValue(role)"
+              :multiple="role.multiple" :disabled="!fieldProfiles.length" @update:value="setRole(role, $event)" />
+          </MFormItem>
         </div>
-      </MFormItem>
-      <div class="dgrid">
-        <MFormItem label="更新间隔" help="0 = 仅初始化">
-          <MInputNumber v-model="pollInterval" :min="0" fluid />
-        </MFormItem>
-        <MFormItem label="单位"><MSelect v-model="intervalUnit" :options="INTERVAL_OPTIONS" fluid /></MFormItem>
-        <MFormItem label="超时(ms)" help="0 = 默认 15000"><MInputNumber v-model="timeoutMs" :min="0" fluid /></MFormItem>
-        <MFormItem label="取数路径" help="如 data.list"><MInput v-model="dataPath" placeholder="留空取整个响应" fluid /></MFormItem>
-        <MFormItem label="失败重试次数"><MInputNumber v-model="retryCount" :min="0" :max="5" fluid /></MFormItem>
-        <MFormItem label="重试间隔(ms)"><MInputNumber v-model="retryDelay" :min="0" fluid /></MFormItem>
-      </div>
+        <p v-else class="dsec__hint">该组件暂无可配置的数据字段映射</p>
 
-      <MFormItem label="请求参数">
-        <PanelTabs v-model="requestTab" :options="REQUEST_TABS" />
-      </MFormItem>
-      <KeyValueTable v-if="requestTab === 'params'" v-model="params" key-placeholder="参数名" value-placeholder="值（支持 {{var}}）" />
-      <KeyValueTable v-else-if="requestTab === 'headers'" v-model="headers" key-placeholder="Header" value-placeholder="值" />
-      <template v-else>
-        <MFormItem label="Body 类型"><MSelect v-model="bodyType" :options="BODY_TYPE_OPTIONS" fluid /></MFormItem>
-        <MFormItem v-if="bodyType === 'json' || bodyType === 'form'" label="Body 内容" help="留空则用请求参数生成">
-          <MTextarea v-model="body" :rows="4" fluid />
-        </MFormItem>
-      </template>
+        <!-- 数据内容 -->
+        <div class="data-sec-row">
+          <p class="data-sec">数据内容</p>
+          <PanelTabs v-model="contentView"
+            :options="[{ label: '表格', value: 'table' }, { label: 'JSON', value: 'json' }]" />
+        </div>
+        <div v-if="rows.length" class="dcontent">
+          <table v-if="contentView === 'table'" class="dcontent__table">
+            <thead>
+              <tr>
+                <th v-for="f in fields" :key="f">{{ f }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, i) in previewRows" :key="i">
+                <td v-for="f in fields" :key="f">{{ row[f] ?? '' }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <pre v-else class="dcontent__json">{{ contentJson }}</pre>
+        </div>
+        <p v-else class="dsec__hint">暂无数据</p>
+        <div v-if="rows.length" class="dsec__actions">
+          <MButton type="default" size="small" @click="downloadJson">下载 JSON</MButton>
+        </div>
+      </MScrollbar>
 
-      <p class="dsec__title">认证</p>
-      <div class="dgrid">
-        <MFormItem label="认证方式">
-          <MSelect v-model="authType" :options="[
-            { label: '无', value: 'none' },
-            { label: 'Bearer Token', value: 'bearer' },
-            { label: 'API Key', value: 'apikey' },
-            { label: 'Basic', value: 'basic' },
-          ]" fluid />
-        </MFormItem>
-      </div>
-      <template v-if="authType === 'bearer'">
-        <MFormItem label="Token"><MInput :model-value="inlineDs.auth?.token ?? ''" @update:model-value="patchAuth({ token: $event as string })" fluid /></MFormItem>
-      </template>
-      <div v-else-if="authType === 'apikey'" class="dgrid">
-        <MFormItem label="Header 名"><MInput :model-value="inlineDs.auth?.apiKeyName ?? ''" placeholder="X-API-Key" @update:model-value="patchAuth({ apiKeyName: $event as string })" fluid /></MFormItem>
-        <MFormItem label="值"><MInput :model-value="inlineDs.auth?.apiKeyValue ?? ''" @update:model-value="patchAuth({ apiKeyValue: $event as string })" fluid /></MFormItem>
-      </div>
-      <div v-else-if="authType === 'basic'" class="dgrid">
-        <MFormItem label="用户名"><MInput :model-value="inlineDs.auth?.username ?? ''" @update:model-value="patchAuth({ username: $event as string })" fluid /></MFormItem>
-        <MFormItem label="密码"><MInput type="password" :model-value="inlineDs.auth?.password ?? ''" @update:model-value="patchAuth({ password: $event as string })" fluid /></MFormItem>
-      </div>
-
-      <div class="dsec__actions">
-        <MButton type="primary" size="small" :loading="testing" @click="runTest">测试</MButton>
-      </div>
-    </section>
-
-    <!-- Mock -->
-    <section v-else-if="mode === 'mock'" class="dsec">
-      <p class="dsec__title">Mock 配置</p>
-      <MFormItem label="数据方式">
-        <MSegmented v-model="mockModeTab" :options="MOCK_MODE_OPTIONS" />
-      </MFormItem>
-      <MFormItem v-if="mockModeTab === 'template'" label="Mock 模板" required help='JSON 模板 + {{int 1 100}} 等占位符；顶层 {{repeat N}} 生成 N 行'>
-        <MTextarea v-model="mockTemplate" :rows="8" fluid placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
-      </MFormItem>
-      <MFormItem v-else label="固定数据(JSON)" required help="直接作为结果返回，不随机生成">
-        <MTextarea :model-value="staticText" :rows="8" fluid @update:model-value="staticText = $event as string" />
-      </MFormItem>
-      <div class="dsec__actions">
-        <MButton
-          v-if="mockModeTab === 'template'"
-          type="default"
-          size="small"
-          :disabled="!inlineDs.mockTemplate"
-          @click="formatMockTemplateText"
-        >
-          格式化
-        </MButton>
-        <MButton v-else type="default" size="small" @click="formatMockStatic">格式化</MButton>
-        <MButton type="primary" size="small" :loading="testing" @click="runTest">测试</MButton>
-      </div>
-    </section>
-
-    <!-- WebSocket -->
-    <section v-else-if="mode === 'websocket'" class="dsec">
-      <p class="dsec__title">WebSocket 配置</p>
-      <MFormItem label="地址(wsUrl)"><MInput v-model="wsUrl" placeholder="wss://example.com/live" fluid /></MFormItem>
-      <div class="dgrid">
-        <MFormItem label="消息路径" help="如 data.list"><MInput v-model="wsMessagePath" placeholder="留空取整条消息" fluid /></MFormItem>
-        <MFormItem label="聚合方式">
-          <MSelect v-model="wsAggregate" :options="[
-            { label: '首条', value: 'first' },
-            { label: '追加', value: 'append' },
-            { label: '覆盖', value: 'replace' },
-          ]" fluid />
-        </MFormItem>
-        <MFormItem label="超时(ms)" help="收集窗口"><MInputNumber v-model="timeoutMs" :min="0" fluid /></MFormItem>
-      </div>
-      <div class="dsec__actions">
-        <MButton type="primary" size="small" :loading="testing" @click="runTest">测试</MButton>
-      </div>
-    </section>
-
-    <!-- SQL -->
-    <section v-else-if="mode === 'sql'" class="dsec">
-      <p class="dsec__title">SQL 配置</p>
-      <p class="dsec__hint">经后端代理执行只读查询（仅允许 SELECT / WITH）</p>
-      <div class="dgrid">
-        <MFormItem label="数据库类型">
-          <MSelect :model-value="sql.driver ?? 'mysql'" @update:model-value="patchSql({ driver: $event })" :options="[
-            { label: 'MySQL', value: 'mysql' },
-            { label: 'PostgreSQL', value: 'postgresql' },
-            { label: 'SQL Server', value: 'sqlserver' },
-          ]" fluid />
-        </MFormItem>
-        <MFormItem label="主机"><MInput :model-value="sql.host ?? ''" placeholder="localhost" @update:model-value="patchSql({ host: $event })" fluid /></MFormItem>
-        <MFormItem label="端口"><MInputNumber :model-value="sql.port ?? 3306" :min="1" :max="65535" @update:model-value="patchSql({ port: $event })" fluid /></MFormItem>
-        <MFormItem label="数据库名"><MInput :model-value="sql.database ?? ''" @update:model-value="patchSql({ database: $event })" fluid /></MFormItem>
-        <MFormItem label="用户名"><MInput :model-value="sql.user ?? ''" @update:model-value="patchSql({ user: $event })" fluid /></MFormItem>
-        <MFormItem label="密码"><MInput type="password" :model-value="sql.password ?? ''" @update:model-value="patchSql({ password: $event })" fluid /></MFormItem>
-        <MFormItem label="行数上限"><MInputNumber :model-value="sql.limit ?? 1000" :min="1" :max="5000" @update:model-value="patchSql({ limit: $event })" fluid /></MFormItem>
-      </div>
-      <MFormItem label="查询语句" help="仅允许 SELECT / WITH 只读查询">
-        <MTextarea :model-value="sql.query ?? ''" :rows="5" placeholder="SELECT * FROM orders LIMIT 100" @update:model-value="patchSql({ query: $event })" fluid />
-      </MFormItem>
-      <div class="dsec__actions">
-        <MButton type="primary" size="small" :loading="testing" @click="runTest">测试查询</MButton>
-      </div>
-    </section>
-
-    <!-- 引用数据源 -->
-    <section v-else class="dsec">
-      <p class="dsec__title">引用数据源</p>
-      <MFormItem label="选择数据源">
-        <MSelect v-model="dataSourceId" :options="savedDataSourceOptions" fluid allow-clear />
-      </MFormItem>
-      <div v-if="referenced" class="dinfo">
-        <MTag type="primary" size="small">{{ referenced.type }}</MTag>
-        <span class="dinfo__name">{{ referenced.name }}</span>
-      </div>
-      <p v-else class="dsec__hint">未选择数据源</p>
-      <div class="dsec__actions">
-        <MButton type="default" size="small" @click="openDataSources">去数据源管理</MButton>
-        <MButton type="primary" size="small" :disabled="!referenced" :loading="testing" @click="runTest">测试</MButton>
-      </div>
-    </section>
-
-    <!-- 测试结果 -->
-    <DataResultPanel :result="result" :loading="testing" />
-
-    <!-- 过滤器 / 转换 -->
-    <p class="data-sec">过滤器 / 数据转换</p>
-    <TransformEditor />
-
-    <!-- 计算列 -->
-    <p class="data-sec">计算列</p>
-    <p class="dsec__hint">基于原始字段派生新字段，可在下方字段映射中使用</p>
-    <ComputedFieldsEditor
-      :fields="getComputedFields()"
-      :profiles="fieldProfiles"
-      @update:fields="setComputedFields"
-    />
-
-    <!-- 数据映射 -->
-    <p class="data-sec">数据映射</p>
-    <div v-if="dataRoles.length" class="dfields">
-      <MFormItem
-        v-for="role in dataRoles"
-        :key="role.name"
-        :label="role.label"
-        :required="role.required"
-        :help="fieldProfiles.length ? undefined : '暂无数据，先测试或绑定数据源'"
-      >
-        <FieldSelect
-          :profiles="fieldProfiles"
-          :accepted-types="role.acceptedTypes"
-          :value="roleValue(role)"
-          :multiple="role.multiple"
-          :disabled="!fieldProfiles.length"
-          @update:value="setRole(role, $event)"
-        />
-      </MFormItem>
-    </div>
-    <p v-else class="dsec__hint">该组件暂无可配置的数据字段映射</p>
-
-    <!-- 数据内容 -->
-    <div class="data-sec-row">
-      <p class="data-sec">数据内容</p>
-      <PanelTabs v-model="contentView" :options="[{ label: '表格', value: 'table' }, { label: 'JSON', value: 'json' }]" />
-    </div>
-    <div v-if="rows.length" class="dcontent">
-      <table v-if="contentView === 'table'" class="dcontent__table">
-        <thead><tr><th v-for="f in fields" :key="f">{{ f }}</th></tr></thead>
-        <tbody>
-          <tr v-for="(row, i) in previewRows" :key="i">
-            <td v-for="f in fields" :key="f">{{ row[f] ?? '' }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <pre v-else class="dcontent__json">{{ contentJson }}</pre>
-    </div>
-    <p v-else class="dsec__hint">暂无数据</p>
-    <div v-if="rows.length" class="dsec__actions">
-      <MButton type="default" size="small" @click="downloadJson">下载 JSON</MButton>
     </div>
   </div>
 </template>
 
 <style scoped>
 .data-panel {
+  width: 100%;
+  height: 60vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 14px;
