@@ -36,74 +36,61 @@ async function removeCard() {
   <div v-if="card" class="layout-panel">
     <MForm>
       <div v-if="isFree" class="field-2">
-      <MFormItem label="X">
-        <MInputNumber :model-value="card.x ?? 0" :min="0" fluid
-          @update:model-value="setGeometry('x', $event as number | undefined)" />
-      </MFormItem>
-      <MFormItem label="Y">
-        <MInputNumber :model-value="card.y ?? 0" :min="0" fluid
-          @update:model-value="setGeometry('y', $event as number | undefined)" />
-      </MFormItem>
-      <MFormItem label="宽">
-        <MInputNumber :model-value="card.w ?? 0" :min="24" fluid
-          @update:model-value="setGeometry('w', $event as number | undefined)" />
-      </MFormItem>
-      <MFormItem label="高">
-        <MInputNumber :model-value="card.h ?? 0" :min="1" fluid
-          @update:model-value="setGeometry('h', $event as number | undefined)" />
-      </MFormItem>
-    </div>
+        <MFormItem label="X">
+          <MInputNumber :model-value="card.x ?? 0" :min="0" fluid
+            @update:model-value="setGeometry('x', $event as number | undefined)" />
+        </MFormItem>
+        <MFormItem label="Y">
+          <MInputNumber :model-value="card.y ?? 0" :min="0" fluid
+            @update:model-value="setGeometry('y', $event as number | undefined)" />
+        </MFormItem>
+        <MFormItem label="宽">
+          <MInputNumber :model-value="card.w ?? 0" :min="24" fluid
+            @update:model-value="setGeometry('w', $event as number | undefined)" />
+        </MFormItem>
+        <MFormItem label="高">
+          <MInputNumber :model-value="card.h ?? 0" :min="1" fluid
+            @update:model-value="setGeometry('h', $event as number | undefined)" />
+        </MFormItem>
+      </div>
       <MFormItem v-else label="跨列数">
-      <MInputNumber
-        :model-value="card.span ?? 6"
-        :min="1"
-        :max="store.page.grid?.cols ?? 12"
-        fluid
-        @update:model-value="store.resizeCard(card.id, Number($event ?? 6))"
-      />
+        <MInputNumber :model-value="card.span ?? 6" :min="1" :max="store.page.grid?.cols ?? 12" fluid
+          @update:model-value="store.resizeCard(card.id, Number($event ?? 6))" />
       </MFormItem>
     </MForm>
 
     <section class="layout-panel__group">
       <p class="layout-panel__label">层级</p>
       <div class="op-row">
-      <MButton type="default" size="small" block @click="store.bringForward(card.id)">
-        <SvgIcon name="arrow-up-right" :px="12" /> 上移一层
-      </MButton>
-      <MButton type="default" size="small" block @click="store.sendBackward(card.id)">
-        <SvgIcon name="arrow-down-right" :px="12" /> 下移一层
-      </MButton>
+        <MButton type="default" size="small" block @click="store.bringForward(card.id)">
+          <SvgIcon name="arrow-up-right" :px="12" /> 上移一层
+        </MButton>
+        <MButton type="default" size="small" block @click="store.sendBackward(card.id)">
+          <SvgIcon name="arrow-down-right" :px="12" /> 下移一层
+        </MButton>
       </div>
       <div class="op-row">
-      <MButton type="default" size="small" block @click="store.bringTo(card.id, 'front')">置顶</MButton>
-      <MButton type="default" size="small" block @click="store.bringTo(card.id, 'back')">置底</MButton>
+        <MButton type="default" size="small" block @click="store.bringTo(card.id, 'front')">置顶</MButton>
+        <MButton type="default" size="small" block @click="store.bringTo(card.id, 'back')">置底</MButton>
       </div>
     </section>
     <section class="layout-panel__group">
       <p class="layout-panel__label">状态与操作</p>
       <div class="op-row">
-      <MButton
-        type="default"
-        size="small" block
-        @click="store.setCardStatus(card.id, { lock: !card.status?.lock })"
-      >
-        <SvgIcon name="lock" :px="12" /> {{ card.status?.lock ? '解锁' : '锁定' }}
-      </MButton>
-      <MButton
-        type="default"
-        size="small" block
-        @click="store.setCardStatus(card.id, { hide: !card.status?.hide })"
-      >
-        <SvgIcon :name="card.status?.hide ? 'eye-off' : 'eye'" :px="12" /> {{ card.status?.hide ? '显示' : '隐藏' }}
-      </MButton>
+        <MButton type="default" size="small" block @click="store.setCardStatus(card.id, { lock: !card.status?.lock })">
+          <SvgIcon name="lock" :px="12" /> {{ card.status?.lock ? '解锁' : '锁定' }}
+        </MButton>
+        <MButton type="default" size="small" block @click="store.setCardStatus(card.id, { hide: !card.status?.hide })">
+          <SvgIcon :name="card.status?.hide ? 'eye-off' : 'eye'" :px="12" /> {{ card.status?.hide ? '显示' : '隐藏' }}
+        </MButton>
       </div>
       <div class="op-row">
-      <MButton type="default" size="small" block @click="store.duplicateCard(card.id)">
-        <SvgIcon name="plus" :px="12" /> 复制
-      </MButton>
-      <MButton danger size="small" block @click="removeCard">
-        <SvgIcon name="x" :px="12" /> 删除
-      </MButton>
+        <MButton type="default" size="small" block @click="store.duplicateCard(card.id)">
+          <SvgIcon name="plus" :px="12" /> 复制
+        </MButton>
+        <MButton danger size="small" block @click="removeCard">
+          <SvgIcon name="x" :px="12" /> 删除
+        </MButton>
       </div>
     </section>
   </div>

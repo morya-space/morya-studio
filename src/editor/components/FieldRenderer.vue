@@ -34,45 +34,19 @@ const selectOptions = computed(() => {
 
 <template>
   <div class="field-renderer">
-    <MSwitch
-      v-if="field.component === 'MSwitch'"
-      v-model="(value as boolean)"
-    />
-    <MInputNumber
-      v-else-if="field.component === 'MInputNumber'"
-      v-model="(value as number)"
-      fluid
-      v-bind="field.props"
-    />
-    <MSelect
-      v-else-if="field.component === 'MSelect'"
-      v-model="(value as string | number | undefined)"
-      :options="selectOptions"
-      fluid
-      clearable
-      :not-found-content="dataFieldHint ?? '暂无可选字段'"
-      v-bind="field.props"
-    />
-    <MTextarea
-      v-else-if="field.component === 'MTextarea'"
-      v-model="(value as string)"
-      :rows="3"
-      fluid
-      v-bind="field.props"
-    />
-    <MColorPicker
-      v-else-if="field.component === 'MColorPicker'"
-      v-model="(value as string)"
-      format="hex"
-      clearable
-      v-bind="field.props"
-    />
-    <MInput
-      v-else
-      v-model="(value as string)"
-      fluid
-      v-bind="field.props"
-    />
+    <MSwitch v-if="field.component === 'MSwitch'" v-model="(value as boolean)" />
+    <MInputNumber v-else-if="field.component === 'MInputNumber'" v-model="(value as number)" fluid v-bind="field.props">
+      <template #suffix>
+        px
+      </template>
+    </MInputNumber>
+    <MSelect v-else-if="field.component === 'MSelect'" v-model="(value as string | number | undefined)"
+      :options="selectOptions" fluid clearable :not-found-content="dataFieldHint ?? '暂无可选字段'" v-bind="field.props" />
+    <MTextarea v-else-if="field.component === 'MTextarea'" v-model="(value as string)" :rows="3" fluid
+      v-bind="field.props" />
+    <MColorPicker v-else-if="field.component === 'MColorPicker'" v-model="(value as string)" format="hex" clearable
+      v-bind="field.props" />
+    <MInput v-else v-model="(value as string)" fluid v-bind="field.props" />
   </div>
   <p v-if="dataFieldHint" class="field-renderer__hint">{{ dataFieldHint }}</p>
 </template>
