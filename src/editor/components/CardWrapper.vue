@@ -156,33 +156,33 @@ function onResizeEnd() {
       <span class="card-toolbar__label">{{ registration?.label ?? schema.type }}</span>
       <div class="card-toolbar__actions">
         <MTooltip content="缩小跨度">
-          <button class="tool-btn" :disabled="span <= 1" @click="resize(-1, $event)">
+          <button class="tool-btn" :disabled="span <= 1" aria-label="缩小跨度" @click="resize(-1, $event)">
             <SvgIcon name="chevron-left" :px="14" />
           </button>
         </MTooltip>
         <MTooltip content="扩大跨度">
-          <button class="tool-btn" :disabled="span >= cols" @click="resize(1, $event)">
+          <button class="tool-btn" :disabled="span >= cols" aria-label="扩大跨度" @click="resize(1, $event)">
             <SvgIcon name="chevron-right" :px="14" />
           </button>
         </MTooltip>
         <span class="tool-divider" />
         <MTooltip content="上移">
-          <button class="tool-btn" :disabled="isFirst" @click="onMove('up', $event)">
+          <button class="tool-btn" :disabled="isFirst" aria-label="上移" @click="onMove('up', $event)">
             <SvgIcon name="chevron-up" :px="14" />
           </button>
         </MTooltip>
         <MTooltip content="下移">
-          <button class="tool-btn" :disabled="isLast" @click="onMove('down', $event)">
+          <button class="tool-btn" :disabled="isLast" aria-label="下移" @click="onMove('down', $event)">
             <SvgIcon name="chevron-down" :px="14" />
           </button>
         </MTooltip>
         <MTooltip content="复制">
-          <button class="tool-btn" @click="onDuplicate">
+          <button class="tool-btn" aria-label="复制" @click="onDuplicate">
             <SvgIcon name="plus" :px="14" />
           </button>
         </MTooltip>
         <MTooltip content="删除">
-          <button class="tool-btn tool-btn--danger" @click="onRemove">
+          <button class="tool-btn tool-btn--danger" aria-label="删除" @click="onRemove">
             <SvgIcon name="x" :px="14" />
           </button>
         </MTooltip>

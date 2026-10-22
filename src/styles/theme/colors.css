@@ -19,6 +19,7 @@
   --m-radius-lg: 20px;
   --m-radius-md: 12px;
   --m-radius-sm: 8px;
+  --m-radius-xs: 4px;
 
   /* 阴影 */
   --m-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04);

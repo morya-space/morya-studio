@@ -16,8 +16,8 @@ import {
   MFormItem,
   MInput,
   MSelect,
+  MStatus,
   MTable,
-  MTag,
   message,
   useConfirm,
   type TableColumnDefinition,
@@ -427,9 +427,8 @@ function fmtDate(iso?: string): string {
                 />
               </template>
               <template #cell-status="{ row }">
-                <MTag :type="row.status === 'active' ? 'success' : 'danger'" size="small">
-                  {{ row.status === 'active' ? t('settings.memberStatusActive') : t('settings.memberStatusDisabled') }}
-                </MTag>
+                <MStatus :type="row.status === 'active' ? 'success' : 'danger'" size="small"
+                  :label="row.status === 'active' ? t('settings.memberStatusActive') : t('settings.memberStatusDisabled')" />
               </template>
               <template #cell-joined="{ row }">
                 <span class="member-cell__joined">{{ fmtDate(row.createdAt) }}</span>

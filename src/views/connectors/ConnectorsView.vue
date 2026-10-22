@@ -398,6 +398,7 @@ const nextLabel = computed(() =>
       <p class="section__title">{{ t('connectors.quickEntry') }}</p>
       <div class="entry-grid">
         <MCard class="entry" shadow="always" :bordered="false" role="button" tabindex="0"
+          :aria-label="t('connectors.entryFile')"
           @click="openWizard('file')" @keydown.enter="openWizard('file')">
           <span class="entry__icon">
             <SvgIcon name="upload" :px="20" />
@@ -406,6 +407,7 @@ const nextLabel = computed(() =>
           <span class="entry__desc">{{ t('connectors.entryFileDesc') }}</span>
         </MCard>
         <MCard class="entry" shadow="always" :bordered="false" role="button" tabindex="0"
+          :aria-label="t('connectors.entryDb')"
           @click="openWizard('db')" @keydown.enter="openWizard('db')">
           <span class="entry__icon">
             <SvgIcon name="database" :px="20" />
@@ -414,6 +416,7 @@ const nextLabel = computed(() =>
           <span class="entry__desc">{{ t('connectors.entryDbDesc') }}</span>
         </MCard>
         <MCard class="entry" shadow="always" :bordered="false" role="button" tabindex="0"
+          :aria-label="t('connectors.entryApi')"
           @click="openWizard('api')" @keydown.enter="openWizard('api')">
           <span class="entry__icon">
             <SvgIcon name="api" :px="20" />
