@@ -95,9 +95,13 @@ function onSelect(item: { key?: string }) {
   flex: 1;
   width: 100%;
   padding: 0 16px;
+  box-sizing: border-box;
 }
 
-/* Keep the current rail look on top of MMenu */
+/* Keep the current rail look on top of MMenu (morya-ui ≥ 0.5.5).
+   The library now renders collapsed items as grid with an inline
+   `padding-inline-start: collapsedWidth/2 - 10` for icon centering —
+   we keep that mechanism and only adjust geometry / colors. */
 .sidebar-nav :deep(.m-menu) {
   display: flex;
   flex-direction: column;
@@ -110,23 +114,25 @@ function onSelect(item: { key?: string }) {
   height: 44px;
   margin: 0 auto;
   padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .sidebar-nav :deep(.m-menu__item-content) {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
   color: var(--m-color-text-muted);
   transition:
     background-color 0.2s,
     color 0.2s;
+}
+
+/* Library-inline padding-inline-start would double-center the icon;
+   zero it out and let grid place the icon dead-center instead. */
+.sidebar-nav :deep(.m-menu--collapsed .m-menu__item-content) {
+  padding-inline-start: 0 !important;
+  grid-template-columns: 1fr;
+  justify-items: center;
 }
 
 /* Make the library-painted background surface fill the full 44×44 rail slot,
@@ -163,7 +169,10 @@ function onSelect(item: { key?: string }) {
   color: var(--m-color-surface);
 }
 
-.sidebar-nav :deep(.m-menu__icon) {
+/* Collapsed rail: kill the icon's inline-end margin (label is hidden),
+   otherwise the icon gets pushed off-center. */
+.sidebar-nav :deep(.m-menu--collapsed .m-menu__icon) {
   margin: 0;
+  margin-inline-end: 0;
 }
 </style>
