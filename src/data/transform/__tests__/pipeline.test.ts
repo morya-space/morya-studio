@@ -116,4 +116,47 @@ describe('applyTransform', () => {
     expect(out[0]).toHaveProperty('dealCount')
     expect(out[0]).not.toHaveProperty('total')
   })
+
+  it('filter with whitelisted includes() (自助取数“包含”)', () => {
+    const out = applyTransform(rows, [{ op: 'filter', expr: 'includes(city, "jing")' }])
+    expect(out).toHaveLength(2)
+    expect(out.every(r => String(r.city).includes('jing'))).toBe(true)
+  })
+
+  it('invalid filter expr is skipped, not crash', () => {
+    const out = applyTransform(rows, [{ op: 'filter', expr: 'foo(bar' }])
+    expect(out).toHaveLength(rows.length) // 步骤被跳过，数据保留
+  })
+
+  it('invalid map expr is skipped, not crash', () => {
+    const out = applyTransform(rows, [{ op: 'map', expr: 'foo((' }])
+    expect(out).toHaveLength(rows.length)
+    expect(out[0]).not.toHaveProperty('_value')
+  })
+
+  it('full pipeline: computed-like map -> filter -> groupBy', () => {
+    const steps: TransformStep[] = [
+      { op: 'filter', expr: 'status == "active"' },
+      { op: 'groupBy', field: 'city', aggs: { sales_sum: 'sum', count: 'count' } },
+      { op: 'sort', field: 'sales_sum', order: 'desc' },
+    ]
+    const out = applyTransform(rows, steps)
+    expect(out[0].city).toBe('Shanghai')
+    expect(out[0].sales_sum).toBe(300)
+  })
+
+  it('groupBy with empty field aggregates whole set into one row（指标卡整集聚合）', () => {
+    const out = applyTransform(rows, [
+      { op: 'groupBy', field: '', aggs: { sales_sum: 'sum', count: 'count', qty_avg: 'avg' } },
+    ])
+    expect(out).toHaveLength(1)
+    expect(out[0].sales_sum).toBe(650) // 100+300+200+50
+    expect(out[0].count).toBe(4)
+    expect(out[0].qty_avg).toBe(2.75)  // (2+5+3+1)/4
+    expect(Object.keys(out[0])).not.toContain('') // 不写入空维度键
+  })
+
+  it('groupBy with empty field on empty rows returns empty', () => {
+    expect(applyTransform([], [{ op: 'groupBy', field: '', aggs: { count: 'count' } }])).toEqual([])
+  })
 })

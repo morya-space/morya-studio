@@ -47,6 +47,9 @@ const FORBIDDEN = new Set([
   'import', 'fetch', 'XMLHttpRequest', 'localStorage', 'sessionStorage',
 ])
 
+/** 允许调用的安全函数白名单（无全局副作用、纯计算） */
+const ALLOWED_FUNCS = new Set(['String', 'Number', 'includes', 'startsWith', 'endsWith', 'lower', 'upper', 'len'])
+
 class ParseError extends Error {}
 
 // ---------------- Lexer ----------------
@@ -57,8 +60,10 @@ function tokenize(input: string): Token[] {
   const len = input.length
 
   const isDigit = (c: string) => c >= '0' && c <= '9'
-  const isIdentStart = (c: string) => /[A-Za-z_$]/.test(c)
-  const isIdentPart = (c: string) => /[A-Za-z0-9_$]/.test(c)
+  // 标识符支持 Unicode 字母（中文字段名等，如 `城市 == "北京"`）；
+  // 安全约束不变：完整单词仍须过 FORBIDDEN 黑名单，字段访问仅限数据行属性。
+  const isIdentStart = (c: string) => /[\p{L}\p{Nl}_$]/u.test(c)
+  const isIdentPart = (c: string) => /[\p{L}\p{Nl}\p{Nd}\p{Mn}\p{Mc}_$]/u.test(c)
 
   while (i < len) {
     const c = input[i]
@@ -157,6 +162,7 @@ type AstNode =
   | { kind: 'unary'; op: string; operand: AstNode }
   | { kind: 'binary'; op: string; left: AstNode; right: AstNode }
   | { kind: 'in'; item: AstNode; list: AstNode }
+  | { kind: 'call'; name: string; args: AstNode[] }
   | { kind: 'ternary'; cond: AstNode; then: AstNode; else: AstNode }
 
 class Parser {
@@ -313,6 +319,23 @@ class Parser {
     }
 
     if (t.type === 'ident') {
+      // 函数调用：仅白名单函数可调用（安全约束）
+      if (this.isOp('(')) {
+        if (!ALLOWED_FUNCS.has(t.value)) {
+          throw new ParseError(`Function "${t.value}" is not allowed`)
+        }
+        this.next() // consume '('
+        const args: AstNode[] = []
+        if (!this.isOp(')')) {
+          args.push(this.parseTernary())
+          while (this.isOp(',')) {
+            this.next()
+            args.push(this.parseTernary())
+          }
+        }
+        this.expectOp(')')
+        return { kind: 'call', name: t.value, args }
+      }
       return { kind: 'path', parts: [t.value] }
     }
 
@@ -378,6 +401,10 @@ function evaluate(node: AstNode, row: Record<string, unknown>): unknown {
       if (!Array.isArray(list)) return false
       return list.some(el => looseEqual(el, item))
     }
+    case 'call': {
+      const args = node.args.map(a => evaluate(a, row))
+      return evalCall(node.name, args)
+    }
     case 'ternary':
       return truthy(evaluate(node.cond, row))
         ? evaluate(node.then, row)
@@ -424,6 +451,22 @@ function toNumber(v: unknown): number {
   if (typeof v === 'boolean') return v ? 1 : 0
   const n = Number(v)
   return Number.isNaN(n) ? 0 : n
+}
+
+/** 白名单函数求值 */
+function evalCall(name: string, args: unknown[]): unknown {
+  const a0 = args[0]
+  switch (name) {
+    case 'String': return a0 === null || a0 === undefined ? '' : String(a0)
+    case 'Number': return toNumber(a0)
+    case 'includes': return String(a0 ?? '').includes(String(args[1] ?? ''))
+    case 'startsWith': return String(a0 ?? '').startsWith(String(args[1] ?? ''))
+    case 'endsWith': return String(a0 ?? '').endsWith(String(args[1] ?? ''))
+    case 'lower': return String(a0 ?? '').toLowerCase()
+    case 'upper': return String(a0 ?? '').toUpperCase()
+    case 'len': return Array.isArray(a0) || typeof a0 === 'string' ? a0.length : 0
+    default: return undefined
+  }
 }
 function looseEqual(a: unknown, b: unknown): boolean {
   // eslint-disable-next-line eqeqeq

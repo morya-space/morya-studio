@@ -67,8 +67,21 @@ function applyStep(rows: Row[], step: TransformStep): Row[] {
 }
 
 function filterRows(rows: Row[], expr: string): Row[] {
-  const fn = compileExpr(expr)
-  return rows.filter(row => Boolean(fn(row)))
+  let fn: (row: Row) => unknown
+  try {
+    fn = compileExpr(expr)
+  } catch (e) {
+    // 非法表达式不阻塞整卡渲染：跳过该过滤步骤并告警
+    console.warn('[transform] invalid filter expr, step skipped:', expr, e)
+    return rows
+  }
+  return rows.filter(row => {
+    try {
+      return Boolean(fn(row))
+    } catch {
+      return true
+    }
+  })
 }
 
 function sortRows(rows: Row[], field: string, order: 'asc' | 'desc'): Row[] {
@@ -89,9 +102,20 @@ function sortRows(rows: Row[], field: string, order: 'asc' | 'desc'): Row[] {
  * 否则写入 `_value` 字段。
  */
 function mapRows(rows: Row[], expr: string): Row[] {
-  const fn = compileExpr(expr)
+  let fn: (row: Row) => unknown
+  try {
+    fn = compileExpr(expr)
+  } catch (e) {
+    console.warn('[transform] invalid map expr, step skipped:', expr, e)
+    return rows
+  }
   return rows.map(row => {
-    const out = fn(row)
+    let out: unknown
+    try {
+      out = fn(row)
+    } catch {
+      return row
+    }
     if (out !== null && typeof out === 'object' && !Array.isArray(out)) {
       return { ...row, ...(out as Row) }
     }
@@ -102,6 +126,16 @@ function mapRows(rows: Row[], expr: string): Row[] {
 type AggOp = 'sum' | 'avg' | 'count' | 'max' | 'min'
 
 function groupByRows(rows: Row[], field: string, aggs: Record<string, AggOp>): Row[] {
+  // 无维度（field 为空）：整集聚合为单行（指标卡 / 数字卡的「总计」场景）
+  if (!field) {
+    if (!rows.length) return []
+    const out: Row = {}
+    for (const [alias, op] of Object.entries(aggs)) {
+      out[alias] = aggregate(rows, alias, op)
+    }
+    return [out]
+  }
+
   const groups = new Map<string, Row[]>()
   for (const row of rows) {
     const key = String(row[field] ?? '')

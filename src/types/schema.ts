@@ -70,6 +70,11 @@ export interface DataSourceConfig {
   /** v0.2：SQL 数据源连接与查询（经后端代理执行，避免 CORS 与凭证暴露） */
   sql?: SqlConfig
   /**
+   * 计算列：基于原始行派生字段。在数据源详情页维护；
+   * 引用该数据源的卡片会在绑定前自动带上这些列。
+   */
+  computedFields?: ComputedField[]
+  /**
    * @deprecated v0.2 起用 Card.transform（TransformStep[]）替代。
    * 保留以兼容旧 schema，将在 v0.3 移除。
    */
@@ -96,7 +101,7 @@ export interface SqlConfig {
 export interface ComputedField {
   /** 新字段名（不能与已有字段重名） */
   name: string
-  /** 表达式（行上下文，如 row.revenue - row.cost） */
+  /** 表达式（直接写行字段名，如 revenue - cost） */
   expr: string
 }
 
@@ -180,7 +185,8 @@ export interface TableColumn {
 }
 
 export interface TableConfig {
-  columns: TableColumn[]
+  /** 列配置：对象列（手工/模板）或字段名（装配面板「表格列」入参写入） */
+  columns: (TableColumn | string)[]
   rowKey?: string
   showPagination?: boolean
   pageSize?: number
@@ -538,7 +544,8 @@ export interface IframeConfig {
 
 /** 滚动表格（对齐 go-view TableScrollBoard） */
 export interface ScrollTableConfig {
-  columns?: TableColumn[]
+  /** 列配置：对象列（手工/模板）或字段名（装配面板「表格列」入参写入） */
+  columns?: (TableColumn | string)[]
   rowHeight?: number
   /** 滚动速度（px/s），0 = 不滚动 */
   speed?: number

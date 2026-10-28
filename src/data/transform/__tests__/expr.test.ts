@@ -124,4 +124,48 @@ describe('compileExpr', () => {
   it('throws on forbidden identifier at compile time', () => {
     expect(() => compileExpr('process.exit()')).toThrow(/Forbidden/i)
   })
+
+  it('calls whitelisted functions', () => {
+    expect(compileExpr('String(value)')(row)).toBe('150')
+    expect(compileExpr('Number("42")')(row)).toBe(42)
+    expect(compileExpr('includes(name, "lic")')(row)).toBe(true)
+    expect(compileExpr('includes(name, "xyz")')(row)).toBe(false)
+    expect(compileExpr('includes(score, "x")')(row)).toBe(false) // null -> ''
+    expect(compileExpr('startsWith(name, "Al")')(row)).toBe(true)
+    expect(compileExpr('endsWith(name, "ce")')(row)).toBe(true)
+    expect(compileExpr('lower(name)')(row)).toBe('alice')
+    expect(compileExpr('upper(name)')(row)).toBe('ALICE')
+    expect(compileExpr('len(tags)')(row)).toBe(3)
+    expect(compileExpr('len(name)')(row)).toBe(5)
+  })
+
+  it('whitelisted functions compose with logic / comparison', () => {
+    expect(compileExpr('includes(name, "lic") && value > 100')(row)).toBe(true)
+    expect(compileExpr('len(tags) >= 3')(row)).toBe(true)
+  })
+
+  it('rejects non-whitelisted function calls', () => {
+    expect(validateExpr('alert("x")').ok).toBe(false)
+    expect(validateExpr('eval("1")').ok).toBe(false)
+    expect(() => compileExpr('fetchData(name)')).toThrow(/not allowed/i)
+  })
+
+  it('supports Unicode (CJK) field names — 可视化过滤条件生成的表达式', () => {
+    const cnRow = { 城市: '北京', 销量: 120, 启用: true }
+    expect(compileExpr('城市')(cnRow)).toBe('北京')
+    expect(compileExpr('城市 == "北京"')(cnRow)).toBe(true)
+    expect(compileExpr('城市 != "上海"')(cnRow)).toBe(true)
+    expect(compileExpr('销量 > 100')(cnRow)).toBe(true)
+    expect(compileExpr('销量 <= 100')(cnRow)).toBe(false)
+    expect(compileExpr('includes(城市, "京")')(cnRow)).toBe(true)
+    expect(compileExpr('启用 == true')(cnRow)).toBe(true)
+    expect(validateExpr('城市 == "北京"').ok).toBe(true)
+    // 混合中英文与下划线
+    expect(compileExpr('销量_sum > 10')({ 销量_sum: 20 })).toBe(true)
+  })
+
+  it('still rejects forbidden identifiers alongside Unicode support', () => {
+    expect(validateExpr('城市 && process.exit()').ok).toBe(false)
+    expect(validateExpr('window.城市').ok).toBe(false)
+  })
 })

@@ -70,6 +70,11 @@ export interface DataSourceConfig {
   /** v0.2：SQL 数据源连接与查询（经后端代理执行，避免 CORS 与凭证暴露） */
   sql?: SqlConfig
   /**
+   * 计算列：基于原始行派生字段。在数据源详情页维护；
+   * 引用该数据源的卡片会在绑定前自动带上这些列。
+   */
+  computedFields?: ComputedField[]
+  /**
    * @deprecated v0.2 起用 Card.transform（TransformStep[]）替代。
    * 保留以兼容旧 schema，将在 v0.3 移除。
    */
@@ -96,7 +101,7 @@ export interface SqlConfig {
 export interface ComputedField {
   /** 新字段名（不能与已有字段重名） */
   name: string
-  /** 表达式（行上下文，如 row.revenue - row.cost） */
+  /** 表达式（直接写行字段名，如 revenue - cost） */
   expr: string
 }
 
