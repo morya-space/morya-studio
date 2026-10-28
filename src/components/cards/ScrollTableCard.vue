@@ -6,6 +6,7 @@
 
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { formatValue } from '../../data/format'
+import { normalizeTableColumns } from './table-columns'
 import type { CardProps } from './types'
 import type { TableColumn } from '../../types/schema'
 
@@ -13,13 +14,8 @@ const props = defineProps<CardProps>()
 
 const cfg = computed(() => props.schema.scrollTable ?? {})
 
-const columns = computed<TableColumn[]>(() => {
-  const c = cfg.value.columns
-  if (c && c.length) return c
-  const first = props.data[0]
-  if (!first) return []
-  return Object.keys(first).map(k => ({ key: k, title: k }))
-})
+/** 规格化列：装配面板写入的字段名数组与手工对象列统一处理；未配置时回退数据全列 */
+const columns = computed<TableColumn[]>(() => normalizeTableColumns(cfg.value.columns, props.data))
 
 const rowHeight = computed(() => cfg.value.rowHeight ?? 36)
 const loop = computed(() => Number(cfg.value.speed ?? 0) > 0 && props.data.length > 0)

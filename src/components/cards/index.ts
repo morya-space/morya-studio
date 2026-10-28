@@ -140,8 +140,11 @@ function relationDataContract(): DataRoleContract {
   }
 }
 
-const TABLE_DATA_CONTRACT: DataRoleContract = {
-  roles: [{ name: 'column', label: '表格列', acceptedTypes: ['string', 'number', 'boolean', 'date', 'unknown'], required: true, multiple: true }],
+/** 表格族入参契约：field 指向该组件消费列配置的路径（table.columns / scrollTable.columns） */
+function tableDataContract(field: string): DataRoleContract {
+  return {
+    roles: [{ name: 'column', label: '表格列', field, acceptedTypes: ['string', 'number', 'boolean', 'date', 'unknown'], required: true, multiple: true }],
+  }
 }
 
 /** 图表组件的属性面板字段（按图表族裁剪） */
@@ -302,7 +305,7 @@ export function registerBuiltinCards(): void {
       span: 12,
       table: { columns: [], showPagination: true, pageSize: 10 },
     }),
-    dataContract: TABLE_DATA_CONTRACT,
+    dataContract: tableDataContract('table.columns'),
     editorSchema: [
       { field: 'title', label: '标题', component: 'MInput' },
       { field: 'table.pageSize', label: '每页条数', component: 'MInputNumber', props: { min: 5, max: 100 } },
@@ -324,7 +327,7 @@ export function registerBuiltinCards(): void {
       span: 12,
       scrollTable: { rowHeight: 36, speed: 40, headShow: true, indexShow: true, stripe: true },
     }),
-    dataContract: TABLE_DATA_CONTRACT,
+    dataContract: tableDataContract('scrollTable.columns'),
     editorSchema: [
       { field: 'scrollTable.rowHeight', label: '行高(px)', component: 'MInputNumber', props: { min: 20, max: 80 } },
       { field: 'scrollTable.speed', label: '滚动速度(px/s)', component: 'MInputNumber', props: { min: 0, max: 200 }, help: '0 表示不滚动' },

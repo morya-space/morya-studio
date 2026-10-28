@@ -9,6 +9,7 @@ import { computed } from 'vue'
 import { MTable, MTag } from 'morya-ui'
 import CardShell from './CardShell.vue'
 import { formatValue } from '../../data/format'
+import { normalizeTableColumns } from './table-columns'
 import type { TableColumn } from '../../types/schema'
 import type { CardProps, CardEmits } from './types'
 
@@ -17,8 +18,11 @@ const emit = defineEmits<CardEmits>()
 
 const tableConfig = computed(() => props.schema.table)
 
+/** 规格化列：装配面板写入的字段名数组与手工对象列统一处理；未配置时回退数据全列 */
+const columnDefs = computed(() => normalizeTableColumns(tableConfig.value?.columns, props.data))
+
 const columns = computed(() =>
-  (tableConfig.value?.columns ?? []).map(col => ({
+  columnDefs.value.map(col => ({
     key: col.key,
     label: col.title,
     width: typeof col.width === 'number' ? col.width : undefined,
@@ -30,7 +34,7 @@ const showPagination = computed(() => tableConfig.value?.showPagination ?? true)
 const pageSize = computed(() => tableConfig.value?.pageSize ?? 10)
 
 function colDef(key: string): TableColumn | undefined {
-  return tableConfig.value?.columns.find(c => c.key === key)
+  return columnDefs.value.find(c => c.key === key)
 }
 
 function formatCell(col: TableColumn | undefined, value: unknown): string {
