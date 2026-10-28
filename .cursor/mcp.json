@@ -6,6 +6,10 @@
         "-y",
         "@morya-ui/mcp@latest"
       ]
+    },
+    "better-icons": {
+      "command": "npx",
+      "args": ["-y", "better-icons"]
     }
   }
 }
