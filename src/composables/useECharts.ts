@@ -28,7 +28,7 @@ import {
   VisualMapComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import { onBeforeUnmount, onMounted, ref, shallowRef, watch, type Ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, shallowRef, isRef, watch, type Ref } from 'vue'
 import type { ChartConfig } from '../types/schema'
 import { getChartPalette, getToken } from './useThemeToken'
 
@@ -75,14 +75,15 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
   return out
 }
 
-export function useECharts(config: Ref<ChartConfig>, data: Ref<Row[]>): UseEChartsReturn {
+export function useECharts(config: Ref<ChartConfig> | ChartConfig, data: Ref<Row[]>): UseEChartsReturn {
   const containerRef = ref<HTMLElement | null>(null)
   const chart = shallowRef<echarts.ECharts | null>(null)
   let ro: ResizeObserver | null = null
   /** setOption 手动覆盖的最近一次 option，重建图表后需要重放 */
   let lastManualOption: echarts.EChartsCoreOption | null = null
 
-  const cfg = () => config.value
+  // 兼容 Ref 与普通对象两种传入（部分调用点会传 .value 解包后的对象）
+  const cfg = (): ChartConfig => (isRef(config) ? config.value : config) ?? { chartType: 'bar' }
   const palette = (): string[] => cfg().colors ?? getChartPalette()
   const axisColor = () => getToken('--m-chart-axis')
   const splitColor = () => getToken('--m-chart-split')
