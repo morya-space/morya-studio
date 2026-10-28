@@ -44,6 +44,10 @@ export const dsSchema = z.object({
   cache: z.record(z.unknown()).optional(),
   auth: z.record(z.unknown()).optional(),
   sql: sqlSchema.optional(),
+  computedFields: z.array(z.object({
+    name: z.string(),
+    expr: z.string(),
+  })).optional(),
   transform: z.string().optional(),
 })
 

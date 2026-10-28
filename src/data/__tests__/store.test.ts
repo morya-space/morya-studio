@@ -55,6 +55,21 @@ describe('useDataStore', () => {
     expect(store.cardData.get('card-1')).toEqual([{ x: 9 }])
   })
 
+  it('applies data-source computed columns before card computed columns', async () => {
+    store.registerDataSource({
+      id: 'ds-1',
+      type: 'static',
+      staticData: [{ revenue: 10, cost: 4 }],
+      computedFields: [{ name: 'margin', expr: 'revenue - cost' }],
+    })
+    const card = makeCard({
+      dataSourceId: 'ds-1',
+      computedFields: [{ name: 'marginPct', expr: 'margin / revenue * 100' }],
+    })
+    await store.loadCardData(card)
+    expect(store.cardData.get('card-1')).toEqual([{ revenue: 10, cost: 4, margin: 6, marginPct: 60 }])
+  })
+
   it('errors when dataSourceId unknown', async () => {
     const card = makeCard({ dataSourceId: 'missing' })
     await store.loadCardData(card)

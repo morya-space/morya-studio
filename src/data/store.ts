@@ -167,7 +167,10 @@ export const useDataStore = defineStore('data', () => {
         if (cardRequests.get(card.id)?.consumerKey === consumerKey) cardRequests.delete(card.id)
       }
       if (activeLoads.get(card.id) !== loadId) return
-      const enriched = applyComputedFields(raw, card.computedFields)
+      const enriched = applyComputedFields(
+        applyComputedFields(raw, ds.computedFields),
+        card.computedFields,
+      )
       const rows = applyTransform(enriched, card.transform)
       cardData.value.set(card.id, rows)
 

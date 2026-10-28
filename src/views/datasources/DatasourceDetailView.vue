@@ -23,17 +23,27 @@ import {
   type TableColumnDefinition,
 } from 'morya-ui'
 import SvgIcon from '../../components/common/SvgIcon.vue'
+import ComputedFieldsEditor from '../../editor/panels/ComputedFieldsEditor.vue'
 import type { DataSourceDetail } from '../../services/datasource/detail'
 import { getDataSourceDetail, testDataSourceConnection, syncDataSource } from '../../services/datasource/detail'
+import { getDataSource, initDataSources, saveDataSource } from '../../services/datasource'
+import { useDataStore } from '../../data/store'
+import { applyComputedFields } from '../../data/transform/pipeline'
+import { inferFieldProfiles } from '../../data/field-profile'
 import { useECharts } from '../../composables/useECharts'
-import type { ChartConfig } from '../../types/schema'
+import type { ChartConfig, ComputedField, DataSourceConfig } from '../../types/schema'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const dataStore = useDataStore()
 
 // ---------- 数据源详情 ----------
 const detail = ref<DataSourceDetail | null>(null)
+/** 可编辑的数据源配置（计算列写在这里） */
+const source = ref<DataSourceConfig | null>(null)
+const computedFields = ref<ComputedField[]>([])
+const savingComputed = ref(false)
 /** 类型守卫：确保 detail 非 null 时模板可安全访问 */
 const d = computed(() => detail.value!)
 const loading = ref(true)
@@ -48,7 +58,13 @@ const id = computed(() => String(route.params.id ?? ''))
 onMounted(async () => {
   loading.value = true
   try {
-    detail.value = await getDataSourceDetail(id.value)
+    const [loaded] = await Promise.all([
+      getDataSourceDetail(id.value),
+      initDataSources(),
+    ])
+    detail.value = loaded
+    source.value = getDataSource(id.value)
+    computedFields.value = source.value?.computedFields?.map(f => ({ ...f })) ?? []
   } catch (e) {
     message.error(e instanceof Error ? e.message : t('dsd.notFound'))
   } finally {
@@ -56,10 +72,45 @@ onMounted(async () => {
   }
 })
 
+const computedProfiles = computed(() => {
+  const rows = source.value?.staticData
+  if (rows?.length) return inferFieldProfiles(rows)
+  return (detail.value?.fields ?? []).map(f => ({
+    key: f[0],
+    label: f[0],
+    valueKind: 'unknown' as const,
+    semanticHint: 'unknown' as const,
+    nullable: false,
+    sampleValues: [],
+  }))
+})
+
+const enrichedRows = computed(() =>
+  applyComputedFields(source.value?.staticData ?? [], computedFields.value),
+)
+
+function formatComputedValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—'
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  const s = String(value)
+  if (s.length <= 4) return s
+  return `${s.slice(0, 2)}****${s.slice(-2)}`
+}
+
+const computedFieldNames = computed(() =>
+  computedFields.value.map(f => f.name.trim()).filter(Boolean),
+)
+
 // ---------- Tab 配置 ----------
+const visibleFieldCount = computed(() => {
+  const base = new Set(detail.value?.fields.map(f => f[0]) ?? [])
+  const extra = computedFieldNames.value.filter(name => !base.has(name)).length
+  return base.size + extra
+})
+
 const tabs = computed(() => [
   { label: t('dsd.overview'), value: 'overview' },
-  { label: `${t('dsd.fields')} ${detail.value?.fields.length ?? 0}`, value: 'fields' },
+  { label: `${t('dsd.fields')} ${visibleFieldCount.value}`, value: 'fields' },
   { label: t('dsd.preview'), value: 'preview' },
   { label: t('dsd.sync'), value: 'sync' },
   { label: t('dsd.boards'), value: 'boards' },
@@ -76,8 +127,8 @@ const filteredFields = computed(() => {
 })
 
 // ---------- 字段表（MTable） ----------
-const fieldRows = computed(() =>
-  filteredFields.value.map(f => ({
+const fieldRows = computed(() => {
+  const base = filteredFields.value.map(f => ({
     name: f[0],
     type: f[1],
     required: f[2],
@@ -85,8 +136,33 @@ const fieldRows = computed(() =>
     example: f[4],
     pct: f[5],
     missing: f[6],
-  })),
-)
+    computed: false,
+  }))
+  const kw = fieldSearch.value.toLowerCase()
+  const names = new Set(base.map(row => row.name))
+  const extra = computedFieldNames.value
+    .filter(name => !names.has(name))
+    .filter(name => {
+      if (!kw) return true
+      const expr = computedFields.value.find(f => f.name.trim() === name)?.expr ?? ''
+      return name.toLowerCase().includes(kw) || expr.toLowerCase().includes(kw)
+    })
+    .map(name => {
+      const expr = computedFields.value.find(f => f.name.trim() === name)?.expr ?? ''
+      const sample = enrichedRows.value.find(row => row[name] !== undefined && row[name] !== null)?.[name]
+      return {
+        name,
+        type: t('dsd.computedCol'),
+        required: '否',
+        comment: expr,
+        example: formatComputedValue(sample),
+        pct: '0.0%',
+        missing: '0',
+        computed: true,
+      }
+    })
+  return [...base, ...extra]
+})
 
 const fieldTableCols = computed<TableColumnDefinition[]>(() => [
   { key: 'name', label: t('dsd.fieldName'), minWidth: 140 },
@@ -140,12 +216,21 @@ watch(chartData, () => {
 }, { deep: true })
 
 // ---------- 预览表 ----------
-const previewCols = computed(() => detail.value?.preview[1] ?? [])
+const previewCols = computed(() => {
+  const base = detail.value?.preview[1] ?? []
+  const extra = computedFieldNames.value.filter(name => !base.includes(name))
+  return [...base, ...extra]
+})
 const previewRows = computed(() => {
   const rows = detail.value?.preview[2] ?? []
-  return rows.map(r => {
+  const baseCols = detail.value?.preview[1] ?? []
+  return rows.map((r, rowIndex) => {
     const obj: Record<string, string> = {}
-    previewCols.value.forEach((col, i) => { obj[col] = r[i] ?? '' })
+    baseCols.forEach((col, i) => { obj[col] = r[i] ?? '' })
+    for (const name of computedFieldNames.value) {
+      if (baseCols.includes(name)) continue
+      obj[name] = formatComputedValue(enrichedRows.value[rowIndex]?.[name])
+    }
     return obj
   })
 })
@@ -192,7 +277,32 @@ function onGenBoard() {
 }
 
 function onExportDict() {
-  message.success(`字段字典已导出 · ${detail.value?.fields.length ?? 0} 个字段`)
+  message.success(`字段字典已导出 · ${visibleFieldCount.value} 个字段`)
+}
+
+function onComputedFields(fields: ComputedField[]) {
+  computedFields.value = fields
+}
+
+async function saveComputed() {
+  const ds = source.value
+  if (!ds?.id || savingComputed.value) return
+  savingComputed.value = true
+  try {
+    const kept = computedFields.value
+      .map(f => ({ name: f.name.trim(), expr: f.expr }))
+      .filter(f => f.name || f.expr.trim())
+    const next: DataSourceConfig = { ...ds, computedFields: kept.length ? kept : undefined }
+    await saveDataSource(next)
+    source.value = getDataSource(ds.id) ?? next
+    computedFields.value = source.value.computedFields?.map(f => ({ ...f })) ?? []
+    dataStore.registerDataSource(source.value)
+    message.success(t('dsd.computedSaved'))
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : t('common.error'))
+  } finally {
+    savingComputed.value = false
+  }
 }
 
 // ---------- 同步记录状态 → MTag 语义色 ----------
@@ -332,8 +442,26 @@ const TYPE_ICON_MAP: Record<string, string> = {
           </div>
 
           <!-- 字段 -->
-          <div class="w-full h-full overflow-hidden" v-else-if="activeValue === 'fields'">
-            <MCard class="dsd-card--flush">
+          <div class="flex h-full min-h-0 flex-col gap-3 overflow-auto" v-else-if="activeValue === 'fields'">
+            <MCard>
+              <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="min-w-[200px] flex-1">
+                  <div class="text-[15px] font-medium text-text">{{ t('dsd.computed') }}</div>
+                  <div class="mt-0.5 text-xs text-text-muted">{{ t('dsd.computedHint') }}</div>
+                </div>
+                <MButton type="primary" size="small" :loading="savingComputed" :disabled="!source" @click="saveComputed">
+                  {{ t('dsd.computedSave') }}
+                </MButton>
+              </div>
+              <ComputedFieldsEditor
+                v-if="source"
+                :fields="computedFields"
+                :profiles="computedProfiles"
+                @update:fields="onComputedFields"
+              />
+              <p v-else class="text-xs text-text-muted">{{ t('dsd.notFound') }}</p>
+            </MCard>
+            <MCard class="dsd-card--flush min-h-[280px] flex-1">
               <template #header>
                 <div class="flex items-center gap-2">
                   <MInput
@@ -347,7 +475,7 @@ const TYPE_ICON_MAP: Record<string, string> = {
                     </template>
                   </MInput>
                   <span class="text-xs text-text-muted">
-                    {{ t('dsd.fieldCount', { n: filteredFields.length, total: d.fields.length }) }}
+                    {{ t('dsd.fieldCount', { n: fieldRows.length, total: visibleFieldCount }) }}
                   </span>
                   <span class="flex-1" />
                   <MButton size="small" @click="onExportDict">{{ t('dsd.exportDict') }}</MButton>
@@ -363,7 +491,8 @@ const TYPE_ICON_MAP: Record<string, string> = {
                   <span class="dsd-mono text-[13px] text-text">{{ row.name }}</span>
                 </template>
                 <template #cell-type="{ row }">
-                  <span class="dsd-mono text-text-muted">{{ row.type }}</span>
+                  <MTag v-if="row.computed" size="small">{{ row.type }}</MTag>
+                  <span v-else class="dsd-mono text-text-muted">{{ row.type }}</span>
                 </template>
                 <template #cell-example="{ row }">
                   <span class="dsd-mono text-text-muted">{{ row.example }}</span>

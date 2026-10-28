@@ -135,7 +135,7 @@ onMounted(loadCardData)
 
 watch(
   () => editorStore.page.cards
-    .map(c => `${c.id}:${c.dataSourceId ?? ''}:${c.dataSource ? JSON.stringify(c.dataSource) : ''}:${c.transform ? JSON.stringify(c.transform) : ''}`)
+    .map(c => `${c.id}:${c.dataSourceId ?? ''}:${c.dataSource ? JSON.stringify(c.dataSource) : ''}:${c.transform ? JSON.stringify(c.transform) : ''}:${c.computedFields ? JSON.stringify(c.computedFields) : ''}`)
     .join('|'),
   () => { void loadCardData() },
 )

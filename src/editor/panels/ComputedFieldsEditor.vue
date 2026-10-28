@@ -2,7 +2,7 @@
 /**
  * 计算列编辑器
  * 新增/删除派生字段：字段名 + 表达式；提供常用模板，点字段可插入表达式。
- * v-model 直接读写卡片的 computedFields。
+ * 卡片内联数据源与数据源详情页共用。表达式直接写字段名，如 revenue - cost。
  */
 
 import { computed } from 'vue'
@@ -25,10 +25,10 @@ const list = computed<ComputedField[]>({
 })
 
 const TEMPLATES: { label: string; make: () => ComputedField }[] = [
-  { label: '四则运算', make: () => ({ name: 'newField', expr: 'row.a - row.b' }) },
-  { label: '比率', make: () => ({ name: 'ratio', expr: 'row.part / row.total * 100' }) },
-  { label: '字符串拼接', make: () => ({ name: 'fullName', expr: "row.firstName + ' ' + row.lastName" }) },
-  { label: '条件值', make: () => ({ name: 'flag', expr: "row.value >= 60 ? '达标' : '未达标'" }) },
+  { label: '四则运算', make: () => ({ name: 'newField', expr: 'a - b' }) },
+  { label: '比率', make: () => ({ name: 'ratio', expr: 'part / total * 100' }) },
+  { label: '字符串拼接', make: () => ({ name: 'fullName', expr: "firstName + ' ' + lastName" }) },
+  { label: '条件值', make: () => ({ name: 'flag', expr: "value >= 60 ? '达标' : '未达标'" }) },
 ]
 
 function add(tpl?: ComputedField): void {
@@ -46,7 +46,9 @@ function patch(index: number, key: keyof ComputedField, value: string): void {
 
 function insertField(index: number, key: string): void {
   const current = list.value[index]
-  patch(index, 'expr', `${current.expr ?? ''}row.${key}`)
+  const expr = current.expr ?? ''
+  const glue = expr && !/\s$/.test(expr) ? ' ' : ''
+  patch(index, 'expr', `${expr}${glue}${key}`)
 }
 </script>
 
@@ -80,7 +82,7 @@ function insertField(index: number, key: string): void {
         <textarea
           :value="f.expr"
           rows="2"
-          placeholder="表达式，如 row.revenue - row.cost"
+          placeholder="表达式，如 revenue - cost"
           @input="patch(i, 'expr', ($event.target as HTMLTextAreaElement).value)"
         />
       </div>

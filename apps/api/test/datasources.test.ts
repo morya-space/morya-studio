@@ -29,6 +29,7 @@ describe('datasource request schema', () => {
         query: 'SELECT * FROM reports',
         limit: 250,
       },
+      computedFields: [{ name: 'margin', expr: 'row.revenue - row.cost' }],
       transform: 'legacy-transform',
     }
 
