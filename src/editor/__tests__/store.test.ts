@@ -219,15 +219,16 @@ describe('useEditorStore', () => {
     expect(store.page.groups).toHaveLength(0)
   })
 
-  it('new data components default to renderable Mock data', () => {
+  it('new data components default to renderable fixed Mock data', () => {
     const chartId = store.addCard('chart')
     const chartCard = store.page.cards.find(c => c.id === chartId)!
     expect(chartCard.dataSource?.type).toBe('mock')
-    expect(chartCard.dataSource?.mockTemplate?.length ?? 0).toBeGreaterThan(0)
+    expect(chartCard.dataSource?.mockTemplate).toBeUndefined()
+    expect(chartCard.dataSource?.staticData?.length ?? 0).toBeGreaterThan(0)
 
     const statId = store.addCard('stat')
     const statCard = store.page.cards.find(c => c.id === statId)!
-    expect(statCard.dataSource?.mockTemplate?.length ?? 0).toBeGreaterThan(0)
+    expect(statCard.dataSource?.staticData?.length ?? 0).toBeGreaterThan(0)
 
     // 非数据型组件不注入数据源
     const textId = store.addCard('text')

@@ -177,6 +177,7 @@ export const apiAdapter: DataSourceAdapter = {
         message: `成功，返回 ${rows.length} rows`,
         sampleRows: rows.length,
         sample: rows.slice(0, 3),
+        rows,
         status,
         durationMs: Date.now() - started,
         raw,

@@ -14,6 +14,7 @@ import { migrateSchema } from '../engine/migrate'
 import { savePage as persistSavePage } from '../services/page'
 import type { AlignGuide } from './align'
 import { defaultMockTemplateFor } from '../components/cards/mocks'
+import { generateMockRows } from '../data/mockgen'
 
 const MAX_HISTORY = 50
 
@@ -33,11 +34,11 @@ const DEFAULT_SIZES: Record<string, { w: number; h: number }> = {
   custom: { w: 320, h: 120 },
 }
 
-/** 新建数据型组件时，默认绑定一份可立即渲染的 Mock 模板 */
+/** 新建数据型组件时，默认绑定一份可立即渲染的固定数据（由该组件默认模板生成一次，后续不再随机变化） */
 function applyDefaultData(card: CardSchema): CardSchema {
   if (!card.dataSource && !card.dataSourceId) {
     const template = defaultMockTemplateFor(card.type)
-    if (template) card.dataSource = { type: 'mock', mockTemplate: template }
+    if (template) card.dataSource = { type: 'mock', staticData: generateMockRows(template) }
   }
   return card
 }

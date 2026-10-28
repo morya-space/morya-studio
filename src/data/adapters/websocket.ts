@@ -98,6 +98,7 @@ export const websocketAdapter: DataSourceAdapter = {
         message: `已接收 ${rows.length} 条消息`,
         sampleRows: rows.length,
         sample: rows.slice(0, 3),
+        rows,
         durationMs: Date.now() - started,
         raw: rows[0],
       }

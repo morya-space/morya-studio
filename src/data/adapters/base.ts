@@ -25,6 +25,8 @@ export interface TestResult {
   durationMs?: number
   /** v0.4：原始响应（api 为解析后的 JSON，ws 为最后一条消息） */
   raw?: unknown
+  /** v0.5：测试即取数时的完整数据行（编辑器预览直接复用，避免二次请求） */
+  rows?: Record<string, unknown>[]
 }
 
 export interface DataSourceAdapter {

@@ -51,8 +51,11 @@ const primaryLine = computed(() => {
       return ds.value?.wsUrl || '（未填写地址）'
     case 'sql':
       return `${ds.value?.sql?.driver ?? 'mysql'} · ${ds.value?.sql?.host || '（未填写主机）'}`
-    default:
-      return ds.value?.mockTemplate ? '自定义 Mock 模板' : '未配置 Mock 模板'
+    default: {
+      if (ds.value?.mockTemplate) return '自定义 Mock 模板'
+      const rows = ds.value?.staticData
+      return Array.isArray(rows) && rows.length ? `固定数据 · ${rows.length} 行` : '未配置数据'
+    }
   }
 })
 

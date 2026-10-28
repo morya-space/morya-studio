@@ -18,6 +18,7 @@ export const staticAdapter: DataSourceAdapter = {
       message: `${rows.length} rows`,
       sampleRows: rows.length,
       sample: rows.slice(0, 3),
+      rows,
     }
   },
 }

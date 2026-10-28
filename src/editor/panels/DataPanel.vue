@@ -1,32 +1,46 @@
 <script setup lang="ts">
 /**
  * 数据配置弹窗（v0.4）
- * 六类来源：静态数据 / 动态请求 / Mock / WebSocket / SQL / 引用数据源
- * 结构：来源切换 → 来源专属配置（分区卡片）→ 测试结果 → 过滤器/转换 → 数据映射 → 数据内容
+ * 五类来源：动态请求 / Mock（固定数据或模板生成）/ WebSocket / SQL / 引用数据源
+ * 布局：左列 = 来源切换 + 连接配置（滚动）+ 测试结果（固定列底），
+ * 右列 = 绑定数据；数据内容（组件预览 / 表格 / JSON）在「组件数据入参」右侧入参区下方。
+ * 切换接入类型会整体重置为该类型的默认状态；草稿模式点「完成」才提交生效。
  */
 
 import { computed, ref, watch } from 'vue'
-import { MButton, MFormItem, MInput, MInputNumber, MSelect, MSegmented, MTag, MTextarea, message, MScrollbar } from 'morya-ui'
+import { MButton, MFileUpload, MFormItem, MInput, MInputNumber, MSelect, MSegmented, MTag, MTextarea, message, MScrollbar } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { useDataStore } from '../../data/store'
 import { listDataSources } from '../../services/datasource'
 import { getAdapter } from '../../data/adapters'
+import { getByPath } from '../../data/adapters/base'
 import type { TestResult } from '../../data/adapters/base'
-import type { ComputedField, DataSourceConfig, DataSourceType, HttpMethod, RequestBodyType } from '../../types/schema'
+import type { CardSchema, ComputedField, DataSourceConfig, DataSourceType, HttpMethod, RequestBodyType } from '../../types/schema'
 import type { DataRole } from '../../engine/data-role'
 import { getCardRegistration } from '../../engine/registry'
-import { inferFieldProfiles, type FieldProfile } from '../../data/field-profile'
+import {
+  buildAssignments,
+  deriveBindings,
+  deriveTransform,
+  parseFilterConditions,
+  validateDataBindings,
+  type BindingIssue,
+  type FilterCondition,
+  type RoleAssignment,
+} from '../../engine/data-binding'
+import { inferFieldProfiles } from '../../data/field-profile'
 import PanelTabs from '../components/PanelTabs.vue'
 import KeyValueTable from '../components/KeyValueTable.vue'
-import FieldSelect from '../components/FieldSelect.vue'
-import TransformEditor from './TransformEditor.vue'
-import ComputedFieldsEditor from './ComputedFieldsEditor.vue'
+import CardNode from '../../components/cards/CardNode.vue'
+import FieldBuilderPanel from './FieldBuilderPanel.vue'
 import DataResultPanel from './DataResultPanel.vue'
 import { plain } from '../plain'
 import { defaultMockTemplateFor } from '../../components/cards/mocks'
-import { formatMockTemplate } from '../../data/mockgen'
-import { applyComputedFields } from '../../data/transform/pipeline'
+import { formatMockTemplate, generateMockRows } from '../../data/mockgen'
+import { parseFileText } from '../../services/connector'
+import { applyComputedFields, applyTransform } from '../../data/transform/pipeline'
 import type { DataConfigDraft } from './dataDraft'
+import type { TransformStep } from '../../types/schema'
 
 const store = useEditorStore()
 const dataStore = useDataStore()
@@ -67,7 +81,7 @@ const mode = computed<SourceMode>(() => {
   return (t && t in MODE_TYPE ? t : 'mock') as SourceMode
 })
 
-const inlineDs = computed<DataSourceConfig>(() => activeDataSource.value ?? { type: 'mock', mockTemplate: '' })
+const inlineDs = computed<DataSourceConfig>(() => activeDataSource.value ?? { type: 'mock', staticData: [] })
 
 function patchDs(patch: Partial<DataSourceConfig>): void {
   const next = { ...plain(inlineDs.value), ...plain(patch) } as DataSourceConfig
@@ -79,34 +93,75 @@ function patchDs(patch: Partial<DataSourceConfig>): void {
   store.updateCardField(card.value.id, 'dataSource', next)
 }
 
+/**
+ * 切换接入类型：整体重置为该类型的默认状态（不保留旧配置）。
+ * 草稿模式下仅写草稿，点「完成」才正式提交；取消/关闭则丢弃。
+ */
 function setMode(next: SourceMode): void {
   const c = card.value
-  if (!c) return
+  if (!c || next === mode.value) return
   if (next === 'reference') {
     const saved = listDataSources().filter(d => d.id)
     if (!saved.length) {
       message.warn('还没有数据源，请先在「数据源」页面创建')
       return
     }
-    if (props.draft) props.draft.dataSourceId = props.draft.dataSourceId ?? saved[0].id
-    else store.updateCardField(c.id, 'dataSourceId', c.dataSourceId ?? saved[0].id)
+    resetSourceState({ dataSourceId: activeDataSourceId.value ?? saved[0].id })
     return
   }
-  if (props.draft) props.draft.dataSourceId = undefined
-  else store.updateCardField(c.id, 'dataSourceId', undefined)
-  const type = MODE_TYPE[next]
-  // 保留已填字段，只切换类型；为新类型补齐必要默认值
-  const patch: Partial<DataSourceConfig> = { type }
-  if (type === 'mock' && !inlineDs.value.mockTemplate) {
-    patch.mockTemplate = defaultMockTemplateFor(c.type)
-    patch.staticData = undefined
+  resetSourceState({ dataSource: defaultSourceConfig(next) })
+}
+
+/** 各接入类型的默认配置（Mock 默认固定数据，与新建卡片一致） */
+function defaultSourceConfig(next: Exclude<SourceMode, 'reference'>): DataSourceConfig {
+  switch (next) {
+    case 'api':
+      return { type: 'api', method: 'GET' }
+    case 'mock': {
+      const template = card.value ? defaultMockTemplateFor(card.value.type) : ''
+      return { type: 'mock', staticData: template ? generateMockRows(template) : [] }
+    }
+    case 'websocket':
+      return { type: 'websocket', ws: { aggregate: 'first' } }
+    case 'sql':
+      return { type: 'sql', sql: { driver: 'mysql', host: '', port: 3306, query: '', limit: 1000 } }
   }
-  if (type === 'api' && inlineDs.value.method === undefined) patch.method = 'GET'
-  if (type === 'websocket' && !inlineDs.value.ws) patch.ws = { aggregate: 'first' }
-  if (type === 'sql' && !inlineDs.value.sql) {
-    patch.sql = { driver: 'mysql', host: '', port: 3306, query: '', limit: 1000 }
+}
+
+/** 切换类型的整体重置：连接配置 + 测试结果 + 装配绑定 + 预览数据 */
+function resetSourceState(patch: { dataSource?: DataSourceConfig; dataSourceId?: string }): void {
+  const c = card.value
+  if (!c) return
+
+  // ① 连接配置与草稿态字段（计算列 / 数据加工 / 绑定）
+  if (props.draft) {
+    props.draft.dataSource = patch.dataSource
+    props.draft.dataSourceId = patch.dataSourceId
+    props.draft.computedFields = undefined
+    props.draft.transform = undefined
+    // 显式写入 undefined，确保点「完成」提交时覆盖卡片上的旧绑定
+    const bindings: Record<string, unknown> = {}
+    for (const role of dataRoles.value) bindings[role.field] = undefined
+    props.draft.bindings = bindings
+  } else {
+    store.updateCardFields(c.id, {
+      dataSource: patch.dataSource,
+      dataSourceId: patch.dataSourceId,
+      computedFields: undefined,
+      transform: undefined,
+    })
   }
-  patchDs(patch)
+
+  // ② 测试结果回到未测状态
+  result.value = null
+
+  // ③ 装配状态清空（触发推导 watcher，同步清空 transform 与字段绑定）
+  assignments.value = dataRoles.value.map(role => ({ path: role.field, multiple: Boolean(role.multiple), fields: [] }))
+  filterConds.value = []
+
+  // ④ 预览数据：Mock 立即生成预览；引用由 dataSourceId watcher 自动拉取；其余等「测试」
+  if (patch.dataSource?.type === 'mock') void loadDraftRows()
+  else if (!patch.dataSourceId) draftRows.value = []
 }
 
 /** 来源页签（PanelTabs 需要 string） */
@@ -125,33 +180,59 @@ function str(key: 'url' | 'dataPath' | 'body' | 'mockTemplate' | 'wsUrl') {
 // ==================== Mock 数据 ====================
 const mockTemplate = str('mockTemplate')
 
-/** 固定数据（JSON）—— Mock 的另一种数据方式 */
-const staticText = computed({
-  get: () => JSON.stringify(inlineDs.value.staticData ?? [], null, 2),
-  set: (v: string) => {
-    try {
-      const parsed = JSON.parse(v || '[]')
-      patchDs({ staticData: Array.isArray(parsed) ? parsed : [parsed] })
-    } catch { /* 输入中不合法，忽略 */ }
-  },
-})
+/** 固定数据（JSON）—— Mock 的另一种数据方式
+ *  本地编辑缓冲：非法 JSON 不打断输入、仅标记错误（预览/测试/提交沿用最近一次合法数据）；
+ *  合法输入即时同步配置。外部变更（导入/格式化/切换来源）经 watch 等价比较后刷新缓冲。 */
+const staticInput = ref('')
+const staticInvalid = ref(false)
 
-/** Mock 数据方式二选一：模板生成 / 固定数据（由配置字段推导） */
+function syncStaticInput(): void {
+  staticInput.value = JSON.stringify(inlineDs.value.staticData ?? [], null, 2)
+  staticInvalid.value = false
+}
+
+function onStaticInput(v: string): void {
+  staticInput.value = v
+  try {
+    const parsed = JSON.parse(v || '[]')
+    staticInvalid.value = false
+    patchDs({ staticData: Array.isArray(parsed) ? parsed : [parsed] })
+  } catch {
+    staticInvalid.value = true
+  }
+}
+
+watch(() => inlineDs.value.staticData, (data) => {
+  // 与当前缓冲等价（用户输入触发的回写）则跳过，避免打字过程中被重排
+  try {
+    if (JSON.stringify(JSON.parse(staticInput.value || '[]')) === JSON.stringify(data ?? [])) return
+  } catch { /* 缓冲非法：用户正在输入，交由显式同步（导入/格式化）处理 */ return }
+  syncStaticInput()
+}, { immediate: true })
+
+/** Mock 数据方式二选一：固定数据（默认）/ 模板生成（由配置字段推导） */
 const MOCK_MODE_OPTIONS = [
-  { label: '模板生成', value: 'template' },
   { label: '固定数据', value: 'static' },
+  { label: '模板生成', value: 'template' },
 ]
 const mockModeTab = computed({
   get: (): 'template' | 'static' => (inlineDs.value.mockTemplate !== undefined ? 'template' : 'static'),
   set: (v: string) => {
+    const c = card.value
     if (v === 'template') {
-      const c = card.value
       patchDs({
         staticData: undefined,
         mockTemplate: inlineDs.value.mockTemplate ?? (c ? defaultMockTemplateFor(c.type) : ''),
       })
     } else {
-      patchDs({ mockTemplate: undefined, staticData: inlineDs.value.staticData ?? [] })
+      // 切到固定数据：保留已有静态数据；没有则快照当前模板（或组件默认模板）生成的数据
+      const tpl = inlineDs.value.mockTemplate
+      const defaultTpl = c ? defaultMockTemplateFor(c.type) : ''
+      const seed = inlineDs.value.staticData
+        ?? (tpl?.trim() ? generateMockRows(tpl) : undefined)
+        ?? (defaultTpl ? generateMockRows(defaultTpl) : undefined)
+        ?? []
+      patchDs({ mockTemplate: undefined, staticData: seed })
     }
   },
 })
@@ -164,10 +245,41 @@ function formatMockTemplateText() {
   message.success('已格式化')
 }
 
-/** 美化 Mock 固定数据 JSON */
+/** Mock 固定数据编辑态非法（预览 / 测试 / 提交均沿用最近一次合法数据） */
+const mockStaticInvalid = computed(() => mode.value === 'mock' && mockModeTab.value === 'static' && staticInvalid.value)
+
+/** 美化 Mock 固定数据 JSON（直接整理编辑缓冲；非法 JSON 不覆盖用户输入） */
 function formatMockStatic() {
-  staticText.value = JSON.stringify(inlineDs.value.staticData ?? [], null, 2)
-  message.success('已格式化')
+  try {
+    const parsed = JSON.parse(staticInput.value || '[]')
+    const rows = Array.isArray(parsed) ? parsed : [parsed]
+    staticInput.value = JSON.stringify(rows, null, 2)
+    staticInvalid.value = false
+    patchDs({ staticData: rows })
+    message.success('已格式化')
+  } catch {
+    message.error('JSON 格式错误，无法格式化')
+  }
+}
+
+/** Mock 固定数据：从文件导入（JSON / CSV / TSV），解析结果替换静态数据 */
+async function importMockStatic(files: File[]): Promise<void> {
+  const file = files[0]
+  if (!file) return
+  try {
+    const rows = parseFileText(file.name, await file.text())
+    if (!rows.length) {
+      message.warn('未解析到数据行，请确认是有效的 JSON / CSV 文件')
+      return
+    }
+    patchDs({ staticData: rows })
+    syncStaticInput()
+    // 草稿模式：导入后立即刷新右侧预览（本地数据，无需点「测试」）
+    if (props.draft) void loadDraftRows()
+    message.success(`已导入 ${rows.length} 行数据`)
+  } catch {
+    message.error('文件解析失败，请检查文件格式')
+  }
 }
 
 // ==================== 动态请求 ====================
@@ -240,6 +352,12 @@ const pollInterval = computed<number>({
   set: (v: number) => patchDs({ pollInterval: Math.max(0, Number(v) || 0) * INTERVAL_FACTOR[intervalUnit.value] }),
 })
 
+/** 打开弹窗 / 切换卡片时按已存间隔推断显示单位（3600000ms 展示为 1 时而非 3600 秒） */
+watch(() => [props.draft, card.value?.id] as const, () => {
+  const ms = inlineDs.value.pollInterval ?? 0
+  intervalUnit.value = ms > 0 && ms % 3600000 === 0 ? 'hour' : ms > 0 && ms % 60000 === 0 ? 'minute' : 'second'
+}, { immediate: true })
+
 // ==================== WebSocket ====================
 const wsUrl = str('wsUrl')
 const wsMessagePath = computed({
@@ -252,20 +370,29 @@ const wsAggregate = computed({
 })
 
 // ==================== SQL ====================
+const SQL_DEFAULT_PORT: Record<string, number> = { mysql: 3306, postgresql: 5432, sqlserver: 1433 }
 const sql = computed(() => inlineDs.value.sql ?? { driver: 'mysql' as const, host: '', port: 3306, query: '', limit: 1000 })
 function patchSql(patch: Record<string, unknown>) {
   patchDs({ sql: { ...plain(sql.value), ...plain(patch) } as DataSourceConfig['sql'] })
+}
+
+/** 切换数据库类型：端口仍是某驱动默认值时跟随新驱动；用户自定义过的端口保留 */
+function onSqlDriverChange(driver: string): void {
+  const patch: Record<string, unknown> = { driver }
+  if (Object.values(SQL_DEFAULT_PORT).includes(sql.value.port ?? 3306)) {
+    patch.port = SQL_DEFAULT_PORT[driver] ?? 3306
+  }
+  patchSql(patch)
 }
 
 // ==================== 引用数据源 ====================
 const dataSourceId = computed({
   get: () => activeDataSourceId.value ?? '',
   set: (v: string) => {
-    if (props.draft) {
-      props.draft.dataSourceId = v || undefined
-      return
-    }
-    if (card.value) store.updateCardField(card.value.id, 'dataSourceId', v || undefined)
+    const next = v || undefined
+    if (next === activeDataSourceId.value) return
+    // 换引数据源：字段结构随之变化，与切换接入类型一致整体重置（连接配置 / 计算列 / 加工 / 绑定 / 测试结果）
+    resetSourceState({ dataSourceId: next })
   },
 })
 const savedDataSourceOptions = computed(() => [
@@ -287,6 +414,11 @@ const testConfig = computed<DataSourceConfig | null>(() => {
 })
 
 async function runTest() {
+  // 固定数据非法 JSON：拦截并明示，避免用旧数据测试通过造成误导
+  if (mockStaticInvalid.value) {
+    result.value = { ok: false, message: '固定数据不是合法的 JSON，请修正后再测试' }
+    return
+  }
   const cfg = testConfig.value
   if (!cfg || !card.value) return
   const adapter = getAdapter(cfg.type)
@@ -303,8 +435,10 @@ async function runTest() {
   }
   if (!result.value?.ok) return
   if (props.draft) {
-    // 草稿模式：只刷新弹窗内预览，不写回卡片（点「完成」才生效）
-    await loadDraftRows()
+    // 草稿模式：只刷新弹窗内预览，不写回卡片（点「完成」才生效）。
+    // 测试即取数：优先复用测试返回的完整数据行，避免二次请求，保证预览与测试结果同源。
+    if (result.value.rows) draftRows.value = result.value.rows
+    else await loadDraftRows()
   } else {
     // 非草稿：测试后同步刷新卡片数据（画布/预览即时生效）
     try { await dataStore.refreshCard(card.value) } catch { /* ignore */ }
@@ -322,8 +456,10 @@ async function loadDraftRows(): Promise<void> {
   try {
     const adapter = getAdapter(cfg.type)
     draftRows.value = adapter.fetch ? await adapter.fetch(plain(cfg)) : []
-  } catch {
+  } catch (e) {
+    // 自动拉取（打开弹窗 / 换引数据源）失败也要给出反馈，否则预览静默为空无从排查
     draftRows.value = []
+    message.error(e instanceof Error ? e.message : '数据加载失败')
   } finally {
     sampleLoading.value = false
   }
@@ -366,31 +502,65 @@ function getComputedFields(): ComputedField[] {
   return card.value?.computedFields ?? []
 }
 
-// ==================== 数据映射 / 内容 ====================
-const rows = computed(() => {
+// ==================== 数据加工（维度 / 指标 / 过滤） ====================
+/** transform 草稿双向（草稿模式写 draft，否则直写 store） */
+const transformModel = computed<TransformStep[]>({
+  get: () => (props.draft ? (props.draft.transform ?? []) : (card.value?.transform ?? [])),
+  set: (steps: TransformStep[]) => {
+    if (props.draft) {
+      props.draft.transform = steps
+      return
+    }
+    if (card.value) store.updateCardField(card.value.id, 'transform', steps.length ? steps : undefined)
+  },
+})
+
+// ==================== 数据流水线（与渲染侧同一条 computed 推导链） ====================
+/**
+ * 真实数据流（与 data/store.ts 的 loadCardData 完全一致）：
+ *   原始行 → 计算列(派生) → 数据加工(filter/聚合…) → 渲染
+ * ① enrichedRows：原始行 + 计算列（维度/指标/过滤的可选字段来源）
+ * ② rows：enriched + transform（数据映射与内容预览消费，即卡片最终渲染的数据）
+ */
+const enrichedRows = computed(() => {
   if (props.draft) {
-    const computedFields = props.draft.computedFields
-    return computedFields?.length ? applyComputedFields(draftRows.value, computedFields) : draftRows.value
+    const fromSource = mode.value === 'reference' ? (referenced.value?.computedFields ?? []) : []
+    const withSource = fromSource.length ? applyComputedFields(draftRows.value, fromSource) : draftRows.value
+    const cf = props.draft.computedFields
+    return cf?.length ? applyComputedFields(withSource, cf) : withSource
   }
   return card.value ? dataStore.cardData.get(card.value.id) ?? [] : []
 })
+/** 加工前字段（含计算列）：维度 / 指标 / 过滤的可选字段 */
+const sourceProfiles = computed(() => inferFieldProfiles(enrichedRows.value))
+/** 原始字段：左侧测试表里插入计算列表达式 */
+const rawProfiles = computed(() => inferFieldProfiles(draftRows.value))
+/** 加工后行（卡片最终渲染数据，内容预览消费） */
+const rows = computed(() => applyTransform(enrichedRows.value, transformModel.value))
+
 const fields = computed(() => (rows.value[0] ? Object.keys(rows.value[0]) : []))
 const registration = computed(() => (card.value ? getCardRegistration(card.value.type) : undefined))
 const dataRoles = computed(() => registration.value?.dataContract?.roles.filter((role): role is DataRole & { field: string } => Boolean(role.field)) ?? [])
-const fieldProfiles = computed(() => inferFieldProfiles(rows.value))
 
-const contentView = ref<string>('table')
+/** 数据内容视图：预览（默认，当前组件实时渲染）/ 表格 / JSON */
+const contentView = ref<string>('preview')
 
 const contentJson = computed(() => JSON.stringify(rows.value, null, 2))
 const previewRows = computed(() => rows.value.slice(0, 50))
 
-function getByPath(source: Record<string, unknown>, path: string): unknown {
-  let value: unknown = source
-  for (const key of path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean)) {
-    if (!value || typeof value !== 'object') return undefined
-    value = (value as Record<string, unknown>)[key]
-  }
-  return value
+/** 预览态 loading / error：草稿模式取弹窗内拉取状态；非草稿跟画布数据流一致 */
+const previewLoading = computed(() =>
+  props.draft ? sampleLoading.value : (card.value ? dataStore.cardLoading.get(card.value.id) ?? false : false),
+)
+const previewError = computed(() =>
+  props.draft ? null : (card.value ? dataStore.cardError.get(card.value.id) ?? null : null),
+)
+
+/** 单元格展示：对象 / 数组转 JSON，避免 [object Object] */
+function formatCell(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
 }
 
 function roleValue(role: DataRole & { field: string }): string | string[] {
@@ -412,6 +582,88 @@ function setRole(role: DataRole & { field: string }, value: string | string[]) {
   store.updateCardField(c.id, role.field, role.multiple ? (Array.isArray(value) && value.length ? value : undefined) : (value || undefined))
 }
 
+// ==================== 绑定健康检查（基于编辑态，实时反馈） ====================
+
+/** lodash 风格路径写值（把草稿绑定应用到卡片副本） */
+function setByPathLocal(target: Record<string, unknown>, path: string, value: unknown): void {
+  const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean)
+  let cur = target
+  for (let i = 0; i < keys.length - 1; i++) {
+    const next = cur[keys[i]]
+    if (next === null || typeof next !== 'object') cur[keys[i]] = {}
+    cur = cur[keys[i]] as Record<string, unknown>
+  }
+  if (keys.length) cur[keys[keys.length - 1]] = value
+}
+
+/** 应用当前编辑态绑定后的卡片副本（健康检查基于编辑态而非已提交态） */
+const previewCard = computed<CardSchema | null>(() => {
+  const c = card.value
+  if (!c) return null
+  if (!props.draft) return c
+  const next = plain(c) as Record<string, unknown>
+  for (const [path, value] of Object.entries(props.draft.bindings)) setByPathLocal(next, path, value)
+  return next as unknown as CardSchema
+})
+
+/** 绑定健康问题：必绑未绑 / 字段缺失 / 类型不匹配（info 级「暂无数据无法校验」不打扰） */
+const bindingIssues = computed<BindingIssue[]>(() => {
+  const c = previewCard.value
+  if (!c || !registration.value) return []
+  return validateDataBindings(c, registration.value, rows.value).issues.filter(i => i.level !== 'info')
+})
+
+function roleLabel(name: string): string {
+  return dataRoles.value.find(r => r.name === name)?.label ?? name
+}
+
+function issueText(issue: BindingIssue): string {
+  switch (issue.code) {
+    case 'required-unbound': return `「${roleLabel(issue.role)}」入参未绑定字段`
+    case 'field-missing': return `「${roleLabel(issue.role)}」绑定的字段 "${issue.field}" 不在当前数据中`
+    case 'incompatible': return `「${roleLabel(issue.role)}」字段 "${issue.field}" 的类型与入参要求不匹配`
+    default: return issue.message
+  }
+}
+
+// ==================== 组件数据入参装配 ====================
+/**
+ * 拖放区 = 组件的数据入参（dataRoles）。
+ * assignments（入参 ← 字段/聚合）+ filterConds（过滤条件）是唯一编辑态，
+ * 由它们推导 transform（写 draft/store）与字段绑定（setRole）。
+ */
+const assignments = ref<RoleAssignment[]>([])
+const filterConds = ref<FilterCondition[]>([])
+
+/** 弹窗打开 / 切换卡片时，由当前绑定 + transform 还原装配状态 */
+watch(
+  () => [props.draft, card.value?.id] as const,
+  () => {
+    assignments.value = buildAssignments(dataRoles.value, roleValue, transformModel.value)
+    filterConds.value = parseFilterConditions(transformModel.value)
+  },
+  { immediate: true },
+)
+
+/**
+ * 装配变化 → 推导 transform 与字段绑定（单一事实源，预览与渲染同源）。
+ * 注意：本 watcher 有意注册在上方「还原 watcher」之后且非 immediate ——
+ * 打开弹窗时的初始还原不会触发本推导，表达式模式手写步骤（sort/limit 等）得以保留；
+ * 只有用户真正编辑装配 / 过滤条件时才重新推导并覆盖 transform（表达式模式已有覆盖提示）。
+ */
+watch([assignments, filterConds], () => {
+  transformModel.value = deriveTransform(assignments.value, dataRoles.value, filterConds.value, sourceProfiles.value)
+  const map = deriveBindings(assignments.value)
+  for (const role of dataRoles.value) {
+    setRole(role, map[role.field] ?? (role.multiple ? [] : ''))
+  }
+}, { deep: true })
+
+/** 表达式模式直接编辑的 transform（绕过推导，交给高级用户） */
+function onRawTransform(steps: TransformStep[]): void {
+  transformModel.value = steps
+}
+
 function downloadJson() {
   const blob = new Blob([contentJson.value], { type: 'application/json' })
   const u = URL.createObjectURL(blob)
@@ -421,14 +673,48 @@ function downloadJson() {
   a.click()
   URL.revokeObjectURL(u)
 }
+
+// ==================== 提交前校验（弹窗宿主在「完成」时调用） ====================
+
+/** 校验当前来源配置的完整性，返回错误消息；null 表示通过。绑定类问题不阻断（由健康条提示）。 */
+function validateDraft(): string | null {
+  switch (mode.value) {
+    case 'api':
+      if (!url.value.trim()) return '请填写请求地址（URL）'
+      return null
+    case 'websocket':
+      if (!wsUrl.value.trim()) return '请填写 WebSocket 地址（wsUrl）'
+      return null
+    case 'sql':
+      if (!sql.value.host?.trim()) return '请填写数据库主机地址'
+      if (!sql.value.query?.trim()) return '请填写 SQL 查询语句'
+      return null
+    case 'mock':
+      if (mockModeTab.value === 'template') {
+        if (!inlineDs.value.mockTemplate?.trim()) return '请填写 Mock 模板'
+        return null
+      }
+      if (mockStaticInvalid.value) return '固定数据不是合法的 JSON，请修正后再完成'
+      return null
+    case 'reference':
+      if (!activeDataSourceId.value) return '请选择要引用的数据源'
+      if (!referenced.value) return '引用的数据源已不存在，请重新选择'
+      return null
+    default:
+      return null
+  }
+}
+
+defineExpose({ validate: validateDraft })
 </script>
 
 <template>
   <div v-if="card" class="data-panel">
-    <PanelTabs v-model="modeTab" :options="SOURCE_TABS" />
-
-    <div class="flex-auto h-0">
-      <MScrollbar view-class="flex flex-col gap-4">
+    <div class="data-panel__body">
+      <!-- 左列：来源切换（固定列顶）+ 连接配置（滚动）+ 测试数据表（固定列底，含计算列） -->
+      <div class="data-panel__col data-panel__col--left">
+        <PanelTabs v-model="modeTab" :options="SOURCE_TABS" class="data-panel__tabs" />
+        <MScrollbar class="data-panel__col-scroll" view-class="flex flex-col gap-4">
         <!-- 动态请求 -->
         <section v-if="mode === 'api'" class="dsec">
           <p class="dsec__title">请求配置</p>
@@ -526,18 +812,28 @@ function downloadJson() {
           </MFormItem>
           <MFormItem v-if="mockModeTab === 'template'" label="Mock 模板" required
             help='JSON 模板 + {{int 1 100}} 等占位符；顶层 {{repeat N}} 生成 N 行'>
-            <MTextarea v-model="mockTemplate" :rows="8" fluid
+            <MTextarea v-model="mockTemplate" :rows="5" fluid
               placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
           </MFormItem>
           <MFormItem v-else label="固定数据(JSON)" required help="直接作为结果返回，不随机生成">
-            <MTextarea :model-value="staticText" :rows="8" fluid @update:model-value="staticText = $event as string" />
+            <MTextarea :model-value="staticInput" :rows="5" fluid @update:model-value="onStaticInput($event as string)" />
           </MFormItem>
+          <p v-if="mockStaticInvalid" class="dsec__error" role="alert">
+            固定数据不是合法的 JSON，预览 / 测试 / 保存将沿用最近一次合法数据
+          </p>
           <div class="dsec__actions">
-            <MButton v-if="mockModeTab === 'template'" type="default" size="small" :disabled="!inlineDs.mockTemplate"
-              @click="formatMockTemplateText">
-              格式化
-            </MButton>
-            <MButton v-else type="default" size="small" @click="formatMockStatic">格式化</MButton>
+            <template v-if="mockModeTab === 'template'">
+              <MButton type="default" size="small" :disabled="!inlineDs.mockTemplate"
+                @click="formatMockTemplateText">
+                格式化
+              </MButton>
+            </template>
+            <template v-else>
+              <MFileUpload choose-label="导入" accept=".json,.csv,.tsv,.txt" :max-size="5 * 1024 * 1024"
+                :auto-upload="false" :show-file-list="false" @select="importMockStatic"
+                @exceed-size="message.warn('文件超过 5MB 上限')" />
+              <MButton type="default" size="small" @click="formatMockStatic">格式化</MButton>
+            </template>
             <MButton type="primary" size="small" :loading="testing" @click="runTest">测试</MButton>
           </div>
         </section>
@@ -574,7 +870,7 @@ function downloadJson() {
           <p class="dsec__hint">经后端代理执行只读查询（仅允许 SELECT / WITH）</p>
           <div class="dgrid">
             <MFormItem label="数据库类型">
-              <MSelect :model-value="sql.driver ?? 'mysql'" @update:model-value="patchSql({ driver: $event })" :options="[
+              <MSelect :model-value="sql.driver ?? 'mysql'" @update:model-value="onSqlDriverChange($event as string)" :options="[
                 { label: 'MySQL', value: 'mysql' },
                 { label: 'PostgreSQL', value: 'postgresql' },
                 { label: 'SQL Server', value: 'sqlserver' },
@@ -616,10 +912,11 @@ function downloadJson() {
         <section v-else class="dsec">
           <p class="dsec__title">引用数据源</p>
           <MFormItem label="选择数据源">
-            <MSelect v-model="dataSourceId" :options="savedDataSourceOptions" fluid allow-clear />
+            <!-- 选项首项即「（未选择）」，无需 clearable -->
+            <MSelect v-model="dataSourceId" :options="savedDataSourceOptions" fluid />
           </MFormItem>
           <div v-if="referenced" class="dinfo">
-            <MTag type="primary" size="small">{{ referenced.type }}</MTag>
+            <MTag size="small">{{ referenced.type }}</MTag>
             <span class="dinfo__name">{{ referenced.name }}</span>
           </div>
           <p v-else class="dsec__hint">未选择数据源</p>
@@ -630,54 +927,81 @@ function downloadJson() {
           </div>
         </section>
 
-        <!-- 测试结果 -->
-        <DataResultPanel :result="result" :loading="testing" />
+        </MScrollbar>
+        <!-- 测试数据常显：固定在左列下方，不随配置表单滚走 -->
+        <DataResultPanel
+          class="data-panel__result"
+          :result="result"
+          :loading="testing || sampleLoading"
+          :rows="enrichedRows"
+          :fields="getComputedFields()"
+          :profiles="rawProfiles"
+          @update:fields="setComputedFields"
+        />
+      </div>
 
-        <!-- 过滤器 / 转换 -->
-        <p class="data-sec">过滤器 / 数据转换</p>
-        <TransformEditor />
-
-        <!-- 计算列 -->
-        <p class="data-sec">计算列</p>
-        <p class="dsec__hint">基于原始字段派生新字段，可在下方字段映射中使用</p>
-        <ComputedFieldsEditor :fields="getComputedFields()" :profiles="fieldProfiles"
-          @update:fields="setComputedFields" />
-
-        <!-- 数据映射 -->
-        <p class="data-sec">数据映射</p>
-        <div v-if="dataRoles.length" class="dfields">
-          <MFormItem v-for="role in dataRoles" :key="role.name" :label="role.label" :required="role.required"
-            :help="fieldProfiles.length ? undefined : '暂无数据，先测试或绑定数据源'">
-            <FieldSelect :profiles="fieldProfiles" :accepted-types="role.acceptedTypes" :value="roleValue(role)"
-              :multiple="role.multiple" :disabled="!fieldProfiles.length" @update:value="setRole(role, $event)" />
-          </MFormItem>
-        </div>
-        <p v-else class="dsec__hint">该组件暂无可配置的数据字段映射</p>
-
-        <!-- 数据内容 -->
+      <!-- 右列：绑定数据；数据内容在组件数据入参右侧入参区下方 -->
+      <MScrollbar class="data-panel__col" view-class="flex flex-col gap-4">
+        <!-- 绑定数据：计算列 → 组件数据入参装配（字段拖入即完成绑定） -->
         <div class="data-sec-row">
-          <p class="data-sec">数据内容</p>
-          <PanelTabs v-model="contentView"
-            :options="[{ label: '表格', value: 'table' }, { label: 'JSON', value: 'json' }]" />
+          <p class="data-sec">绑定数据</p>
+          <p class="dsec__hint">把字段放入组件需要的入参（数值入参可设聚合）。计算列在左侧数据表中编辑，实时作用于下方预览</p>
         </div>
-        <div v-if="rows.length" class="dcontent">
-          <table v-if="contentView === 'table'" class="dcontent__table">
-            <thead>
-              <tr>
-                <th v-for="f in fields" :key="f">{{ f }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(row, i) in previewRows" :key="i">
-                <td v-for="f in fields" :key="f">{{ row[f] ?? '' }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <pre v-else class="dcontent__json">{{ contentJson }}</pre>
+        <div v-if="bindingIssues.length" class="dbind-alert" role="alert">
+          <p class="dbind-alert__title">绑定待完善（{{ bindingIssues.length }}）</p>
+          <p v-for="(issue, i) in bindingIssues.slice(0, 3)" :key="i" class="dbind-alert__item">· {{ issueText(issue) }}</p>
         </div>
-        <p v-else class="dsec__hint">暂无数据</p>
-        <div v-if="rows.length" class="dsec__actions">
-          <MButton type="default" size="small" @click="downloadJson">下载 JSON</MButton>
+        <div class="dpipe">
+          <div class="dpipe__stage">
+            <p class="dpipe__stage-title">
+              组件数据入参<span class="dpipe__stage-desc">字段放入即完成配置，无需再绑定</span>
+            </p>
+            <FieldBuilderPanel
+              v-model:assignments="assignments"
+              v-model:filters="filterConds"
+              :roles="dataRoles"
+              :profiles="sourceProfiles"
+              :transform="transformModel"
+              @update:transform="onRawTransform"
+            >
+              <!-- 数据内容：放在组件数据入参右侧（维度 / 数值 / 系列等）下面 -->
+              <div class="data-sec-row">
+                <p class="data-sec">数据内容</p>
+                <span v-if="rows.length" class="dsec__hint dsec__hint--count">共 {{ rows.length }} 行<template v-if="contentView === 'table' && rows.length > 50">，预览前 50 行</template>（已应用计算列与加工）</span>
+                <PanelTabs v-model="contentView"
+                  :options="[{ label: '预览', value: 'preview' }, { label: '表格', value: 'table' }, { label: 'JSON', value: 'json' }]" />
+              </div>
+              <!-- 预览：当前组件的实时渲染（编辑态绑定 previewCard + 加工后数据 rows），与画布同一渲染节点 -->
+              <div v-if="contentView === 'preview'" class="dpreview">
+                <CardNode
+                  v-if="previewCard"
+                  :card="previewCard"
+                  :data="rows"
+                  :loading="previewLoading"
+                  :error="previewError"
+                />
+              </div>
+              <div v-else-if="rows.length" class="dcontent">
+                <table v-if="contentView === 'table'" class="dcontent__table">
+                  <thead>
+                    <tr>
+                      <th v-for="f in fields" :key="f">{{ f }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, i) in previewRows" :key="i">
+                      <td v-for="f in fields" :key="f">{{ formatCell(row[f]) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <pre v-else class="dcontent__json">{{ contentJson }}</pre>
+              </div>
+              <p v-else class="dsec__hint">暂无数据 · Mock 打开即加载；请求 / WebSocket / SQL 请先在左侧点「测试」拉取</p>
+              <div v-if="rows.length" class="dsec__actions">
+                <MButton type="default" size="small" @click="downloadJson">下载 JSON</MButton>
+              </div>
+            </FieldBuilderPanel>
+          </div>
         </div>
       </MScrollbar>
 
@@ -686,13 +1010,73 @@ function downloadJson() {
 </template>
 
 <style scoped>
+/* 弹窗内容区（.m-dialog__body）已是定高 flex 容器：本面板填满它，滚动在左右列内部发生 */
 .data-panel {
   width: 100%;
-  height: 60vh;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* 左右两列主体：左 = 来源切换 + 连接配置 + 测试结果；右 = 绑定数据（数据内容在入参区右侧下方） */
+.data-panel__body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 14px;
+}
+
+.data-panel__col {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 左列：来源切换固定列顶，配置表单与测试结果在下方滚动 */
+.data-panel__col--left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-3);
+}
+
+.data-panel__tabs {
+  flex-shrink: 0;
+}
+
+.data-panel__col-scroll {
+  flex: 1 1 34%;
+  min-height: 168px;
+}
+
+/* 测试数据表固定在左列底部，占主要高度，表内可滚动更多行 */
+.data-panel__result {
+  flex: 1 1 58%;
+  min-height: 320px;
+  min-width: 0;
+}
+
+/* 两列分隔线 */
+.data-panel__col + .data-panel__col {
+  border-left: 1px solid var(--m-color-split);
+  padding-left: 14px;
+}
+
+/* 窄屏回退：上下堆叠 */
+@media (max-width: 900px) {
+  .data-panel__body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .data-panel__col + .data-panel__col {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--m-color-split);
+    padding-top: 14px;
+  }
 }
 
 .dsec {
@@ -720,14 +1104,38 @@ function downloadJson() {
   color: var(--m-color-text-muted);
 }
 
+.dsec__error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--m-color-danger);
+}
+
+/* 绑定健康提示：必绑未绑 / 字段缺失 / 类型不匹配（编辑态实时） */
+.dbind-alert {
+  padding: var(--m-space-2) var(--m-space-3);
+  border-left: 3px solid var(--m-color-warning);
+  border-radius: var(--m-radius-sm);
+  background: color-mix(in srgb, var(--m-color-warning) 8%, transparent);
+}
+
+.dbind-alert__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--m-color-warning);
+}
+
+.dbind-alert__item {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--m-color-text);
+}
+
 .dsec__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-}
-
-.dsec__file {
-  display: none;
+  align-items: center;
+  gap: var(--m-space-2);
 }
 
 .data-sec {
@@ -745,8 +1153,17 @@ function downloadJson() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: var(--m-space-2) var(--m-space-3);
   margin-top: 6px;
+}
+
+/* 数据内容标题行的行数反馈：过滤/聚合结果行数实时可见。入参区较窄，行数提示换到下一行 */
+.dsec__hint--count {
+  flex: 1 1 100%;
+  order: 3;
+  white-space: normal;
+  padding: 0;
 }
 
 .data-sec-row .data-sec {
@@ -777,7 +1194,7 @@ function downloadJson() {
 .dinfo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--m-space-2);
 }
 
 .dinfo__name {
@@ -788,14 +1205,14 @@ function downloadJson() {
 .dfields {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--m-space-1);
 }
 
 .dfields__row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
+  gap: var(--m-space-2);
+  padding: var(--m-space-1) var(--m-space-2);
   border-radius: var(--m-radius-sm);
   background: var(--m-color-fill-light);
 }
@@ -814,7 +1231,7 @@ function downloadJson() {
   font-size: 11px;
   font-weight: 600;
   color: var(--m-color-primary);
-  padding: 1px 8px;
+  padding: 1px var(--m-space-2);
   border-radius: 999px;
   background: color-mix(in srgb, var(--m-color-primary) 10%, transparent);
 }
@@ -822,6 +1239,54 @@ function downloadJson() {
 .dfields__bind {
   display: flex;
   gap: 2px;
+}
+
+/* 数据加工流水线卡 */
+.dpipe {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-3);
+  padding: 14px;
+  border: 1px solid var(--m-color-border);
+  border-radius: var(--m-radius-md);
+  background: var(--m-color-surface);
+}
+
+.dpipe__stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-space-2);
+}
+
+.dpipe__stage + .dpipe__stage {
+  padding-top: var(--m-space-3);
+  border-top: 1px dashed var(--m-color-split);
+}
+
+.dpipe__stage-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--m-color-text);
+  display: flex;
+  align-items: baseline;
+  gap: var(--m-space-2);
+}
+
+.dpipe__stage-desc {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--m-color-text-muted);
+}
+
+/* 预览：当前组件实时渲染。fill 底 + 内边距模拟画布格子，卡片自身 surface / 圆角浮在上面 */
+.dpreview {
+  height: 280px;
+  padding: var(--m-space-3);
+  border: 1px solid var(--m-color-border);
+  border-radius: var(--m-radius-md);
+  background: var(--m-color-fill-light);
+  overflow: hidden;
 }
 
 .dcontent {

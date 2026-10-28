@@ -34,6 +34,7 @@ export const mockAdapter: DataSourceAdapter = {
       message: `Mock 返回 ${rows.length} rows（模拟延迟 ${MOCK_LATENCY}ms）`,
       sampleRows: rows.length,
       sample: rows.slice(0, 3),
+      rows,
       durationMs: Date.now() - started + MOCK_LATENCY,
       raw: rows[0],
     }

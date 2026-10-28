@@ -4,7 +4,7 @@
  * 点「完成」才一次性提交回卡片（关闭或取消则丢弃）。
  */
 
-import type { ComputedField, DataSourceConfig } from '../../types/schema'
+import type { ComputedField, DataSourceConfig, TransformStep } from '../../types/schema'
 
 export interface DataConfigDraft {
   dataSource?: DataSourceConfig
@@ -13,4 +13,6 @@ export interface DataConfigDraft {
   bindings: Record<string, unknown>
   /** 计算列草稿；undefined 表示未编辑（提交时保持原值） */
   computedFields?: ComputedField[]
+  /** 数据加工（维度/指标/过滤）草稿；undefined 表示未编辑 */
+  transform?: TransformStep[]
 }
