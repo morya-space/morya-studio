@@ -169,34 +169,34 @@ function removeInteraction(index: number) {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .event-panel {
   display: flex;
   flex-direction: column;
-}
 
-.event-panel :deep(.m-form) {
-  display: flex;
-  flex-direction: column;
-  gap: var(--m-space-3, 12px);
-}
+  :deep(.m-form) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--m-space-3, 12px);
+  }
 
-.event-panel__section {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: 12px 0 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--m-color-split);
-}
+  &__section {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--m-color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 12px 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--m-color-split);
+  }
 
-.event-panel__hint {
-  margin: 0 0 8px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--m-color-text-muted);
+  &__hint {
+    margin: 0 0 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--m-color-text-muted);
+  }
 }
 
 .event-block {
@@ -207,17 +207,19 @@ function removeInteraction(index: number) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
 
-.event-block__head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-}
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--m-color-text-muted);
 
-.event-block__head :deep(.m-button) { margin-left: auto; }
+    :deep(.m-button) {
+      margin-left: auto;
+    }
+  }
+}
 
 .event-action,
 .event-binding {
@@ -226,19 +228,27 @@ function removeInteraction(index: number) {
   gap: var(--m-space-2, 8px);
 }
 
-.event-action__head,
-.event-binding > p {
-  margin: 0;
-  color: var(--m-color-text-muted);
-  font-size: 12px;
+.event-action {
+  &__head {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    color: var(--m-color-text-muted);
+    font-size: 12px;
+
+    :deep(.m-button) {
+      margin-left: auto;
+    }
+  }
 }
 
-.event-action__head {
-  display: flex;
-  align-items: center;
+.event-binding {
+  > p {
+    margin: 0;
+    color: var(--m-color-text-muted);
+    font-size: 12px;
+  }
 }
-
-.event-action__head :deep(.m-button) { margin-left: auto; }
 
 .event-grid {
   display: grid;

@@ -96,23 +96,23 @@ async function removeCard() {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .layout-panel {
   display: flex;
   flex-direction: column;
-}
 
-.layout-panel__group {
-  margin-top: var(--m-space-4, 16px);
-  padding-top: var(--m-space-3, 12px);
-  border-top: 1px solid var(--m-color-split);
-}
+  &__group {
+    margin-top: var(--m-space-4, 16px);
+    padding-top: var(--m-space-3, 12px);
+    border-top: 1px solid var(--m-color-split);
+  }
 
-.layout-panel__label {
-  margin: 0 0 var(--m-space-2, 8px);
-  color: var(--m-color-text-muted);
-  font-size: 12px;
-  font-weight: 600;
+  &__label {
+    margin: 0 0 var(--m-space-2, 8px);
+    color: var(--m-color-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
 }
 
 .op-row {
@@ -120,12 +120,12 @@ async function removeCard() {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 8px;
-}
 
-.op-row :deep(.m-button) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
+  :deep(.m-button) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
 }
 </style>

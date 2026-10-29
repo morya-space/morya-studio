@@ -27,17 +27,17 @@ const value = ref<string | undefined>(undefined)
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .form-select-card {
   height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 6px;
-}
 
-.form-select-card__label {
-  font-size: 13px;
-  color: var(--m-color-text-muted);
+  &__label {
+    font-size: 13px;
+    color: var(--m-color-text-muted);
+  }
 }
 </style>

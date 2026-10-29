@@ -163,72 +163,80 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+/* 居中态（无缩放时也水平居中）；缩放尺寸仍由动态 :style 提供 */
 .preview-view {
-  height: 100vh;
   display: flex;
+  height: 100vh;
   flex-direction: column;
   background: var(--m-color-page-bg);
 }
 
 .preview-bar {
-  flex: none;
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 10px 20px;
-  background: var(--m-color-surface);
+  gap: 1rem;
   border-bottom: 1px solid var(--m-color-border);
+  background: var(--m-color-surface);
+  padding: 0.625rem 1.25rem;
+
+  &__main {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+
+  &__title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 700;
+    color: var(--m-color-text);
+  }
+
+  &__meta {
+    white-space: nowrap;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--m-color-text-muted);
+  }
+
+  &__actions {
+    display: flex;
+    flex: none;
+    gap: 0.5rem;
+  }
 }
 
-.preview-bar__main {
+.preview-center {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
-  min-width: 0;
-}
-
-.preview-bar__title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--m-color-text);
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.preview-bar__meta {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-  white-space: nowrap;
-}
-
-.preview-bar__actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
 }
 
 .preview-stage {
-  flex: 1;
   min-height: 0;
+  flex: 1;
   overflow: auto;
+
+  :deep(.schema-renderer) {
+    margin: 0 auto;
+  }
 }
 
 .preview-inner {
   display: flex;
   justify-content: center;
-  padding: 20px;
+  padding: 1.25rem;
 }
 
 .preview-fit {
   flex: none;
-}
-
-/* 居中态（无缩放时也水平居中） */
-.preview-stage :deep(.schema-renderer) {
-  margin: 0 auto;
 }
 </style>

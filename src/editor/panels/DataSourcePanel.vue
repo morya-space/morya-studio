@@ -240,7 +240,7 @@ async function onTest() {
             help="JSON 模板 + {{int 1 100}} 等占位符；顶层 {{repeat N}} 生成 N 行"
           >
             <MTextarea v-model="mockTemplateText" :rows="8" fluid placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
-            <div class="flex justify-end">
+            <div class="form-actions">
               <MButton type="default" size="small" :disabled="!mockTemplateText.trim()" @click="onFormatMockTemplate">格式化</MButton>
             </div>
           </MFormItem>
@@ -251,7 +251,7 @@ async function onTest() {
             help="直接作为结果返回，不随机生成"
           >
             <MTextarea v-model="staticDataText" :rows="8" fluid placeholder='[{"x":"1月","y":100}]' />
-            <div class="flex justify-end">
+            <div class="form-actions">
               <MButton type="default" size="small" :disabled="!staticDataText.trim()" @click="onFormatMockData">格式化</MButton>
             </div>
           </MFormItem>
@@ -303,7 +303,7 @@ async function onTest() {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .datasource-panel {
   display: flex;
   flex-direction: column;
@@ -347,6 +347,33 @@ async function onTest() {
   border: 1px solid var(--m-color-border);
   border-radius: var(--m-radius-md);
   background: var(--m-color-surface);
+
+  .ds-info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .ds-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m-color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ds-type {
+    font-size: 11px;
+    color: var(--m-color-text-muted);
+  }
+
+  .ds-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
 }
 
 .ds-info {
@@ -374,5 +401,10 @@ async function onTest() {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

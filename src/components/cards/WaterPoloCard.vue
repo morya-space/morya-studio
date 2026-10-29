@@ -39,61 +39,61 @@ const color = computed(() => cfg.value.color ?? 'var(--m-color-primary)')
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .water-polo-card {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
 
-.water-polo-card__ball {
-  position: relative;
-  height: 90%;
-  aspect-ratio: 1;
-  max-height: 100%;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 2px solid color-mix(in srgb, currentColor 55%, transparent);
-  background: color-mix(in srgb, currentColor 10%, transparent);
-}
+  &__ball {
+    position: relative;
+    height: 90%;
+    aspect-ratio: 1;
+    max-height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid color-mix(in srgb, currentColor 55%, transparent);
+    background: color-mix(in srgb, currentColor 10%, transparent);
+  }
 
-.water-polo-card__fill {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: color-mix(in srgb, currentColor 45%, transparent);
-  transition: height 0.6s ease;
-}
+  &__fill {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: color-mix(in srgb, currentColor 45%, transparent);
+    transition: height 0.6s ease;
+  }
 
-.water-polo-card__wave {
-  position: absolute;
-  left: 0;
-  top: -9px;
-  width: 200%;
-  height: 18px;
-  color: currentColor;
-  animation: water-wave 3s linear infinite;
-}
+  &__wave {
+    position: absolute;
+    left: 0;
+    top: -9px;
+    width: 200%;
+    height: 18px;
+    color: currentColor;
+    animation: water-wave 3s linear infinite;
 
-.water-polo-card__wave--slow {
-  top: -6px;
-  opacity: 0.5;
-  animation-duration: 5s;
-  animation-direction: reverse;
-}
+    &--slow {
+      top: -6px;
+      opacity: 0.5;
+      animation-duration: 5s;
+      animation-direction: reverse;
+    }
+  }
 
-.water-polo-card__text {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  height: 100%;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--m-color-text);
-  font-variant-numeric: tabular-nums;
+  &__text {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    height: 100%;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--m-color-text);
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 @keyframes water-wave {

@@ -62,7 +62,7 @@ function trendOf(row: Record<string, unknown>): { text: string; type: 'up' | 'do
   </CardShell>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .list-card {
   list-style: none;
   margin: 0;
@@ -72,66 +72,68 @@ function trendOf(row: Record<string, unknown>): { text: string; type: 'up' | 'do
   overflow: auto;
   display: flex;
   flex-direction: column;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--m-color-split);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m-color-text);
+  }
+
+  &__subtitle {
+    font-size: 12px;
+    color: var(--m-color-text-muted);
+  }
+
+  &__side {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  &__value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m-color-text);
+  }
+
+  &__trend {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: var(--m-radius-full, 999px);
+  }
 }
 
-.list-card__item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--m-color-split);
-}
+.trend {
+  &--up {
+    color: var(--m-color-success);
+    background: color-mix(in srgb, var(--m-color-success) 12%, transparent);
+  }
 
-.list-card__item:last-child {
-  border-bottom: none;
-}
-
-.list-card__main {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.list-card__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--m-color-text);
-}
-
-.list-card__subtitle {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-}
-
-.list-card__side {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.list-card__value {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--m-color-text);
-}
-
-.list-card__trend {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 1px 8px;
-  border-radius: var(--m-radius-full, 999px);
-}
-
-.trend--up {
-  color: var(--m-color-success);
-  background: color-mix(in srgb, var(--m-color-success) 12%, transparent);
-}
-
-.trend--down {
-  color: var(--m-color-accent-pink);
-  background: color-mix(in srgb, var(--m-color-accent-pink) 12%, transparent);
+  &--down {
+    color: var(--m-color-accent-pink);
+    background: color-mix(in srgb, var(--m-color-accent-pink) 12%, transparent);
+  }
 }
 </style>

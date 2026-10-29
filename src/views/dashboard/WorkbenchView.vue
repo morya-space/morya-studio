@@ -113,14 +113,17 @@ function fmtDate(iso?: string): string {
 <template>
   <div class="wb">
     <!-- ============ 中间主内容 ============ -->
-    <div class="wb__main">
+    <div class="wb-main">
       <!-- 顶部：问候 + 操作 -->
-      <div class="wb-top">
-        <div class="wb-top__text">
-          <h1 class="wb-greeting">{{ t('workbench.greeting') }}</h1>
-          <p class="wb-total">{{ totalCards }} <span>{{ t('workbench.cardTotal') }}</span></p>
+      <div class="wb-head">
+        <div>
+          <h1 class="wb-title">{{ t('workbench.greeting') }}</h1>
+          <p class="wb-total">
+            {{ totalCards }}
+            <span class="wb-total-label">{{ t('workbench.cardTotal') }}</span>
+          </p>
         </div>
-        <div class="wb-top__actions">
+        <div class="wb-head-actions">
           <MButton type="default" @click="router.push('/panels')">{{ t('workbench.viewAll') }}</MButton>
           <MButton type="primary" @click="router.push(`/editor/${genPageId()}`)">
             <SvgIcon name="plus" :px="14" /> {{ t('workbench.newPanel') }}
@@ -131,13 +134,15 @@ function fmtDate(iso?: string): string {
       <!-- 紫色资产横幅 -->
       <MSkeleton v-if="loading" height="104px" border-radius="var(--m-radius-lg)" />
       <section v-else class="wb-banner">
-        <div v-for="s in bannerStats" :key="s.key" class="wb-banner__item">
-          <span class="wb-banner__icon"><SvgIcon :name="s.icon" :px="22" /></span>
-          <div class="wb-banner__meta">
-            <span class="wb-banner__label">{{ s.label }}</span>
-            <span class="wb-banner__value">
+        <div v-for="s in bannerStats" :key="s.key" class="wb-stat">
+          <span class="wb-stat-icon">
+            <SvgIcon :name="s.icon" :px="22" />
+          </span>
+          <div class="wb-stat-info">
+            <span class="wb-stat-label">{{ s.label }}</span>
+            <span class="wb-stat-value">
               {{ s.value }}
-              <em class="wb-banner__trend">{{ s.trend }}</em>
+              <em class="wb-stat-trend">{{ s.trend }}</em>
             </span>
           </div>
         </div>
@@ -146,19 +151,19 @@ function fmtDate(iso?: string): string {
       <!-- 中部两栏：最近面板 + 数据概览 -->
       <div class="wb-mid">
         <!-- 最近面板（交易列表风） -->
-        <MCard class="wb-panels" shadow="always" :bordered="false">
+        <MCard class="studio-card" shadow="always" :bordered="false">
           <template #header>
-            <div class="wb-panel__head">
-              <h3 class="wb-panel__title">{{ t('workbench.recentPanels') }}</h3>
+            <div class="wb-card-head">
+              <h3 class="wb-card-title">{{ t('workbench.recentPanels') }}</h3>
               <MButton type="text" size="small" @click="router.push('/panels')">{{ t('workbench.viewAll') }}</MButton>
             </div>
           </template>
 
-          <div v-if="loading" class="wb-skeleton-rows">
+          <div v-if="loading" class="wb-skel">
             <MSkeleton v-for="i in 4" :key="i" height="52px" border-radius="var(--m-radius-md)" />
           </div>
 
-          <div v-else-if="recentPages.length === 0" class="wb-panels__empty">
+          <div v-else-if="recentPages.length === 0" class="wb-empty">
             <MEmpty :title="t('workbench.emptyTitle')" :description="t('workbench.emptyDesc')">
               <template #extra>
                 <MButton type="primary" @click="router.push(`/editor/${genPageId()}`)">{{ t('workbench.createNow') }}</MButton>
@@ -166,50 +171,52 @@ function fmtDate(iso?: string): string {
             </MEmpty>
           </div>
 
-          <div v-else class="wb-tx">
+          <div v-else class="wb-page-list">
             <button
               v-for="page in recentPages"
               :key="page.id"
               type="button"
-              class="wb-tx__row"
+              class="wb-page-item"
               @click="onEdit(page.id)"
             >
-              <span class="wb-tx__thumb"><SvgIcon name="layout" :px="18" /></span>
-              <span class="wb-tx__main">
-                <span class="wb-tx__title">{{ page.title }}</span>
-                <span class="wb-tx__sub">{{ fmtDate(page.meta?.updatedAt) }} · {{ t('workbench.cardCount', { n: page.cards.length }) }}</span>
+              <span class="wb-page-icon">
+                <SvgIcon name="layout" :px="18" />
               </span>
-              <span class="wb-tx__value">{{ page.cards.length }}</span>
-              <SvgIcon name="arrow-up-right" :px="16" class="wb-tx__go" />
+              <span class="wb-page-info">
+                <span class="wb-page-title">{{ page.title }}</span>
+                <span class="wb-page-meta">{{ fmtDate(page.meta?.updatedAt) }} · {{ t('workbench.cardCount', { n: page.cards.length }) }}</span>
+              </span>
+              <span class="wb-page-count">{{ page.cards.length }}</span>
+              <SvgIcon name="arrow-up-right" :px="16" class="wb-page-arrow" />
             </button>
           </div>
         </MCard>
 
         <!-- 数据概览（ECharts 环形图） -->
-        <MCard class="wb-gauge" shadow="always" :bordered="false">
+        <MCard class="studio-card" shadow="always" :bordered="false">
           <template #header>
-            <div class="wb-panel__head">
-              <h3 class="wb-panel__title">{{ t('workbench.overview') }}</h3>
+            <div class="wb-card-head">
+              <h3 class="wb-card-title">{{ t('workbench.overview') }}</h3>
             </div>
           </template>
-          <div v-if="loading" class="wb-gauge__skeleton">
+          <div v-if="loading" class="wb-donut-skel">
             <MSkeleton shape="circle" width="150px" height="150px" />
           </div>
-          <div v-else class="wb-gauge__content">
-          <div class="wb-gauge__body">
-            <div ref="overviewRef" class="wb-donut" />
-            <div class="wb-gauge__center">
-              <span class="wb-gauge__num">{{ totalCards }}</span>
-              <span class="wb-gauge__cap">{{ t('workbench.cardTotal') }}</span>
+          <div v-else class="wb-donut-wrap">
+            <div class="wb-donut-area">
+              <div ref="overviewRef" class="wb-donut" />
+              <div class="wb-donut-center">
+                <span class="wb-donut-value">{{ totalCards }}</span>
+                <span class="wb-donut-label">{{ t('workbench.cardTotal') }}</span>
+              </div>
             </div>
-          </div>
-          <ul class="wb-gauge__legend">
-            <li v-for="s in overviewSegments" :key="s.label">
-              <span class="dot" :style="{ background: `var(${s.token})` }" />
-              <span class="wb-gauge__legend-label">{{ s.label }}</span>
-              <span class="wb-gauge__legend-val">{{ s.value }}</span>
-            </li>
-          </ul>
+            <ul class="wb-legend">
+              <li v-for="s in overviewSegments" :key="s.label" class="wb-legend-item">
+                <span class="wb-dot" :style="{ background: `var(${s.token})` }" />
+                <span class="wb-legend-name">{{ s.label }}</span>
+                <span class="wb-legend-value">{{ s.value }}</span>
+              </li>
+            </ul>
           </div>
         </MCard>
       </div>
@@ -218,495 +225,494 @@ function fmtDate(iso?: string): string {
     <!-- ============ 右侧信息面板 ============ -->
     <aside class="wb-side">
       <!-- 用户卡 -->
-      <MCard shadow="always" :bordered="false" size="sm">
-        <div class="wb-side__user">
-          <span class="wb-side__avatar">{{ (user?.name ?? 'M').slice(0, 1) }}</span>
-          <div class="wb-side__user-meta">
-            <span class="wb-side__user-name">{{ user?.name ?? 'Member' }}</span>
-            <span class="wb-side__user-plan">{{ t('user.freeMember') }}</span>
+      <MCard class="studio-card" shadow="always" :bordered="false" size="sm">
+        <div class="wb-user">
+          <span class="wb-user-avatar">
+            {{ (user?.name ?? 'M').slice(0, 1) }}
+          </span>
+          <div class="wb-user-info">
+            <span class="wb-user-name">{{ user?.name ?? 'Member' }}</span>
+            <span class="wb-user-plan">{{ t('user.freeMember') }}</span>
           </div>
         </div>
       </MCard>
 
       <!-- Active Members -->
-      <MCard shadow="always" :bordered="false">
+      <MCard class="studio-card" shadow="always" :bordered="false">
         <template #header>
-          <h4 class="wb-card__title">{{ t('workbench.activeMembers') }}</h4>
+          <h4 class="wb-subtitle">{{ t('workbench.activeMembers') }}</h4>
         </template>
-        <div class="wb-card__body">
-        <div class="wb-members__bar">
-          <span
-            v-for="m in members"
-            :key="m.name"
-            class="wb-members__seg"
-            :style="{ width: `${m.pct}%`, background: m.color }"
-          />
-        </div>
-        <ul class="wb-members__list">
-          <li v-for="m in members" :key="m.name">
-            <span class="dot" :style="{ background: m.color }" />
-            <span class="wb-members__name">{{ m.name }}</span>
-            <span class="wb-members__pct">{{ m.pct }}%</span>
-          </li>
-        </ul>
+        <div class="wb-members">
+          <div class="wb-members-bar">
+            <span
+              v-for="m in members"
+              :key="m.name"
+              class="wb-members-seg"
+              :style="{ width: `${m.pct}%`, background: m.color }"
+            />
+          </div>
+          <ul class="wb-members-list">
+            <li v-for="m in members" :key="m.name" class="wb-member-item">
+              <span class="wb-dot" :style="{ background: m.color }" />
+              <span class="wb-member-name">{{ m.name }}</span>
+              <span class="wb-member-pct">{{ m.pct }}%</span>
+            </li>
+          </ul>
         </div>
       </MCard>
 
       <!-- Upgrade -->
-      <MCard class="wb-upgrade" shadow="always" :bordered="false">
+      <MCard class="studio-card wb-upgrade" shadow="always" :bordered="false">
         <template #header>
-          <h4 class="wb-card__title">{{ t('workbench.upgradeTitle') }}</h4>
+          <h4 class="wb-subtitle">{{ t('workbench.upgradeTitle') }}</h4>
         </template>
-        <div class="wb-card__body">
-        <p class="wb-upgrade__desc">{{ t('workbench.upgradeDesc') }}</p>
-        <MButton type="primary" class="wb-upgrade__btn" @click="router.push('/settings')">
-          {{ t('workbench.upgradeNow') }}
-        </MButton>
-        <div class="wb-upgrade__art" aria-hidden="true">
-          <SvgIcon name="crown" :px="64" />
-        </div>
+        <div class="wb-members">
+          <p class="wb-upgrade-desc">{{ t('workbench.upgradeDesc') }}</p>
+          <MButton type="primary" class="wb-upgrade-btn" @click="router.push('/settings')">
+            {{ t('workbench.upgradeNow') }}
+          </MButton>
+          <div class="wb-upgrade-crown" aria-hidden="true">
+            <SvgIcon name="crown" :px="64" />
+          </div>
         </div>
       </MCard>
     </aside>
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .wb {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: flex-start;
   gap: 28px;
-  padding: 28px 32px;
-  background: var(--m-color-page-bg);
   height: 100%;
   overflow-y: auto;
-  align-items: start;
+  background: var(--m-color-page-bg);
+  padding: 28px 32px;
 }
 
-/* ============ 主内容 ============ */
-.wb__main {
+.wb-main {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 24px;
-  min-width: 0;
 }
 
-.wb-top {
+.wb-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
 }
 
-.wb-greeting {
+.wb-title {
+  margin: 0 0 6px;
   font-size: 30px;
   font-weight: 800;
-  color: var(--m-color-text);
-  margin: 0 0 6px;
   letter-spacing: -0.01em;
+  color: var(--m-color-text);
 }
 
 .wb-total {
+  margin: 0;
   font-size: 26px;
   font-weight: 800;
   color: var(--m-color-primary);
-  margin: 0;
 }
 
-.wb-total span {
+.wb-total-label {
+  margin-left: 6px;
   font-size: 13px;
   font-weight: 500;
   color: var(--m-color-text-muted);
-  margin-left: 6px;
 }
 
-.wb-top__actions {
+.wb-head-actions {
   display: flex;
   gap: 8px;
 }
 
-.wb-skeleton-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.wb-gauge__skeleton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 0;
-}
-
-/* 紫色横幅 */
+/* 紫色资产横幅 */
 .wb-banner {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  padding: 24px 28px;
   border-radius: var(--m-radius-lg);
   background: linear-gradient(120deg, var(--m-color-primary), color-mix(in srgb, var(--m-color-primary) 70%, var(--m-color-accent-blue)));
+  padding: 24px 28px;
   box-shadow: var(--m-shadow-card);
 }
 
-.wb-banner__item {
+.wb-stat {
   display: flex;
   align-items: center;
   gap: 14px;
 }
 
-.wb-banner__icon {
-  width: 48px;
+.wb-stat-icon {
   height: 48px;
+  width: 48px;
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 9999px;
   background: color-mix(in srgb, var(--m-color-surface) 20%, transparent);
   color: var(--m-color-surface);
-  flex-shrink: 0;
 }
 
-.wb-banner__meta {
+.wb-stat-info {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 0;
 }
 
-.wb-banner__label {
+.wb-stat-label {
   font-size: 12px;
   color: color-mix(in srgb, var(--m-color-surface) 80%, transparent);
 }
 
-.wb-banner__value {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--m-color-surface);
+.wb-stat-value {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--m-color-surface);
 }
 
-.wb-banner__trend {
-  font-style: normal;
+.wb-stat-trend {
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--m-color-surface) 22%, transparent);
+  padding: 2px 8px;
   font-size: 11px;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--m-color-surface) 22%, transparent);
+  font-style: normal;
 }
 
 /* 中部两栏 */
 .wb-mid {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  align-items: flex-start;
   gap: 20px;
-  align-items: start;
 }
 
-/* 中部卡片外观由 MCard 承载，这里只留头部布局 */
-.wb-panel__head {
+.wb-card-head {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
 }
 
-.wb-panel__title {
+.wb-card-title {
+  margin: 0;
   font-size: 16px;
   font-weight: 700;
   color: var(--m-color-text);
+}
+
+.wb-subtitle {
   margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--m-color-text);
 }
 
-.wb-panels__empty {
-  padding: 24px 0;
+.wb-skel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* 交易列表风 */
-.wb-tx {
+.wb-empty {
+  padding-block: 24px;
+}
+
+.wb-page-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.wb-tx__row {
+.wb-page-item {
   display: flex;
+  cursor: pointer;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
-  background: transparent;
   border: none;
   border-radius: var(--m-radius-md);
-  cursor: pointer;
+  background: transparent;
+  padding: 10px 12px;
   text-align: left;
-  transition: background-color 0.15s ease;
+  transition:
+    color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background: var(--m-color-split);
+  }
 }
 
-.wb-tx__row:hover {
-  background: var(--m-color-split);
-}
-
-.wb-tx__thumb {
-  width: 38px;
+.wb-page-icon {
   height: 38px;
+  width: 38px;
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   border-radius: var(--m-radius-md);
   background: color-mix(in srgb, var(--m-color-primary) 10%, transparent);
   color: var(--m-color-primary);
-  flex-shrink: 0;
 }
 
-.wb-tx__main {
-  display: flex;
-  flex-direction: column;
+.wb-page-info {
   min-width: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.wb-tx__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--m-color-text);
+.wb-page-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--m-color-text);
 }
 
-.wb-tx__sub {
+.wb-page-meta {
   font-size: 12px;
   color: var(--m-color-text-muted);
 }
 
-.wb-tx__value {
+.wb-page-count {
+  flex: none;
   font-size: 15px;
   font-weight: 700;
   color: var(--m-color-text);
-  flex-shrink: 0;
 }
 
-.wb-tx__go {
+.wb-page-arrow {
+  flex: none;
   color: var(--m-color-text-muted);
-  flex-shrink: 0;
 }
 
-/* 数据概览仪表 */
-.wb-gauge__content {
+/* 数据概览 */
+.wb-donut-skel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 40px;
+}
+
+.wb-donut-wrap {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.wb-gauge__body {
+.wb-donut-area {
   position: relative;
   display: flex;
   justify-content: center;
   padding-top: 8px;
 }
 
+// ECharts 实例依赖容器的确定尺寸。
 .wb-donut {
   width: 100%;
   height: 220px;
 }
 
-.wb-gauge__center {
+.wb-donut-center {
+  pointer-events: none;
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%);
   display: flex;
+  transform: translate(-50%, -50%);
   flex-direction: column;
   align-items: center;
-  pointer-events: none;
 }
 
-.wb-gauge__num {
+.wb-donut-value {
   font-size: 26px;
   font-weight: 800;
   color: var(--m-color-text);
 }
 
-.wb-gauge__cap {
+.wb-donut-label {
   font-size: 11px;
   color: var(--m-color-text-muted);
 }
 
-.wb-gauge__legend {
-  list-style: none;
+.wb-legend {
   margin: 0;
-  padding: 0;
   display: flex;
+  list-style: none;
   flex-direction: column;
   gap: 8px;
+  padding: 0;
 }
 
-.wb-gauge__legend li {
+.wb-legend-item {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
 }
 
-.wb-gauge__legend-label {
-  color: var(--m-color-text-muted);
-  flex: 1;
+.wb-dot {
+  height: 10px;
+  width: 10px;
+  flex: none;
+  border-radius: 3px;
 }
 
-.wb-gauge__legend-val {
+.wb-legend-name {
+  flex: 1;
+  color: var(--m-color-text-muted);
+}
+
+.wb-legend-value {
   font-weight: 700;
   color: var(--m-color-text);
 }
 
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-
-/* ============ 右侧 ============ */
+/* 右侧信息面板 */
 .wb-side {
+  position: sticky;
+  top: 28px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  position: sticky;
-  top: 28px;
 }
 
-.wb-side__user {
+.wb-user {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.wb-side__avatar {
-  width: 42px;
+.wb-user-avatar {
   height: 42px;
-  border-radius: 50%;
+  width: 42px;
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--m-color-primary), var(--m-color-accent-blue));
   font-weight: 700;
   color: var(--m-color-surface);
-  background: linear-gradient(135deg, var(--m-color-primary), var(--m-color-accent-blue));
-  flex-shrink: 0;
 }
 
-.wb-side__user-meta {
+.wb-user-info {
   display: flex;
   flex-direction: column;
 }
 
-.wb-side__user-name {
+.wb-user-name {
   font-size: 14px;
   font-weight: 700;
   color: var(--m-color-text);
 }
 
-.wb-side__user-plan {
+.wb-user-plan {
   font-size: 12px;
   color: var(--m-color-text-muted);
 }
 
-/* 右侧卡片外观由 MCard 承载，body 内多元素间距用 wrapper 保持 */
-.wb-card__body {
+.wb-members {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-.wb-card__title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--m-color-text);
-  margin: 0;
-}
-
-.wb-members__bar {
-  display: flex;
+.wb-members-bar {
   height: 8px;
-  border-radius: 999px;
-  overflow: hidden;
-  gap: 2px;
-}
-
-.wb-members__seg {
-  display: block;
-  border-radius: 999px;
-}
-
-.wb-members__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 9999px;
+}
+
+.wb-members-seg {
+  display: block;
+  border-radius: 9999px;
+}
+
+.wb-members-list {
+  margin: 0;
+  display: flex;
+  list-style: none;
   flex-direction: column;
   gap: 10px;
+  padding: 0;
 }
 
-.wb-members__list li {
+.wb-member-item {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
 }
 
-.wb-members__name {
-  color: var(--m-color-text-muted);
+.wb-member-name {
   flex: 1;
+  color: var(--m-color-text-muted);
 }
 
-.wb-members__pct {
+.wb-member-pct {
   font-weight: 700;
   color: var(--m-color-text);
 }
 
-/* Upgrade */
 .wb-upgrade {
   position: relative;
   overflow: hidden;
 }
 
-.wb-upgrade__desc {
+.wb-upgrade-desc {
+  margin: 0;
   font-size: 13px;
   color: var(--m-color-text-muted);
-  margin: 0;
 }
 
-.wb-upgrade__btn {
+.wb-upgrade-btn {
   align-self: flex-start;
 }
 
-.wb-upgrade__art {
+.wb-upgrade-crown {
   display: flex;
   justify-content: center;
+  padding-top: 8px;
   color: var(--m-color-primary);
   opacity: 0.6;
-  padding-top: 8px;
 }
 
-/* 响应式 */
 @media (max-width: 1100px) {
   .wb {
     grid-template-columns: 1fr;
   }
+
   .wb-side {
     position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-  .wb-side > * {
-    flex: 1 1 240px;
+    flex-flow: row wrap;
+
+    > * {
+      flex: 1 1 240px;
+    }
   }
 }
 
 @media (max-width: 760px) {
-  .wb-mid {
-    grid-template-columns: 1fr;
-  }
+  .wb-mid,
   .wb-banner {
     grid-template-columns: 1fr;
   }

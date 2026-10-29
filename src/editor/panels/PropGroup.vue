@@ -28,49 +28,49 @@ const open = ref(true)
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .prop-group {
   border-bottom: 1px solid var(--m-color-split);
   padding: 12px 0 8px;
-}
 
-.prop-group:last-child {
-  border-bottom: none;
-}
+  &:last-child {
+    border-bottom: none;
+  }
 
-.prop-group__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 4px 0 8px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 4px 0 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
 
-.prop-group__head b {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
-}
+    b {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--m-color-text-muted);
+    }
 
-.prop-group__head i {
-  font-style: normal;
-  font-size: 11px;
-  color: var(--m-color-text-muted);
-  transition: transform 0.15s ease;
-}
+    i {
+      font-style: normal;
+      font-size: 11px;
+      color: var(--m-color-text-muted);
+      transition: transform 0.15s ease;
+    }
+  }
 
-.prop-group.collapsed .prop-group__head i {
-  transform: rotate(-90deg);
-}
+  &.collapsed &__head i {
+    transform: rotate(-90deg);
+  }
 
-.prop-group__body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-bottom: 4px;
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 4px;
+  }
 }
 
 .field-2 {

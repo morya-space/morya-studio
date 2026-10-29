@@ -19,7 +19,7 @@ const cfg = computed(() => props.schema.icon ?? {})
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .icon-card {
   height: 100%;
   display: flex;

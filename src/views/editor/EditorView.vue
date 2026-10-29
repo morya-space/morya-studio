@@ -190,56 +190,46 @@ function onPreview() {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .editor-view {
   display: flex;
-  flex-direction: column;
   height: 100%;
+  flex-direction: column;
   overflow: hidden;
 }
 
 .editor-main {
-  flex: 1;
   display: flex;
-  overflow: hidden;
   min-height: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .editor-loading {
-  flex: 1;
   display: flex;
+  min-height: 0;
+  flex: 1;
   flex-direction: column;
-  min-height: 0;
-}
 
-.editor-loading__bar {
-  flex: none;
-}
+  &__bar {
+    flex: none;
+  }
 
-.editor-loading__main {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-  overflow: hidden;
-}
+  &__main {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+  }
 
-.editor-loading__canvas {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-}
+  &__canvas {
+    display: flex;
+    min-width: 0;
+    flex: 1;
 
-.editor-loading__canvas :deep(.m-skeleton) {
-  width: 100%;
-}
-
-.preview-body {
-  background: var(--m-color-page-bg);
-  border-radius: var(--m-radius-md);
-  max-height: 70vh;
-}
-
-.preview-body__view {
-  padding: 16px;
+    :deep(.m-skeleton) {
+      width: 100%;
+    }
+  }
 }
 </style>

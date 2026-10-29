@@ -3,7 +3,7 @@
  * 数据源详情（/datasources/:id）— 全屏独立页
  * 页头 + KPI + Tabs(概览/字段/预览/同步/看板)
  * 数据来自后端 API，非 mock。
- * 组件优先 morya-ui（MCard / MTag / MProgressBar / MTable），布局样式用 UnoCSS。
+ * 组件优先 morya-ui（MCard / MTag / MProgressBar / MTable），布局样式为 scoped SCSS。
  */
 
 import { computed, onMounted, ref, watch } from 'vue'
@@ -325,29 +325,29 @@ const TYPE_ICON_MAP: Record<string, string> = {
 </script>
 
 <template>
-    <div class="h-full w-full overflow-hidden bg-page-bg flex flex-col">
+    <div class="dsd">
       <!-- 页头：返回 + 数据源信息 + 操作 -->
-      <header class="dsd-header flex flex-wrap items-center gap-3 border-b border-border bg-surface px-6 py-3">
+      <header class="dsd-header">
         <MButton type="text" @click="goBack">
           <SvgIcon name="chevron-left" :px="14" /> {{ t('dsd.backToList') }}
         </MButton>
         <template v-if="detail">
           <span class="dsd-header__divider" />
-          <span class="chip-primary size-10">
+          <span class="dsd-header__icon">
             <SvgIcon :name="TYPE_ICON_MAP[d.icon] ?? 'database'" :px="22" />
           </span>
-          <div class="min-w-[200px] flex-1">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="text-xl font-medium text-text">{{ d.name }}</span>
+          <div class="dsd-header__info">
+            <div class="dsd-header__name-row">
+              <span class="dsd-header__name">{{ d.name }}</span>
               <MTag size="small">{{ d.type }}</MTag>
               <MTag size="small" type="success">{{ t('dsd.connected') }}</MTag>
             </div>
-            <div class="mt-0.5 text-[13px] text-text-muted">{{ d.desc }}</div>
+            <div class="dsd-header__desc">{{ d.desc }}</div>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="dsd-toolbar">
             <MButton :loading="testing" @click="onTest">{{ t('dsd.testConn') }}</MButton>
             <MButton type="primary" :loading="syncing" @click="onSync">
-              <SvgIcon name="sync" :px="14" class="mr-1" />
+              <SvgIcon name="sync" :px="14" class="dsd-header__sync-icon" />
               {{ syncing ? t('dsd.syncing') : t('dsd.syncNow') }}
             </MButton>
           </div>
@@ -355,71 +355,71 @@ const TYPE_ICON_MAP: Record<string, string> = {
       </header>
 
       <!-- 内容区 -->
-      <div class="flex-1 min-h-0 flex flex-col px-8 py-6">
+      <div class="dsd-body">
       <MEmpty v-if="!loading && !detail" :title="t('dsd.notFound')">
       <template #extra>
         <MButton type="primary" @click="goBack">{{ t('dsd.backToList') }}</MButton>
       </template>
     </MEmpty>
 
-    <div v-else-if="loading" class="flex h-full items-center justify-center">
+    <div v-else-if="loading" class="dsd-loading">
       <MLoading :text="t('common.loading')" />
     </div>
 
     <template v-else>
       <!-- KPI 指标条 -->
-      <div class="mb-5 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
+      <div class="dsd-kpis">
         <MCard v-for="(kpi, i) in d.kpis" :key="i">
-          <div class="text-xs text-text-muted">{{ kpi[0] }}</div>
+          <div class="dsd-note">{{ kpi[0] }}</div>
           <div
-            class="mt-1 text-[26px] font-semibold leading-tight tabular-nums text-text"
-            :class="{ 'text-success': kpi[3] === 'pos' }"
+            class="dsd-kpi__value"
+            :class="{ 'dsd-kpi__value--pos': kpi[3] === 'pos' }"
           >
             {{ kpi[1] }}
           </div>
-          <div class="mt-0.5 text-xs text-text-muted">{{ kpi[2] }}</div>
+          <div class="dsd-hint">{{ kpi[2] }}</div>
         </MCard>
       </div>
 
       <!-- 标签页 -->
-      <MTabs v-model="activeTab" class="custom-tabs flex-auto h-0 flex flex-col" :tabs="tabs">
+      <MTabs v-model="activeTab" class="custom-tabs" :tabs="tabs">
         <template #default="{ activeValue }">
           <!-- 概览 -->
-          <div v-if="activeValue === 'overview'" class="grid gap-3 max-lg:grid-cols-1 lg:grid-cols-[1fr_300px]">
-            <div class="flex min-w-0 flex-col gap-3">
+          <div v-if="activeValue === 'overview'" class="dsd-overview">
+            <div class="dsd-overview__main">
               <!-- 图表卡片 -->
               <MCard>
-                <div class="mb-3 flex items-center justify-between">
-                  <span class="text-[15px] font-medium text-text">{{ d.chart.title }}</span>
+                <div class="dsd-card__head">
+                  <span class="dsd-card__title">{{ d.chart.title }}</span>
                   <MTag size="small">{{ d.chart.tag }}</MTag>
                 </div>
-                <div class="relative h-[200px]">
-                  <div ref="chartRef" class="h-full w-full" />
+                <div class="dsd-chart">
+                  <div ref="chartRef" class="dsd-chart__el" />
                 </div>
               </MCard>
               <!-- 连接信息 -->
               <MCard>
-                <span class="mb-3 block text-[15px] font-medium text-text">{{ d.connTitle }}</span>
-                <div class="grid gap-3 text-sm [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
+                <span class="dsd-card__heading">{{ d.connTitle }}</span>
+                <div class="dsd-conn">
                   <div v-for="(c, i) in d.conn" :key="i">
-                    <div class="text-xs text-text-muted">{{ c[0] }}</div>
-                    <div class="dsd-mono mt-0.5 text-text">{{ c[1] }}</div>
+                    <div class="dsd-note">{{ c[0] }}</div>
+                    <div class="dsd-mono dsd-conn__value">{{ c[1] }}</div>
                   </div>
                 </div>
               </MCard>
             </div>
-            <div class="flex flex-col gap-3 max-lg:flex-row max-lg:flex-wrap max-lg:[&>*]:min-w-[200px]">
+            <div class="dsd-overview__side">
               <!-- 数据质量 -->
               <MCard>
-                <span class="mb-3 block text-[15px] font-medium text-text">{{ t('dsd.quality') }}</span>
-                <div class="flex flex-col gap-2.5 text-sm">
+                <span class="dsd-card__heading">{{ t('dsd.quality') }}</span>
+                <div class="dsd-quality">
                   <div v-for="(q, i) in d.quality" :key="i">
-                    <div class="flex items-center justify-between">
-                      <span class="text-text-muted">{{ q[0] }}</span>
-                      <span class="tabular-nums text-text">{{ q[1] }}%</span>
+                    <div class="dsd-quality__row">
+                      <span class="dsd-quality__label">{{ q[0] }}</span>
+                      <span class="dsd-quality__value">{{ q[1] }}%</span>
                     </div>
                     <MProgressBar
-                      class="mt-1"
+                      class="dsd-quality__bar"
                       :value="Number(q[1])"
                       :status="q[2] === 'warning' ? 'warning' : 'success'"
                       :show-value="false"
@@ -429,25 +429,25 @@ const TYPE_ICON_MAP: Record<string, string> = {
               </MCard>
               <!-- 标签 -->
               <MCard>
-                <span class="mb-3 block text-[15px] font-medium text-text">{{ t('dsd.tags') }}</span>
-                <div class="flex flex-wrap gap-1.5">
+                <span class="dsd-card__heading">{{ t('dsd.tags') }}</span>
+                <div class="dsd-tags">
                   <MTag v-for="(tag, i) in d.tags" :key="i" size="small" type="secondary">{{ tag }}</MTag>
                 </div>
               </MCard>
               <!-- 生成看板 -->
-              <MButton type="primary" class="h-9 w-full" @click="onGenBoard">
+              <MButton type="primary" class="dsd-gen" @click="onGenBoard">
                 {{ t('dsd.genBoard') }}
               </MButton>
             </div>
           </div>
 
           <!-- 字段 -->
-          <div class="flex h-full min-h-0 flex-col gap-3 overflow-auto" v-else-if="activeValue === 'fields'">
+          <div class="dsd-fields" v-else-if="activeValue === 'fields'">
             <MCard>
-              <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <div class="min-w-[200px] flex-1">
-                  <div class="text-[15px] font-medium text-text">{{ t('dsd.computed') }}</div>
-                  <div class="mt-0.5 text-xs text-text-muted">{{ t('dsd.computedHint') }}</div>
+              <div class="dsd-fields__head">
+                <div class="dsd-header__info">
+                  <div class="dsd-card__title">{{ t('dsd.computed') }}</div>
+                  <div class="dsd-hint">{{ t('dsd.computedHint') }}</div>
                 </div>
                 <MButton type="primary" size="small" :loading="savingComputed" :disabled="!source" @click="saveComputed">
                   {{ t('dsd.computedSave') }}
@@ -459,25 +459,25 @@ const TYPE_ICON_MAP: Record<string, string> = {
                 :profiles="computedProfiles"
                 @update:fields="onComputedFields"
               />
-              <p v-else class="text-xs text-text-muted">{{ t('dsd.notFound') }}</p>
+              <p v-else class="dsd-note">{{ t('dsd.notFound') }}</p>
             </MCard>
-            <MCard class="dsd-card--flush min-h-[280px] flex-1">
+            <MCard class="dsd-card--flush dsd-card--fields">
               <template #header>
-                <div class="flex items-center gap-2">
+                <div class="dsd-toolbar">
                   <MInput
                     v-model="fieldSearch"
                     :placeholder="t('dsd.searchFields')"
                     clearable
-                    class="w-60"
+                    class="dsd-fields__search"
                   >
                     <template #prefix>
                       <SvgIcon name="search" :px="14" />
                     </template>
                   </MInput>
-                  <span class="text-xs text-text-muted">
+                  <span class="dsd-note">
                     {{ t('dsd.fieldCount', { n: fieldRows.length, total: visibleFieldCount }) }}
                   </span>
-                  <span class="flex-1" />
+                  <span class="dsd-spacer" />
                   <MButton size="small" @click="onExportDict">{{ t('dsd.exportDict') }}</MButton>
                 </div>
               </template>
@@ -488,38 +488,38 @@ const TYPE_ICON_MAP: Record<string, string> = {
                 fill
               >
                 <template #cell-name="{ row }">
-                  <span class="dsd-mono text-[13px] text-text">{{ row.name }}</span>
+                  <span class="dsd-mono dsd-cell-name">{{ row.name }}</span>
                 </template>
                 <template #cell-type="{ row }">
                   <MTag v-if="row.computed" size="small">{{ row.type }}</MTag>
-                  <span v-else class="dsd-mono text-text-muted">{{ row.type }}</span>
+                  <span v-else class="dsd-mono dsd-cell-muted">{{ row.type }}</span>
                 </template>
                 <template #cell-example="{ row }">
-                  <span class="dsd-mono text-text-muted">{{ row.example }}</span>
+                  <span class="dsd-mono dsd-cell-muted">{{ row.example }}</span>
                 </template>
                 <template #cell-missing="{ row }">
-                  <div class="flex items-center gap-1.5">
+                  <div class="dsd-missing">
                     <MProgressBar
-                      class="flex-1"
+                      class="dsd-missing__bar"
                       :value="Number(row.missing)"
                       :color="Number(row.missing) > 10 ? 'var(--m-color-warning)' : 'var(--m-color-text-muted)'"
                       :show-value="false"
                     />
-                    <span class="text-xs tabular-nums text-text-muted">{{ row.pct }}</span>
+                    <span class="dsd-missing__pct">{{ row.pct }}</span>
                   </div>
                 </template>
                 <template #cell-act>
-                  <span class="row-act cursor-pointer">{{ t('dsd.analyze') }}</span>
+                  <span class="row-act dsd-mono dsd-row-act">{{ t('dsd.analyze') }}</span>
                 </template>
               </MTable>
             </MCard>
           </div>
 
           <!-- 预览 -->
-          <div class="w-full h-full overflow-hidden" v-else-if="activeValue === 'preview'">
+          <div class="dsd-pane" v-else-if="activeValue === 'preview'">
             <MCard class="dsd-card--flush">
               <template #header>
-                <div class="flex items-center gap-2 text-sm text-text-muted">
+                <div class="dsd-preview__hint">
                   <MTag size="small" class="dsd-mono">{{ d.preview[0] }}</MTag>
                   <span>{{ t('dsd.previewHint') }}</span>
                 </div>
@@ -534,30 +534,30 @@ const TYPE_ICON_MAP: Record<string, string> = {
           </div>
 
           <!-- 同步记录 -->
-          <div class="w-full h-full overflow-hidden" v-else-if="activeValue === 'sync'">
+          <div class="dsd-pane" v-else-if="activeValue === 'sync'">
             <MCard class="dsd-card--list">
               <div
                 v-for="(s, i) in d.syncs" :key="i"
-                class="sync-row flex items-center gap-3 border-b border-border py-3 text-sm last:border-b-0"
+                class="sync-row"
               >
-                <span class="w-[76px] flex-none text-text-muted tabular-nums">{{ s[0] }}</span>
-                <span class="w-[68px] flex-none text-text">{{ s[1] }}</span>
+                <span class="sync-row__time">{{ s[0] }}</span>
+                <span class="sync-row__name">{{ s[1] }}</span>
                 <MTag size="small" :type="toneMap[s[2]] ?? 'success'">{{ s[2] }}</MTag>
-                <span class="flex-1 text-text-muted">{{ s[3] }}</span>
-                <span v-if="s[2] === '失败'" class="row-act cursor-pointer">{{ t('dsd.viewLog') }}</span>
+                <span class="sync-row__msg">{{ s[3] }}</span>
+                <span v-if="s[2] === '失败'" class="row-act dsd-mono dsd-row-act">{{ t('dsd.viewLog') }}</span>
               </div>
             </MCard>
           </div>
 
           <!-- 关联看板 -->
-          <div v-else-if="activeValue === 'boards'" class="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
-            <MCard v-for="(b, i) in d.boards" :key="i" class="flex flex-col gap-2">
-              <div class="flex items-center gap-2">
-                <span class="text-text-muted"><SvgIcon name="bar-chart" :px="18" /></span>
-                <span class="text-sm font-medium text-text">{{ b[0] }}</span>
+          <div v-else-if="activeValue === 'boards'" class="dsd-boards">
+            <MCard v-for="(b, i) in d.boards" :key="i" class="dsd-board">
+              <div class="dsd-toolbar">
+                <span class="dsd-board__icon"><SvgIcon name="bar-chart" :px="18" /></span>
+                <span class="dsd-board__name">{{ b[0] }}</span>
               </div>
-              <div class="text-xs text-text-muted">{{ b[1] }}</div>
-              <div class="mt-1 flex gap-2">
+              <div class="dsd-note">{{ b[1] }}</div>
+              <div class="dsd-board__actions">
                 <MButton size="small">{{ t('dsd.openBoard') }}</MButton>
                 <MButton size="small">{{ t('dsd.lineage') }}</MButton>
               </div>
@@ -571,33 +571,400 @@ const TYPE_ICON_MAP: Record<string, string> = {
 </template>
 
 <style scoped lang="scss">
-/* 页头：返回按钮与数据源信息之间的分隔线 */
-.dsd-header__divider {
-  width: 1px;
-  height: 24px;
-  background: var(--m-color-split);
-  flex: none;
+.dsd {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--m-color-page-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.dsd-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--m-color-border);
+  background: var(--m-color-surface);
+  padding: 0.75rem 1.5rem;
+
+  &__divider {
+    height: 1.5rem;
+    width: 1px;
+    flex: none;
+    background: var(--m-color-split);
+  }
+
+  &__icon {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--m-radius-lg);
+    background: color-mix(in srgb, var(--m-color-primary) 12%, transparent);
+    color: var(--m-color-primary);
+  }
+
+  &__info {
+    min-width: 200px;
+    flex: 1;
+  }
+
+  &__name-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__name {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 500;
+    color: var(--m-color-text);
+  }
+
+  &__desc {
+    margin-top: 0.125rem;
+    font-size: 13px;
+    color: var(--m-color-text-muted);
+  }
+
+  &__sync-icon {
+    margin-right: 0.25rem;
+  }
+}
+
+.dsd-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dsd-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 2rem;
+}
+
+.dsd-loading {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.dsd-kpis {
+  margin-bottom: 1.25rem;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.dsd-kpi__value {
+  margin-top: 0.25rem;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  color: var(--m-color-text);
+
+  &--pos {
+    color: var(--m-color-success);
+  }
+}
+
+.dsd-note {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--m-color-text-muted);
+}
+
+.dsd-hint {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--m-color-text-muted);
+}
+
+.dsd-overview {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 1024px) {
+    grid-template-columns: 1fr 300px;
+  }
+
+  &__main {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  &__side {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    @media (max-width: 1023px) {
+      flex-direction: row;
+      flex-wrap: wrap;
+
+      > * {
+        min-width: 200px;
+      }
+    }
+  }
+}
+
+.dsd-card__head {
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dsd-card__title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--m-color-text);
+}
+
+.dsd-card__heading {
+  margin-bottom: 0.75rem;
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--m-color-text);
+}
+
+.dsd-chart {
+  position: relative;
+  height: 200px;
+
+  &__el {
+    height: 100%;
+    width: 100%;
+  }
+}
+
+.dsd-conn {
+  display: grid;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+
+  &__value {
+    margin-top: 0.125rem;
+    color: var(--m-color-text);
+  }
+}
+
+.dsd-quality {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__label {
+    color: var(--m-color-text-muted);
+  }
+
+  &__value {
+    font-variant-numeric: tabular-nums;
+    color: var(--m-color-text);
+  }
+
+  &__bar {
+    margin-top: 0.25rem;
+  }
+}
+
+.dsd-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.dsd-gen {
+  height: 2.25rem;
+  width: 100%;
+}
+
+.dsd-fields {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow: auto;
+
+  &__head {
+    margin-bottom: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  &__search {
+    width: 15rem;
+  }
+}
+
+.dsd-spacer {
+  flex: 1;
+}
+
+.dsd-cell-name {
+  font-size: 13px;
+  color: var(--m-color-text);
+}
+
+.dsd-cell-muted {
+  color: var(--m-color-text-muted);
+}
+
+.dsd-missing {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  &__bar {
+    flex: 1;
+  }
+
+  &__pct {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--m-color-text-muted);
+  }
+}
+
+.dsd-row-act {
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--m-color-text-muted);
+  opacity: 0;
+}
+
+.dsd-pane {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.dsd-preview__hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--m-color-text-muted);
+}
+
+.sync-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--m-color-border);
+  padding: 0.75rem 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &__time {
+    width: 76px;
+    flex: none;
+    color: var(--m-color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__name {
+    width: 68px;
+    flex: none;
+    color: var(--m-color-text);
+  }
+
+  &__msg {
+    flex: 1;
+    color: var(--m-color-text-muted);
+  }
+}
+
+.dsd-boards {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.dsd-board {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  &__icon {
+    color: var(--m-color-text-muted);
+  }
+
+  &__name {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--m-color-text);
+  }
+
+  &__actions {
+    margin-top: 0.25rem;
+    display: flex;
+    gap: 0.5rem;
+  }
 }
 
 /* MCard 内表格贴边 */
 .dsd-card--flush {
-  height: 100%;
   display: flex;
+  height: 100%;
   flex-direction: column;
 
   :deep(.m-card__body) {
     flex: 1 1 auto;
     height: 0;
   }
-  /* padding: 0; */
 }
 
-/* 同步记录卡收窄内边距 */
-.dsd-card--list :deep(.m-card__body) {
-  /* padding: 4px 16px; */
+.dsd-card--fields {
+  min-height: 280px;
+  flex: 1;
 }
 
 .custom-tabs {
+  flex: auto;
+  height: 0;
+  display: flex;
+  flex-direction: column;
+
   :deep(.m-tabs__panel) {
     flex: 1 1 auto;
     height: 0;
@@ -606,11 +973,7 @@ const TYPE_ICON_MAP: Record<string, string> = {
 
 /* 行内 hover 操作（MTable 行 / 同步记录行共用） */
 .row-act {
-  opacity: 0;
   transition: opacity 0.12s ease-out;
-  font-family: var(--m-font-mono, monospace);
-  font-size: 12px;
-  color: var(--m-color-text-muted);
 }
 
 :deep(.m-table__body tr:hover) .row-act,

@@ -251,7 +251,7 @@ onBeforeUnmount(() => {
     </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .schema-renderer {
   width: 100%;
 }

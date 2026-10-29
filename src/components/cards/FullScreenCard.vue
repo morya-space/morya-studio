@@ -38,7 +38,7 @@ function toggle() {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .fullscreen-card {
   height: 100%;
   display: flex;

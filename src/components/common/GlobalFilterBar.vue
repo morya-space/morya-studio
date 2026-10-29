@@ -79,37 +79,37 @@ function onReset() {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .global-filter-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 16px;
   padding: 12px 16px;
   border-radius: var(--m-radius-lg);
   background: var(--m-color-surface);
   box-shadow: var(--m-shadow-card);
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
 
-.global-filter-bar__items {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  flex-wrap: wrap;
-  flex: 1;
-}
+  &__items {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 16px;
+  }
 
-.global-filter-bar__item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 160px;
-}
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 160px;
+  }
 
-.global-filter-bar__label {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
+  &__label {
+    font-size: 12px;
+    color: var(--m-color-text-muted);
+  }
 }
 </style>

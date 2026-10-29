@@ -64,43 +64,43 @@ function onKeydown(e: KeyboardEvent, index: number) {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .panel-tabs {
   display: flex;
   gap: 2px;
   padding: 3px;
   background: color-mix(in srgb, var(--m-color-text-muted) 8%, var(--m-color-surface));
   border-radius: var(--m-radius-control, var(--m-radius-md));
-}
 
-.panel-tabs__item {
-  flex: 1 1 0;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 6px 8px;
-  border: none;
-  border-radius: var(--m-radius-sm);
-  background: transparent;
-  color: var(--m-color-text-muted);
-  font-size: 12.5px;
-  font-family: var(--m-font-sans);
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-}
+  &__item {
+    flex: 1 1 0;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border: none;
+    border-radius: var(--m-radius-sm);
+    background: transparent;
+    color: var(--m-color-text-muted);
+    font-size: 12.5px;
+    font-family: var(--m-font-sans);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 
-.panel-tabs__item:hover {
-  color: var(--m-color-text);
-}
+    &:hover {
+      color: var(--m-color-text);
+    }
 
-.panel-tabs__item.is-active {
-  background: var(--m-color-surface);
-  color: var(--m-color-text);
-  box-shadow: var(--m-shadow-sm);
+    &.is-active {
+      background: var(--m-color-surface);
+      color: var(--m-color-text);
+      box-shadow: var(--m-shadow-sm);
+    }
+  }
 }
 </style>

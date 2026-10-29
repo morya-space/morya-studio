@@ -49,16 +49,16 @@ const style = computed(() => ({
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .time-card {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
 
-.time-card__value {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
+  &__value {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
 }
 </style>

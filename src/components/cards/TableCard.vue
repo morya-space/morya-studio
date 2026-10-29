@@ -96,7 +96,7 @@ function statusOf(col: TableColumn | undefined, value: unknown) {
   </CardShell>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .table-card {
   height: 100%;
   min-height: 0;

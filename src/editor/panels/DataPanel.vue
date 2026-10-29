@@ -8,7 +8,7 @@
  */
 
 import { computed, ref, watch } from 'vue'
-import { MButton, MFileUpload, MFormItem, MInput, MInputNumber, MSelect, MSegmented, MTag, MTextarea, message, MScrollbar } from 'morya-ui'
+import { MButton, MFileUpload, MFormItem, MInput, MInputNumber, MSelect, MSegmented, MTag, MTextarea, message, MCard, MDivider } from 'morya-ui'
 import { useEditorStore } from '../store'
 import { useDataStore } from '../../data/store'
 import { listDataSources } from '../../services/datasource'
@@ -709,22 +709,22 @@ defineExpose({ validate: validateDraft })
 </script>
 
 <template>
-  <div v-if="card" class="data-panel">
-    <div class="data-panel__body">
-      <!-- 左列：来源切换（固定列顶）+ 连接配置（滚动）+ 测试数据表（固定列底，含计算列） -->
-      <div class="data-panel__col data-panel__col--left">
-        <PanelTabs v-model="modeTab" :options="SOURCE_TABS" class="data-panel__tabs" />
-        <MScrollbar class="data-panel__col-scroll" view-class="flex flex-col gap-4">
+  <div v-if="card" class="dp">
+    <!-- 左列：来源切换（固定列顶）+ 连接配置（滚动）+ 测试数据表（固定列底，含计算列） -->
+    <div class="dp__left">
+      <PanelTabs v-model="modeTab" :options="SOURCE_TABS" class="dp__tabs" />
+      <MCard class="fill-card">
         <!-- 动态请求 -->
-        <section v-if="mode === 'api'" class="dsec">
-          <p class="dsec__title">请求配置</p>
+        <section v-if="mode === 'api'"
+          class="panel-section">
+          <p class="section-title">请求配置</p>
           <MFormItem label="请求地址">
-            <div class="drow">
-              <MSelect v-model="method" :options="METHOD_OPTIONS" class="drow__method" />
+            <div class="dp__url-row">
+              <MSelect v-model="method" :options="METHOD_OPTIONS" class="dp__method" />
               <MInput v-model="url" placeholder="https://api.example.com/data" fluid />
             </div>
           </MFormItem>
-          <div class="dgrid">
+          <div class="field-grid">
             <MFormItem label="更新间隔" help="0 = 仅初始化">
               <MInputNumber v-model="pollInterval" :min="0" fluid />
             </MFormItem>
@@ -761,8 +761,8 @@ defineExpose({ validate: validateDraft })
             </MFormItem>
           </template>
 
-          <p class="dsec__title">认证</p>
-          <div class="dgrid">
+          <p class="section-title">认证</p>
+          <div class="field-grid">
             <MFormItem label="认证方式">
               <MSelect v-model="authType" :options="[
                 { label: '无', value: 'none' },
@@ -778,7 +778,7 @@ defineExpose({ validate: validateDraft })
                 @update:model-value="patchAuth({ token: $event as string })" fluid />
             </MFormItem>
           </template>
-          <div v-else-if="authType === 'apikey'" class="dgrid">
+          <div v-else-if="authType === 'apikey'" class="field-grid">
             <MFormItem label="Header 名">
               <MInput :model-value="inlineDs.auth?.apiKeyName ?? ''" placeholder="X-API-Key"
                 @update:model-value="patchAuth({ apiKeyName: $event as string })" fluid />
@@ -788,7 +788,7 @@ defineExpose({ validate: validateDraft })
                 @update:model-value="patchAuth({ apiKeyValue: $event as string })" fluid />
             </MFormItem>
           </div>
-          <div v-else-if="authType === 'basic'" class="dgrid">
+          <div v-else-if="authType === 'basic'" class="field-grid">
             <MFormItem label="用户名">
               <MInput :model-value="inlineDs.auth?.username ?? ''"
                 @update:model-value="patchAuth({ username: $event as string })" fluid />
@@ -799,14 +799,15 @@ defineExpose({ validate: validateDraft })
             </MFormItem>
           </div>
 
-          <div class="dsec__actions">
+          <div class="dp__actions">
             <MButton type="primary" size="small" :loading="testing" @click="runTest">测试</MButton>
           </div>
         </section>
 
         <!-- Mock -->
-        <section v-else-if="mode === 'mock'" class="dsec">
-          <p class="dsec__title">Mock 配置</p>
+        <section v-else-if="mode === 'mock'"
+          class="panel-section">
+          <p class="section-title">Mock 配置</p>
           <MFormItem label="数据方式">
             <MSegmented v-model="mockModeTab" :options="MOCK_MODE_OPTIONS" />
           </MFormItem>
@@ -816,15 +817,15 @@ defineExpose({ validate: validateDraft })
               placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
           </MFormItem>
           <MFormItem v-else label="固定数据(JSON)" required help="直接作为结果返回，不随机生成">
-            <MTextarea :model-value="staticInput" :rows="5" fluid @update:model-value="onStaticInput($event as string)" />
+            <MTextarea :model-value="staticInput" :rows="5" fluid
+              @update:model-value="onStaticInput($event as string)" />
           </MFormItem>
-          <p v-if="mockStaticInvalid" class="dsec__error" role="alert">
+          <p v-if="mockStaticInvalid" class="dp__error" role="alert">
             固定数据不是合法的 JSON，预览 / 测试 / 保存将沿用最近一次合法数据
           </p>
-          <div class="dsec__actions">
+          <div class="dp__actions">
             <template v-if="mockModeTab === 'template'">
-              <MButton type="default" size="small" :disabled="!inlineDs.mockTemplate"
-                @click="formatMockTemplateText">
+              <MButton type="default" size="small" :disabled="!inlineDs.mockTemplate" @click="formatMockTemplateText">
                 格式化
               </MButton>
             </template>
@@ -839,12 +840,13 @@ defineExpose({ validate: validateDraft })
         </section>
 
         <!-- WebSocket -->
-        <section v-else-if="mode === 'websocket'" class="dsec">
-          <p class="dsec__title">WebSocket 配置</p>
+        <section v-else-if="mode === 'websocket'"
+          class="panel-section">
+          <p class="section-title">WebSocket 配置</p>
           <MFormItem label="地址(wsUrl)">
             <MInput v-model="wsUrl" placeholder="wss://example.com/live" fluid />
           </MFormItem>
-          <div class="dgrid">
+          <div class="field-grid">
             <MFormItem label="消息路径" help="如 data.list">
               <MInput v-model="wsMessagePath" placeholder="留空取整条消息" fluid />
             </MFormItem>
@@ -859,22 +861,24 @@ defineExpose({ validate: validateDraft })
               <MInputNumber v-model="timeoutMs" :min="0" fluid />
             </MFormItem>
           </div>
-          <div class="dsec__actions">
+          <div class="dp__actions">
             <MButton type="primary" size="small" :loading="testing" @click="runTest">测试</MButton>
           </div>
         </section>
 
         <!-- SQL -->
-        <section v-else-if="mode === 'sql'" class="dsec">
-          <p class="dsec__title">SQL 配置</p>
-          <p class="dsec__hint">经后端代理执行只读查询（仅允许 SELECT / WITH）</p>
-          <div class="dgrid">
+        <section v-else-if="mode === 'sql'"
+          class="panel-section">
+          <p class="section-title">SQL 配置</p>
+          <p class="text-helper">经后端代理执行只读查询（仅允许 SELECT / WITH）</p>
+          <div class="field-grid">
             <MFormItem label="数据库类型">
-              <MSelect :model-value="sql.driver ?? 'mysql'" @update:model-value="onSqlDriverChange($event as string)" :options="[
-                { label: 'MySQL', value: 'mysql' },
-                { label: 'PostgreSQL', value: 'postgresql' },
-                { label: 'SQL Server', value: 'sqlserver' },
-              ]" fluid />
+              <MSelect :model-value="sql.driver ?? 'mysql'" @update:model-value="onSqlDriverChange($event as string)"
+                :options="[
+                  { label: 'MySQL', value: 'mysql' },
+                  { label: 'PostgreSQL', value: 'postgresql' },
+                  { label: 'SQL Server', value: 'sqlserver' },
+                ]" fluid />
             </MFormItem>
             <MFormItem label="主机">
               <MInput :model-value="sql.host ?? ''" placeholder="localhost"
@@ -903,428 +907,285 @@ defineExpose({ validate: validateDraft })
             <MTextarea :model-value="sql.query ?? ''" :rows="5" placeholder="SELECT * FROM orders LIMIT 100"
               @update:model-value="patchSql({ query: $event })" fluid />
           </MFormItem>
-          <div class="dsec__actions">
+          <div class="dp__actions">
             <MButton type="primary" size="small" :loading="testing" @click="runTest">测试查询</MButton>
           </div>
         </section>
 
         <!-- 引用数据源 -->
-        <section v-else class="dsec">
-          <p class="dsec__title">引用数据源</p>
+        <section v-else
+          class="panel-section">
+          <p class="section-title">引用数据源</p>
           <MFormItem label="选择数据源">
             <!-- 选项首项即「（未选择）」，无需 clearable -->
             <MSelect v-model="dataSourceId" :options="savedDataSourceOptions" fluid />
           </MFormItem>
-          <div v-if="referenced" class="dinfo">
+          <div v-if="referenced" class="dp__ref">
             <MTag size="small">{{ referenced.type }}</MTag>
-            <span class="dinfo__name">{{ referenced.name }}</span>
+            <span class="dp__ref-name">{{ referenced.name }}</span>
           </div>
-          <p v-else class="dsec__hint">未选择数据源</p>
-          <div class="dsec__actions">
+          <p v-else class="text-helper">未选择数据源</p>
+          <div class="dp__actions">
             <MButton type="default" size="small" @click="openDataSources">去数据源管理</MButton>
             <MButton type="primary" size="small" :disabled="!referenced" :loading="testing" @click="runTest">测试
             </MButton>
           </div>
         </section>
 
-        </MScrollbar>
         <!-- 测试数据常显：固定在左列下方，不随配置表单滚走 -->
-        <DataResultPanel
-          class="data-panel__result"
-          :result="result"
-          :loading="testing || sampleLoading"
-          :rows="enrichedRows"
-          :fields="getComputedFields()"
-          :profiles="rawProfiles"
-          @update:fields="setComputedFields"
-        />
-      </div>
+        <DataResultPanel class="dp__result" :result="result"
+          :loading="testing || sampleLoading" :rows="enrichedRows" :fields="getComputedFields()" :profiles="rawProfiles"
+          @update:fields="setComputedFields" />
+      </MCard>
+    </div>
 
-      <!-- 右列：绑定数据；数据内容在组件数据入参右侧入参区下方 -->
-      <MScrollbar class="data-panel__col" view-class="flex flex-col gap-4">
-        <!-- 绑定数据：计算列 → 组件数据入参装配（字段拖入即完成绑定） -->
-        <div class="data-sec-row">
-          <p class="data-sec">绑定数据</p>
-          <p class="dsec__hint">把字段放入组件需要的入参（数值入参可设聚合）。计算列在左侧数据表中编辑，实时作用于下方预览</p>
-        </div>
-        <div v-if="bindingIssues.length" class="dbind-alert" role="alert">
-          <p class="dbind-alert__title">绑定待完善（{{ bindingIssues.length }}）</p>
-          <p v-for="(issue, i) in bindingIssues.slice(0, 3)" :key="i" class="dbind-alert__item">· {{ issueText(issue) }}</p>
-        </div>
-        <div class="dpipe">
-          <div class="dpipe__stage">
-            <p class="dpipe__stage-title">
-              组件数据入参<span class="dpipe__stage-desc">字段放入即完成配置，无需再绑定</span>
-            </p>
-            <FieldBuilderPanel
-              v-model:assignments="assignments"
-              v-model:filters="filterConds"
-              :roles="dataRoles"
-              :profiles="sourceProfiles"
-              :transform="transformModel"
-              @update:transform="onRawTransform"
-            >
-              <!-- 数据内容：放在组件数据入参右侧（维度 / 数值 / 系列等）下面 -->
-              <div class="data-sec-row">
-                <p class="data-sec">数据内容</p>
-                <span v-if="rows.length" class="dsec__hint dsec__hint--count">共 {{ rows.length }} 行<template v-if="contentView === 'table' && rows.length > 50">，预览前 50 行</template>（已应用计算列与加工）</span>
-                <PanelTabs v-model="contentView"
-                  :options="[{ label: '预览', value: 'preview' }, { label: '表格', value: 'table' }, { label: 'JSON', value: 'json' }]" />
-              </div>
-              <!-- 预览：当前组件的实时渲染（编辑态绑定 previewCard + 加工后数据 rows），与画布同一渲染节点 -->
-              <div v-if="contentView === 'preview'" class="dpreview">
-                <CardNode
-                  v-if="previewCard"
-                  :card="previewCard"
-                  :data="rows"
-                  :loading="previewLoading"
-                  :error="previewError"
-                />
-              </div>
-              <div v-else-if="rows.length" class="dcontent">
-                <table v-if="contentView === 'table'" class="dcontent__table">
-                  <thead>
-                    <tr>
-                      <th v-for="f in fields" :key="f">{{ f }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(row, i) in previewRows" :key="i">
-                      <td v-for="f in fields" :key="f">{{ formatCell(row[f]) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <pre v-else class="dcontent__json">{{ contentJson }}</pre>
-              </div>
-              <p v-else class="dsec__hint">暂无数据 · Mock 打开即加载；请求 / WebSocket / SQL 请先在左侧点「测试」拉取</p>
-              <div v-if="rows.length" class="dsec__actions">
-                <MButton type="default" size="small" @click="downloadJson">下载 JSON</MButton>
-              </div>
-            </FieldBuilderPanel>
-          </div>
-        </div>
-      </MScrollbar>
+    <MDivider layout="vertical" class="dp__divider" />
 
+    <!-- 右列：绑定数据；数据内容在组件数据入参右侧入参区下方 -->
+    <div class="dp__right">
+      <FieldBuilderPanel v-model:assignments="assignments" v-model:filters="filterConds" :roles="dataRoles"
+        :profiles="sourceProfiles" :transform="transformModel" @update:transform="onRawTransform">
+        <!-- 数据内容：放在组件数据入参右侧（维度 / 数值 / 系列等）下面 -->
+        <div v-if="bindingIssues.length" class="dp__issues" role="alert">
+          <p class="dp__issues-title">数据绑定有 {{ bindingIssues.length }} 个问题</p>
+          <p v-for="(issue, i) in bindingIssues.slice(0, 3)" :key="i" class="dp__issues-item">· {{ issueText(issue) }}</p>
+        </div>
+        <p v-if="mode === 'reference' && referenced?.computedFields?.length" class="text-helper">计算列在左侧数据表中编辑</p>
+        <div class="dp__content-head">
+          <p class="dp__content-title">
+            数据内容</p>
+          <span v-if="rows.length"
+            class="dp__content-count">共
+            {{ rows.length }} 行<template v-if="contentView === 'table' && rows.length > 50">，预览前 50
+              行</template>（已应用计算列与加工）</span>
+          <PanelTabs v-model="contentView" class="dp__content-tabs"
+            :options="[{ label: '预览', value: 'preview' }, { label: '表格', value: 'table' }, { label: 'JSON', value: 'json' }]" />
+        </div>
+        <!-- 预览：当前组件的实时渲染（编辑态绑定 previewCard + 加工后数据 rows），与画布同一渲染节点 -->
+        <div v-if="contentView === 'preview'"
+          class="dp__preview">
+          <CardNode v-if="previewCard" :card="previewCard" :data="rows" :loading="previewLoading"
+            :error="previewError" />
+        </div>
+        <div v-else-if="rows.length"
+          class="dp__data">
+          <table v-if="contentView === 'table'" class="dcontent__table">
+            <thead>
+              <tr>
+                <th v-for="f in fields" :key="f">{{ f }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, i) in previewRows" :key="i">
+                <td v-for="f in fields" :key="f">{{ formatCell(row[f]) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <pre v-else class="dcontent__json">{{ contentJson }}</pre>
+        </div>
+        <p v-else class="text-helper">暂无数据 · Mock 打开即加载；请求 / WebSocket / SQL 请先在左侧点「测试」拉取</p>
+        <div v-if="rows.length" class="dp__actions">
+          <MButton type="default" size="small" @click="downloadJson">下载 JSON</MButton>
+        </div>
+      </FieldBuilderPanel>
     </div>
   </div>
 </template>
 
-<style scoped>
-/* 弹窗内容区（.m-dialog__body）已是定高 flex 容器：本面板填满它，滚动在左右列内部发生 */
-.data-panel {
+<style lang="scss" scoped>
+.dp {
+  height: 100%;
+  min-height: 0;
   width: 100%;
-  flex: 1 1 auto;
-  min-height: 0;
+  display: flex;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
 
-/* 左右两列主体：左 = 来源切换 + 连接配置 + 测试结果；右 = 绑定数据（数据内容在入参区右侧下方） */
-.data-panel__body {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  gap: 14px;
-}
-
-.data-panel__col {
-  min-width: 0;
-  min-height: 0;
-}
-
-/* 左列：来源切换固定列顶，配置表单与测试结果在下方滚动 */
-.data-panel__col--left {
-  display: flex;
-  flex-direction: column;
-  gap: var(--m-space-3);
-}
-
-.data-panel__tabs {
-  flex-shrink: 0;
-}
-
-.data-panel__col-scroll {
-  flex: 1 1 34%;
-  min-height: 168px;
-}
-
-/* 测试数据表固定在左列底部，占主要高度，表内可滚动更多行 */
-.data-panel__result {
-  flex: 1 1 58%;
-  min-height: 320px;
-  min-width: 0;
-}
-
-/* 两列分隔线 */
-.data-panel__col + .data-panel__col {
-  border-left: 1px solid var(--m-color-split);
-  padding-left: 14px;
-}
-
-/* 窄屏回退：上下堆叠 */
-@media (max-width: 900px) {
-  .data-panel__body {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  &__left {
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    display: flex;
+    flex: 33.3333%;
+    flex-direction: column;
   }
 
-  .data-panel__col + .data-panel__col {
-    border-left: none;
-    padding-left: 0;
-    border-top: 1px solid var(--m-color-split);
-    padding-top: 14px;
+  &__tabs {
+    margin-bottom: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  &__url-row {
+    display: flex;
+    gap: 0.375rem;
+  }
+
+  &__method {
+    width: 110px;
+    flex-shrink: 0;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__error {
+    font-size: 12px;
+    color: var(--m-color-danger);
+  }
+
+  &__ref {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__ref-name {
+    font-size: 13px;
+    color: var(--m-color-text);
+  }
+
+  &__result {
+    min-height: 320px;
+    min-width: 0;
+    flex: 1 1 58%;
+  }
+
+  &__divider {
+    height: 100%;
+    flex-shrink: 0;
+  }
+
+  &__right {
+    min-height: 0;
+    min-width: 0;
+    flex: 66.6667%;
+  }
+
+  &__issues {
+    border-radius: var(--m-radius-md);
+    border: 1px solid var(--m-color-warning);
+    background: color-mix(in srgb, var(--m-color-warning) 8%, transparent);
+    padding: 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--m-color-text);
+  }
+
+  &__issues-title {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+
+  &__issues-item {
+    margin-top: 0.25rem;
+  }
+
+  &__content-head {
+    margin-top: 0.375rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: 0.75rem;
+    row-gap: 0.5rem;
+  }
+
+  &__content-title {
+    flex: 1;
+    border-bottom: 1px solid var(--m-color-split);
+    padding-bottom: 0.375rem;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--m-color-text-muted);
+  }
+
+  &__content-count {
+    order: 3;
+    flex: 1 1 100%;
+    font-size: 12px;
+    color: var(--m-color-text-muted);
+  }
+
+  &__content-tabs {
+    width: 160px;
+  }
+
+  &__preview {
+    height: 280px;
+    overflow: hidden;
+    border-radius: var(--m-radius-md);
+    border: 1px solid var(--m-color-border);
+    background: var(--m-color-fill-light);
+    padding: 0.75rem;
+  }
+
+  &__data {
+    max-height: 240px;
+    overflow: auto;
+    border-radius: var(--m-radius-md);
+    border: 1px solid var(--m-color-border);
+    background: var(--m-color-surface);
   }
 }
 
-.dsec {
+.fill-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
-  border: 1px solid var(--m-color-border);
-  border-radius: var(--m-radius-md);
-  background: var(--m-color-surface);
-}
+  height: 0;
+  min-height: 0;
+  flex: auto;
 
-.dsec__title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
+  :deep(.m-card__body) {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--m-space-3);
+    height: 0;
+    min-height: 0;
+    overflow: hidden;
 
-.dsec__hint {
-  margin: 0;
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-}
-
-.dsec__error {
-  margin: 0;
-  font-size: 12px;
-  color: var(--m-color-danger);
-}
-
-/* 绑定健康提示：必绑未绑 / 字段缺失 / 类型不匹配（编辑态实时） */
-.dbind-alert {
-  padding: var(--m-space-2) var(--m-space-3);
-  border-left: 3px solid var(--m-color-warning);
-  border-radius: var(--m-radius-sm);
-  background: color-mix(in srgb, var(--m-color-warning) 8%, transparent);
-}
-
-.dbind-alert__title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-warning);
-}
-
-.dbind-alert__item {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--m-color-text);
-}
-
-.dsec__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--m-space-2);
-}
-
-.data-sec {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: 6px 0 2px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--m-color-split);
-}
-
-.data-sec-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--m-space-2) var(--m-space-3);
-  margin-top: 6px;
-}
-
-/* 数据内容标题行的行数反馈：过滤/聚合结果行数实时可见。入参区较窄，行数提示换到下一行 */
-.dsec__hint--count {
-  flex: 1 1 100%;
-  order: 3;
-  white-space: normal;
-  padding: 0;
-}
-
-.data-sec-row .data-sec {
-  flex: 1;
-  margin: 0;
-}
-
-.data-sec-row :deep(.panel-tabs) {
-  width: 160px;
-}
-
-.dgrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 14px;
-}
-
-.drow {
-  display: flex;
-  gap: 6px;
-}
-
-.drow__method {
-  width: 110px;
-  flex: none;
-}
-
-.dinfo {
-  display: flex;
-  align-items: center;
-  gap: var(--m-space-2);
-}
-
-.dinfo__name {
-  font-size: 13px;
-  color: var(--m-color-text);
-}
-
-.dfields {
-  display: flex;
-  flex-direction: column;
-  gap: var(--m-space-1);
-}
-
-.dfields__row {
-  display: flex;
-  align-items: center;
-  gap: var(--m-space-2);
-  padding: var(--m-space-1) var(--m-space-2);
-  border-radius: var(--m-radius-sm);
-  background: var(--m-color-fill-light);
-}
-
-.dfields__name {
-  font-size: 13px;
-  color: var(--m-color-text);
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dfields__role {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--m-color-primary);
-  padding: 1px var(--m-space-2);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--m-color-primary) 10%, transparent);
-}
-
-.dfields__bind {
-  display: flex;
-  gap: 2px;
-}
-
-/* 数据加工流水线卡 */
-.dpipe {
-  display: flex;
-  flex-direction: column;
-  gap: var(--m-space-3);
-  padding: 14px;
-  border: 1px solid var(--m-color-border);
-  border-radius: var(--m-radius-md);
-  background: var(--m-color-surface);
-}
-
-.dpipe__stage {
-  display: flex;
-  flex-direction: column;
-  gap: var(--m-space-2);
-}
-
-.dpipe__stage + .dpipe__stage {
-  padding-top: var(--m-space-3);
-  border-top: 1px dashed var(--m-color-split);
-}
-
-.dpipe__stage-title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-text);
-  display: flex;
-  align-items: baseline;
-  gap: var(--m-space-2);
-}
-
-.dpipe__stage-desc {
-  font-weight: 400;
-  font-size: 11px;
-  color: var(--m-color-text-muted);
-}
-
-/* 预览：当前组件实时渲染。fill 底 + 内边距模拟画布格子，卡片自身 surface / 圆角浮在上面 */
-.dpreview {
-  height: 280px;
-  padding: var(--m-space-3);
-  border: 1px solid var(--m-color-border);
-  border-radius: var(--m-radius-md);
-  background: var(--m-color-fill-light);
-  overflow: hidden;
-}
-
-.dcontent {
-  max-height: 240px;
-  overflow: auto;
-  border: 1px solid var(--m-color-border);
-  border-radius: var(--m-radius-md);
-  background: var(--m-color-surface);
+    > section {
+      flex: 1 1 34%;
+      min-height: 168px;
+      overflow: auto;
+    }
+  }
 }
 
 .dcontent__table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
-}
 
-.dcontent__table th,
-.dcontent__table td {
-  text-align: left;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--m-color-split);
-  white-space: nowrap;
-}
+  th,
+  td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--m-color-split);
+    text-align: left;
+    white-space: nowrap;
+  }
 
-.dcontent__table th {
-  color: var(--m-color-text-muted);
-  font-weight: 600;
-  background: var(--m-color-fill-light);
-  position: sticky;
-  top: 0;
+  th {
+    position: sticky;
+    top: 0;
+    background: var(--m-color-fill-light);
+    color: var(--m-color-text-muted);
+    font-weight: 600;
+  }
 }
 
 .dcontent__json {
   margin: 0;
   padding: 10px;
-  font-size: 12px;
-  font-family: var(--m-font-mono, monospace);
   color: var(--m-color-text);
+  font-family: var(--m-font-mono, monospace);
+  font-size: 12px;
   white-space: pre-wrap;
   word-break: break-word;
 }

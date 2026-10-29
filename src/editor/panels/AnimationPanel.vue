@@ -31,7 +31,7 @@ const animation = computed({
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .animation-panel {
   display: flex;
   flex-direction: column;

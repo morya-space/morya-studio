@@ -27,18 +27,18 @@ watch(totalPages, tp => { if (page.value > tp) page.value = tp })
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .pagination-card {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-}
 
-.pagination-card__info {
-  font-size: 13px;
-  color: var(--m-color-text-muted);
-  font-variant-numeric: tabular-nums;
+  &__info {
+    font-size: 13px;
+    color: var(--m-color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
 }
 </style>

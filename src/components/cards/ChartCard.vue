@@ -40,7 +40,7 @@ const style = computed(() => {
   </CardShell>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .chart-card {
   width: 100%;
 }

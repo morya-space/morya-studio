@@ -209,10 +209,45 @@ function onBgFile(e: Event) {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .canvas-panel {
   display: flex;
   flex-direction: column;
+
+  :deep(.m-form) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--m-space-5, 20px);
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--m-space-3, 12px);
+  }
+
+  &__head {
+    padding-bottom: var(--m-space-2, 8px);
+    border-bottom: 1px solid var(--m-color-split);
+
+    h4,
+    p {
+      margin: 0;
+    }
+
+    h4 {
+      color: var(--m-color-text);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    p {
+      margin-top: 3px;
+      color: var(--m-color-text-muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+  }
 }
 
 .bg-row {
@@ -223,40 +258,5 @@ function onBgFile(e: Event) {
 
 .bg-file {
   display: none;
-}
-
-.canvas-panel :deep(.m-form) {
-  display: flex;
-  flex-direction: column;
-  gap: var(--m-space-5, 20px);
-}
-
-.canvas-panel__section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--m-space-3, 12px);
-}
-
-.canvas-panel__head {
-  padding-bottom: var(--m-space-2, 8px);
-  border-bottom: 1px solid var(--m-color-split);
-}
-
-.canvas-panel__head h4,
-.canvas-panel__head p {
-  margin: 0;
-}
-
-.canvas-panel__head h4 {
-  color: var(--m-color-text);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.canvas-panel__head p {
-  margin-top: 3px;
-  color: var(--m-color-text-muted);
-  font-size: 12px;
-  line-height: 1.45;
 }
 </style>

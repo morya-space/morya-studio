@@ -75,61 +75,60 @@ function formatCell(value: unknown): string {
 
 <template>
   <div class="result-panel">
-    <div class="result-panel__bar">
-      <div v-if="loading && !rows.length" class="result-panel__state">加载中…</div>
+    <div class="result-panel__head">
+      <div v-if="loading && !rows.length" class="text-helper">加载中…</div>
       <div v-else-if="result" class="result-panel__status" :class="result.ok ? 'is-ok' : 'is-err'">
         <span class="result-panel__dot" />
-        <span class="result-panel__badge">{{ result.ok ? '成功' : '失败' }}</span>
-        <span v-if="result.status" class="result-panel__meta">状态 {{ result.status }}</span>
-        <span v-if="result.durationMs != null" class="result-panel__meta">{{ result.durationMs }} ms</span>
-        <span class="result-panel__meta">{{ rows.length || result.sampleRows || 0 }} 行</span>
+        <span class="result-panel__status-label">{{ result.ok ? '成功' : '失败' }}</span>
+        <span v-if="result.status" class="result-panel__tag">状态 {{ result.status }}</span>
+        <span v-if="result.durationMs != null" class="result-panel__tag">{{ result.durationMs }} ms</span>
+        <span class="result-panel__tag">{{ rows.length || result.sampleRows || 0 }} 行</span>
       </div>
       <div v-else-if="rows.length" class="result-panel__status is-ok">
         <span class="result-panel__dot" />
-        <span class="result-panel__badge">数据</span>
-        <span class="result-panel__meta">{{ rows.length }} 行</span>
+        <span class="result-panel__status-label">数据</span>
+        <span class="result-panel__tag">{{ rows.length }} 行</span>
       </div>
-      <div v-else class="result-panel__state">点击「测试」查看结果</div>
-      <span v-if="rows.length > ROW_LIMIT" class="result-panel__more">显示前 {{ ROW_LIMIT }} 行</span>
+      <div v-else class="text-helper">点击「测试」查看结果</div>
+      <span v-if="rows.length > ROW_LIMIT" class="result-panel__limit">显示前 {{ ROW_LIMIT }} 行</span>
     </div>
-    <p v-if="result?.message" class="result-panel__msg">{{ result.message }}</p>
 
-    <div class="result-panel__tools">
+    <div class="result-panel__toolbar">
       <MButton v-for="t in TEMPLATES" :key="t.label" type="default" size="small" @click="add(t.make())">
         + {{ t.label }}
       </MButton>
       <MButton type="text" size="small" @click="add()">自定义列</MButton>
     </div>
 
-    <div class="result-panel__table-wrap">
+    <div class="result-panel__body">
       <table class="result-panel__table">
         <thead>
           <tr>
             <th v-for="c in baseColumns" :key="c">{{ c }}</th>
             <th v-for="(f, i) in fields" :key="`cf-${i}`" class="is-computed">
-              <div class="result-panel__cf">
+              <div class="result-panel__cf-row">
                 <input
-                  class="result-panel__cf-name"
+                  class="result-panel__cf-input result-panel__cf-input--name"
                   :value="f.name"
                   placeholder="列名"
                   aria-label="计算列名称"
                   @input="patch(i, 'name', ($event.target as HTMLInputElement).value)"
                 />
                 <input
-                  class="result-panel__cf-expr"
+                  class="result-panel__cf-input result-panel__cf-input--expr"
                   :value="f.expr"
                   placeholder="表达式，如 a - b"
                   aria-label="计算列表达式"
                   @input="patch(i, 'expr', ($event.target as HTMLInputElement).value)"
                 />
-                <button type="button" class="result-panel__cf-x" aria-label="删除计算列" @click="remove(i)">×</button>
+                <button type="button" class="result-panel__cf-remove" aria-label="删除计算列" @click="remove(i)">×</button>
               </div>
-              <div v-if="profiles?.length" class="result-panel__cf-fields">
+              <div v-if="profiles?.length" class="result-panel__cf-profiles">
                 <button
                   v-for="p in profiles.slice(0, 6)"
                   :key="p.key"
                   type="button"
-                  class="result-panel__cf-field"
+                  class="result-panel__cf-chip"
                   @click="patch(i, 'expr', `${f.expr ?? ''}${f.expr && !/\s$/.test(f.expr) ? ' ' : ''}${p.key}`)"
                 >
                   {{ p.key }}
@@ -148,101 +147,143 @@ function formatCell(value: unknown): string {
     </div>
 
     <details v-if="result?.raw != null" class="result-panel__raw">
-      <summary>原始响应</summary>
-      <pre>{{ rawJson }}</pre>
+      <summary class="result-panel__raw-toggle">原始响应</summary>
+      <pre class="result-panel__raw-pre">{{ rawJson }}</pre>
     </details>
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .result-panel {
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  border: 1px solid var(--m-color-border);
+  gap: 0.5rem;
   border-radius: var(--m-radius-md);
-  padding: 12px;
+  border: 1px solid var(--m-color-border);
   background: var(--m-color-fill-light);
-}
+  padding: 0.75rem;
 
-.result-panel__bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-shrink: 0;
-}
+  &__head {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
 
-.result-panel__state {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-}
+  &__tag {
+    border-radius: 9999px;
+    background: var(--m-color-surface);
+    padding: 1px 0.5rem;
+    font-variant-numeric: tabular-nums;
+  }
 
-.result-panel__more {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-  white-space: nowrap;
+  &__limit {
+    white-space: nowrap;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--m-color-text-muted);
+  }
+
+  &__toolbar {
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  &__body {
+    min-height: 180px;
+    flex: 1;
+    overflow: auto;
+    border-radius: var(--m-radius-sm);
+    border: 1px solid var(--m-color-border);
+    background: var(--m-color-surface);
+  }
+
+  &__cf-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  &__cf-remove {
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    padding: 0 0.125rem;
+    font-size: 0.875rem;
+    line-height: 1;
+    color: var(--m-color-text-muted);
+
+    &:hover {
+      color: var(--m-color-danger);
+    }
+  }
+
+  &__cf-profiles {
+    margin-top: 0.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  &__cf-chip {
+    cursor: pointer;
+    border: none;
+    border-radius: 9999px;
+    background: var(--m-color-surface);
+    padding: 0 0.375rem;
+    font-size: 11px;
+    color: var(--m-color-primary);
+  }
+
+  &__raw-toggle {
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--m-color-primary);
+  }
+
+  &__raw-pre {
+    margin: 0.5rem 0 0;
+    max-height: 120px;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    border-radius: var(--m-radius-sm);
+    background: var(--m-color-surface);
+    padding: 0.625rem;
+    font-family: var(--m-font-mono, monospace);
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
 }
 
 .result-panel__status {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
   color: var(--m-color-text-muted);
+
+  &.is-ok .result-panel__dot { background: var(--m-color-success); }
+  &.is-err .result-panel__dot { background: var(--m-color-danger); }
 }
 
-.result-panel__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--m-color-text-muted);
-}
-
-.result-panel__status.is-ok .result-panel__dot {
-  background: var(--m-color-success);
-}
-
-.result-panel__status.is-err .result-panel__dot {
-  background: var(--m-color-danger);
-}
-
-.result-panel__badge {
+.result-panel__status-label {
   font-weight: 600;
   color: var(--m-color-text);
 }
 
-.result-panel__meta {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--m-color-surface);
-  font-variant-numeric: tabular-nums;
-}
-
-.result-panel__msg {
-  margin: 0;
-  flex-shrink: 0;
-  font-size: 12.5px;
-  color: var(--m-color-text);
-  word-break: break-word;
-}
-
-.result-panel__tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.result-panel__table-wrap {
-  flex: 1;
-  min-height: 180px;
-  overflow: auto;
-  border: 1px solid var(--m-color-border);
-  border-radius: var(--m-radius-sm);
-  background: var(--m-color-surface);
+.result-panel__dot {
+  height: 0.5rem;
+  width: 0.5rem;
+  border-radius: 9999px;
+  background: var(--m-color-text-muted);
 }
 
 .result-panel__table {
@@ -250,44 +291,36 @@ function formatCell(value: unknown): string {
   min-width: 100%;
   border-collapse: collapse;
   font-size: 12px;
+
+  th,
+  td {
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--m-color-split);
+    text-align: left;
+    vertical-align: top;
+    white-space: nowrap;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--m-color-fill-light);
+    color: var(--m-color-text-muted);
+    font-weight: 600;
+  }
+
+  .is-computed {
+    background: color-mix(in srgb, var(--m-color-primary) 6%, var(--m-color-surface));
+  }
+
+  th.is-computed {
+    min-width: 220px;
+    background: color-mix(in srgb, var(--m-color-primary) 10%, var(--m-color-fill-light));
+  }
 }
 
-.result-panel__table th,
-.result-panel__table td {
-  text-align: left;
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--m-color-split);
-  white-space: nowrap;
-  vertical-align: top;
-}
-
-.result-panel__table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  color: var(--m-color-text-muted);
-  font-weight: 600;
-  background: var(--m-color-fill-light);
-}
-
-.result-panel__table th.is-computed,
-.result-panel__table td.is-computed {
-  background: color-mix(in srgb, var(--m-color-primary) 6%, var(--m-color-surface));
-}
-
-.result-panel__table th.is-computed {
-  background: color-mix(in srgb, var(--m-color-primary) 10%, var(--m-color-fill-light));
-  min-width: 220px;
-}
-
-.result-panel__cf {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.result-panel__cf-name,
-.result-panel__cf-expr {
+.result-panel__cf-input {
   min-width: 0;
   padding: 2px 6px;
   border: 1px solid var(--m-color-border);
@@ -295,65 +328,15 @@ function formatCell(value: unknown): string {
   background: var(--m-color-surface);
   color: var(--m-color-text);
   font-size: 12px;
-}
 
-.result-panel__cf-name {
-  width: 72px;
-  flex: none;
-}
+  &--name {
+    width: 72px;
+    flex: none;
+  }
 
-.result-panel__cf-expr {
-  width: 120px;
-  flex: 1;
-}
-
-.result-panel__cf-x {
-  border: none;
-  background: transparent;
-  color: var(--m-color-text-muted);
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-  padding: 0 2px;
-}
-
-.result-panel__cf-x:hover {
-  color: var(--m-color-danger);
-}
-
-.result-panel__cf-fields {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
-
-.result-panel__cf-field {
-  border: none;
-  border-radius: 999px;
-  padding: 0 6px;
-  background: var(--m-color-surface);
-  color: var(--m-color-primary);
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.result-panel__raw summary {
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--m-color-primary);
-}
-
-.result-panel__raw pre {
-  margin: 8px 0 0;
-  max-height: 120px;
-  overflow: auto;
-  padding: 10px;
-  border-radius: var(--m-radius-sm);
-  background: var(--m-color-surface);
-  font-size: 12px;
-  font-family: var(--m-font-mono, monospace);
-  white-space: pre-wrap;
-  word-break: break-word;
+  &--expr {
+    width: 120px;
+    flex: 1;
+  }
 }
 </style>

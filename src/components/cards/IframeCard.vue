@@ -38,27 +38,27 @@ const safeUrl = computed(() => {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .iframe-card {
   height: 100%;
   width: 100%;
   overflow: hidden;
-}
 
-.iframe-card__frame {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
-}
+  &__frame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
 
-.iframe-card__empty {
-  height: 100%;
-  display: grid;
-  place-items: center;
-  border: 1.5px dashed var(--m-color-border);
-  border-radius: var(--m-radius-md);
-  color: var(--m-color-text-muted);
-  font-size: 12px;
+  &__empty {
+    height: 100%;
+    display: grid;
+    place-items: center;
+    border: 1.5px dashed var(--m-color-border);
+    border-radius: var(--m-radius-md);
+    color: var(--m-color-text-muted);
+    font-size: 12px;
+  }
 }
 </style>

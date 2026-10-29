@@ -223,7 +223,7 @@ function onResizeEnd() {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .card-wrapper {
   position: relative;
   min-width: 0;
@@ -232,14 +232,81 @@ function onResizeEnd() {
   outline: 2px solid transparent;
   outline-offset: 2px;
   transition: outline-color var(--m-motion-fast, 0.15s);
-}
 
-.card-wrapper:hover {
-  outline-color: color-mix(in srgb, var(--m-color-primary) 40%, transparent);
-}
+  &:hover {
+    outline-color: color-mix(in srgb, var(--m-color-primary) 40%, transparent);
+  }
 
-.card-wrapper.selected {
-  outline-color: var(--m-color-primary);
+  &.selected {
+    outline-color: var(--m-color-primary);
+  }
+
+  &:hover .card-toolbar {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  &__content {
+    pointer-events: none;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  &__unknown {
+    padding: 24px;
+    background: var(--m-color-surface);
+    border-radius: var(--m-radius-lg);
+    color: var(--m-color-text-muted);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  &__span-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    padding: 2px 8px;
+    border-radius: var(--m-radius-full, 999px);
+    background: var(--m-color-primary);
+    color: var(--m-color-surface);
+    font-size: 11px;
+    font-weight: 600;
+    z-index: 5;
+  }
+
+  &:hover .binding-summary,
+  &.selected .binding-summary {
+    opacity: 1;
+  }
+
+  /* 拖拽调整宽度手柄：选中/悬浮时可见 */
+  &__resize {
+    position: absolute;
+    top: 0;
+    right: -4px;
+    width: 10px;
+    height: 100%;
+    cursor: col-resize;
+    opacity: 0;
+    z-index: 8;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: 3px;
+      width: 3px;
+      height: 40px;
+      transform: translateY(-50%);
+      border-radius: var(--m-radius-full, 999px);
+      background: var(--m-color-primary);
+    }
+  }
+
+  &:hover &__resize,
+  &.selected &__resize {
+    opacity: 1;
+  }
 }
 
 .card-toolbar {
@@ -258,25 +325,24 @@ function onResizeEnd() {
   pointer-events: none;
   transition: opacity var(--m-motion-fast, 0.15s);
   z-index: 10;
-}
 
-.card-wrapper:hover .card-toolbar,
-.card-toolbar.visible {
-  opacity: 1;
-  pointer-events: auto;
-}
+  &.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
 
-.card-toolbar__label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--m-color-surface);
-  padding: 0 4px;
-}
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--m-color-surface);
+    padding: 0 4px;
+  }
 
-.card-toolbar__actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
 }
 
 .tool-btn {
@@ -290,19 +356,19 @@ function onResizeEnd() {
   background: transparent;
   color: var(--m-color-surface);
   cursor: pointer;
-}
 
-.tool-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--m-color-surface) 20%, transparent);
-}
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--m-color-surface) 20%, transparent);
+  }
 
-.tool-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 
-.tool-btn--danger:hover {
-  background: var(--m-color-danger);
+  &--danger:hover {
+    background: var(--m-color-danger);
+  }
 }
 
 .tool-divider {
@@ -310,34 +376,6 @@ function onResizeEnd() {
   height: 14px;
   background: color-mix(in srgb, var(--m-color-surface) 40%, transparent);
   margin: 0 2px;
-}
-
-.card-wrapper__content {
-  pointer-events: none;
-  height: 100%;
-  overflow: hidden;
-}
-
-.card-wrapper__unknown {
-  padding: 24px;
-  background: var(--m-color-surface);
-  border-radius: var(--m-radius-lg);
-  color: var(--m-color-text-muted);
-  font-size: 13px;
-  text-align: center;
-}
-
-.card-wrapper__span-badge {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  padding: 2px 8px;
-  border-radius: var(--m-radius-full, 999px);
-  background: var(--m-color-primary);
-  color: var(--m-color-surface);
-  font-size: 11px;
-  font-weight: 600;
-  z-index: 5;
 }
 
 .binding-summary {
@@ -354,11 +392,6 @@ function onResizeEnd() {
   pointer-events: none;
 }
 
-.card-wrapper:hover .binding-summary,
-.card-wrapper.selected .binding-summary {
-  opacity: 1;
-}
-
 .binding-chip {
   display: inline-flex;
   align-items: center;
@@ -369,39 +402,10 @@ function onResizeEnd() {
   color: var(--m-color-surface);
   font-size: 10.5px;
   white-space: nowrap;
-}
 
-.binding-chip__role {
-  font-weight: 600;
-  opacity: 0.85;
-}
-
-/* 拖拽调整宽度手柄：选中/悬浮时可见 */
-.card-wrapper__resize {
-  position: absolute;
-  top: 0;
-  right: -4px;
-  width: 10px;
-  height: 100%;
-  cursor: col-resize;
-  opacity: 0;
-  z-index: 8;
-}
-
-.card-wrapper:hover .card-wrapper__resize,
-.card-wrapper.selected .card-wrapper__resize {
-  opacity: 1;
-}
-
-.card-wrapper__resize::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 3px;
-  width: 3px;
-  height: 40px;
-  transform: translateY(-50%);
-  border-radius: var(--m-radius-full, 999px);
-  background: var(--m-color-primary);
+  &__role {
+    font-weight: 600;
+    opacity: 0.85;
+  }
 }
 </style>

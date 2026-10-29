@@ -43,27 +43,27 @@ const style = computed(() => ({ objectFit: cfg.value.fit ?? 'contain' }))
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .video-card {
   height: 100%;
   width: 100%;
   overflow: hidden;
-}
 
-.video-card__el {
-  width: 100%;
-  height: 100%;
-  display: block;
-  background: var(--m-color-text);
-}
+  &__el {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: var(--m-color-text);
+  }
 
-.video-card__empty {
-  height: 100%;
-  display: grid;
-  place-items: center;
-  border: 1.5px dashed var(--m-color-border);
-  border-radius: var(--m-radius-md);
-  color: var(--m-color-text-muted);
-  font-size: 12px;
+  &__empty {
+    height: 100%;
+    display: grid;
+    place-items: center;
+    border: 1.5px dashed var(--m-color-border);
+    border-radius: var(--m-radius-md);
+    color: var(--m-color-text-muted);
+    font-size: 12px;
+  }
 }
 </style>

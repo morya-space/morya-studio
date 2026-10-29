@@ -21,7 +21,7 @@ withDefaults(defineProps<{
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .workspace-page {
   display: flex;
   flex-direction: column;

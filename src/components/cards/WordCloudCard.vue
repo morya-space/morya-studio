@@ -45,7 +45,7 @@ function sizeOf(index: number): number {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .word-cloud-card {
   height: 100%;
   display: flex;
@@ -55,16 +55,16 @@ function sizeOf(index: number): number {
   gap: 6px 14px;
   overflow: hidden;
   color: var(--m-color-primary);
-}
 
-.word-cloud-card__word {
-  font-weight: 700;
-  line-height: 1.1;
-  white-space: nowrap;
-}
+  &__word {
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
 
-.word-cloud-card__empty {
-  color: var(--m-color-text-muted);
-  font-size: 13px;
+  &__empty {
+    color: var(--m-color-text-muted);
+    font-size: 13px;
+  }
 }
 </style>

@@ -28,7 +28,7 @@ function onSelect(item: { value?: string }) {
   </MDropdown>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .locale-switch {
   display: flex;
   align-items: center;
@@ -42,16 +42,16 @@ function onSelect(item: { value?: string }) {
   padding: 6px 8px;
   border-radius: var(--m-radius-sm);
   white-space: nowrap;
-}
 
-.locale-switch:hover {
-  background: var(--m-color-split);
-  color: var(--m-color-text);
-}
+  &:hover {
+    background: var(--m-color-split);
+    color: var(--m-color-text);
+  }
 
-.locale-switch:focus-visible {
-  outline: 2px solid var(--m-color-primary);
-  outline-offset: 2px;
+  &:focus-visible {
+    outline: 2px solid var(--m-color-primary);
+    outline-offset: 2px;
+  }
 }
 
 .locale-chevron {

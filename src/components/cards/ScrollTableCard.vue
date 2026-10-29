@@ -82,7 +82,7 @@ function cellText(row: Record<string, unknown>, col: TableColumn): string {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .scroll-table {
   height: 100%;
   display: flex;
@@ -90,44 +90,44 @@ function cellText(row: Record<string, unknown>, col: TableColumn): string {
   font-size: 13px;
   color: var(--m-color-text);
   overflow: hidden;
-}
 
-.scroll-table__head {
-  display: flex;
-  align-items: center;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
-  background: var(--m-color-fill-light);
-  border-bottom: 1px solid var(--m-color-border);
-  flex: none;
-}
+  &__head {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: var(--m-color-text-muted);
+    background: var(--m-color-fill-light);
+    border-bottom: 1px solid var(--m-color-border);
+    flex: none;
+  }
 
-.scroll-table__body {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
+  &__body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
 
-.scroll-table__track {
-  will-change: transform;
-}
+  &__track {
+    will-change: transform;
+  }
 
-.scroll-table__row {
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid var(--m-color-split);
-}
+  &__row {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--m-color-split);
 
-.scroll-table__row.is-stripe {
-  background: color-mix(in srgb, var(--m-color-fill-light) 60%, transparent);
-}
+    &.is-stripe {
+      background: color-mix(in srgb, var(--m-color-fill-light) 60%, transparent);
+    }
+  }
 
-.scroll-table__cell {
-  flex: 1;
-  min-width: 0;
-  padding: 0 10px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  &__cell {
+    flex: 1;
+    min-width: 0;
+    padding: 0 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 </style>

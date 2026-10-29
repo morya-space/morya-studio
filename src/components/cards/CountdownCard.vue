@@ -50,17 +50,17 @@ const style = computed(() => ({
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .countdown-card {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
 
-.countdown-card__value {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
+  &__value {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
 }
 </style>

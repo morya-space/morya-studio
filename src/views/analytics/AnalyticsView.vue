@@ -269,7 +269,7 @@ function fmtTime(iso?: string): string {
   </WorkspacePage>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .analytics__skeleton {
   display: flex;
   flex-direction: column;
@@ -280,18 +280,30 @@ function fmtTime(iso?: string): string {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .analytics__charts {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .analytics__bottom {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .analytics__empty {
@@ -306,86 +318,86 @@ function fmtTime(iso?: string): string {
   flex-direction: column;
   gap: 6px;
   padding: 16px 18px;
-}
 
-.stat-card :deep(.m-card__body) {
-  padding: 0;
-}
+  :deep(.m-card__body) {
+    padding: 0;
+  }
 
-.stat-card__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--m-color-text-muted);
-}
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--m-color-text-muted);
+  }
 
-.stat-card__icon {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--m-radius-sm);
-  flex: none;
-}
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--m-radius-sm);
+    flex: none;
 
-.stat-card__icon--primary {
-  background: color-mix(in srgb, var(--m-color-primary) 12%, transparent);
-  color: var(--m-color-primary);
-}
+    &--primary {
+      background: color-mix(in srgb, var(--m-color-primary) 12%, transparent);
+      color: var(--m-color-primary);
+    }
 
-.stat-card__icon--info {
-  background: color-mix(in srgb, var(--m-color-info) 12%, transparent);
-  color: var(--m-color-info);
-}
+    &--info {
+      background: color-mix(in srgb, var(--m-color-info) 12%, transparent);
+      color: var(--m-color-info);
+    }
 
-.stat-card__icon--warning {
-  background: color-mix(in srgb, var(--m-color-warning) 12%, transparent);
-  color: var(--m-color-warning);
-}
+    &--warning {
+      background: color-mix(in srgb, var(--m-color-warning) 12%, transparent);
+      color: var(--m-color-warning);
+    }
+  }
 
-.stat-card__label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--m-color-text-muted);
-}
+  &__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--m-color-text-muted);
+  }
 
-.stat-card__value {
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 1.1;
-  color: var(--m-color-text);
-  font-variant-numeric: tabular-nums;
-}
+  &__value {
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--m-color-text);
+    font-variant-numeric: tabular-nums;
+  }
 
-.stat-card__sub {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
+  &__sub {
+    font-size: 12px;
+    color: var(--m-color-text-muted);
+  }
 }
 
 .chart-card {
   padding: 16px 18px;
-}
 
-.chart-card__title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--m-color-text);
-  margin: 0 0 12px;
-}
+  &__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--m-color-text);
+    margin: 0 0 12px;
+  }
 
-.chart-card__body {
-  width: 100%;
-  height: 260px;
+  &__body {
+    width: 100%;
+    height: 260px;
+  }
 }
 
 .attention-card {
   padding: 16px 18px;
-}
 
-.attention-card__ok {
-  font-size: 13px;
-  color: var(--m-color-success);
-  padding: 12px 0;
+  &__ok {
+    font-size: 13px;
+    color: var(--m-color-success);
+    padding: 12px 0;
+  }
 }
 
 .attention-list {
@@ -406,24 +418,24 @@ function fmtTime(iso?: string): string {
   font-size: 13px;
   padding: 6px 0;
   border-bottom: 1px solid var(--m-color-split);
-}
 
-.attention-item__panel {
-  font-weight: 600;
-  color: var(--m-color-text);
-  flex-shrink: 0;
-}
+  &__panel {
+    font-weight: 600;
+    color: var(--m-color-text);
+    flex-shrink: 0;
+  }
 
-.attention-item__card {
-  color: var(--m-color-text);
-  flex-shrink: 0;
-}
+  &__card {
+    color: var(--m-color-text);
+    flex-shrink: 0;
+  }
 
-.attention-item__msg {
-  color: var(--m-color-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  &__msg {
+    color: var(--m-color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .recent-card {
@@ -444,15 +456,5 @@ function fmtTime(iso?: string): string {
 .recent-time {
   font-size: 12px;
   color: var(--m-color-text-muted);
-}
-
-@media (max-width: 1200px) {
-  .analytics__stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .analytics__charts,
-  .analytics__bottom {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

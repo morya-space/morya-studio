@@ -96,7 +96,7 @@ function getByPath(obj: Record<string, unknown>, path: string): unknown {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .style-panel {
   display: flex;
   flex-direction: column;

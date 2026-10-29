@@ -266,24 +266,24 @@ function openDemo() {
   </WorkspacePage>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .components {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
 
-.components__bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
+  &__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
 
-.components__tip {
-  font-size: 13px;
-  color: var(--m-color-text-muted);
-  margin: 0;
+  &__tip {
+    font-size: 13px;
+    color: var(--m-color-text-muted);
+    margin: 0;
+  }
 }
 
 .grid {
@@ -300,39 +300,39 @@ function openDemo() {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
 
-.card__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 
-.card__label {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--m-color-text);
-  margin: 0;
-}
+  &__label {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--m-color-text);
+    margin: 0;
+  }
 
-.card__desc {
-  font-size: 13px;
-  color: var(--m-color-text-muted);
-  margin: 0;
-  flex: 1;
-}
+  &__desc {
+    font-size: 13px;
+    color: var(--m-color-text-muted);
+    margin: 0;
+    flex: 1;
+  }
 
-.card__preview {
-  margin-top: 8px;
-  pointer-events: none;
-}
+  &__preview {
+    margin-top: 8px;
+    pointer-events: none;
+  }
 
-.card__actions {
-  display: flex;
-  gap: 4px;
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--m-color-split);
+  &__actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--m-color-split);
+  }
 }
 
 .empty {

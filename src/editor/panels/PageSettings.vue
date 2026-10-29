@@ -159,7 +159,7 @@ function onOptionsChange(index: number, text: string) {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .page-settings {
   display: flex;
   flex-direction: column;
@@ -202,11 +202,11 @@ function onOptionsChange(index: number, text: string) {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
 
-.filter-item__row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 }
 </style>

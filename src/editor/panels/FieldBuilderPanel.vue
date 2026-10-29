@@ -11,7 +11,7 @@
  */
 
 import { computed, ref } from 'vue'
-import { MButton, MEmpty, MInput, MSelect, MSegmented, MTag, message } from 'morya-ui'
+import { MButton, MEmpty, MInput, MSelect, MSegmented, MTag, message, MCard, MFlex } from 'morya-ui'
 import type { FieldProfile, FieldValueKind } from '../../data/field-profile'
 import type { DataRole } from '../../engine/data-role'
 import {
@@ -214,30 +214,37 @@ function onDrop(t: DropTarget, e: DragEvent): void {
 </script>
 
 <template>
-  <div class="fb">
-    <div class="fb__head">
-      <span class="fb__title">组件数据入参</span>
-      <MSegmented v-model="mode" :options="MODE_OPTIONS" size="small" />
-    </div>
+  <MCard class="fb">
+    <template #header>
+      <MFlex align="center" justify="space-between">
+        <span class="fb__title">数据绑定</span>
+        <MSegmented v-model="mode" :options="MODE_OPTIONS" size="small" />
+      </MFlex>
+    </template>
 
     <div v-if="mode === 'expr'" class="fb__expr">
-      <p class="fb__hint">直接编辑 transform 步骤（JSON）。回到可视化后，按入参装配重新生成，表达式自定义步骤可能被覆盖。</p>
-      <textarea v-model="exprText" class="fb__expr-text" rows="12" spellcheck="false" />
-      <div v-if="$slots.default" class="fb__content">
+      <p class="text-helper">直接编辑 transform 步骤（JSON）。回到可视化后，按入参装配重新生成，表达式自定义步骤可能被覆盖。</p>
+      <textarea
+        v-model="exprText"
+        class="fb__expr-input"
+        rows="12"
+        spellcheck="false"
+      />
+      <div v-if="$slots.default" class="fb__extra">
         <slot />
       </div>
     </div>
 
-    <div v-else class="fb__body">
+    <div v-else class="fb__visual">
       <!-- 左：字段列表 -->
-      <aside class="fb__fields">
-        <div class="fb__fields-head">
-          <span class="fb__fields-title">字段</span>
+      <aside class="fb__aside">
+        <div class="fb__aside-head">
+          <span class="fb__aside-title">字段</span>
         </div>
-        <div class="fb__search">
+        <div class="fb__aside-search">
           <MInput v-model="keyword" placeholder="搜索字段…" fluid size="small" />
         </div>
-        <div class="fb__field-list">
+        <div class="fb__list">
           <div
             v-for="p in filteredProfiles"
             :key="p.key"
@@ -252,11 +259,16 @@ function onDrop(t: DropTarget, e: DragEvent): void {
             <span class="fb__field-icon" :data-kind="p.valueKind">
               <SvgIcon :name="kindIcon(p.valueKind)" :px="13" />
             </span>
-            <span class="fb__field-body">
+            <span class="fb__field-info">
               <span class="fb__field-label">{{ p.label }}</span>
               <span class="fb__field-key">{{ p.key }}</span>
             </span>
-            <button type="button" class="fb__field-add" aria-label="放入入参" @click.stop="addFieldSmart(p)">
+            <button
+              type="button"
+              class="fb__field-add"
+              aria-label="放入入参"
+              @click.stop="addFieldSmart(p)"
+            >
               <SvgIcon name="plus" :px="13" />
             </button>
           </div>
@@ -267,7 +279,7 @@ function onDrop(t: DropTarget, e: DragEvent): void {
       </aside>
 
       <!-- 右：组件入参区 + 过滤条件 -->
-      <div class="fb__zones">
+      <div class="fb__main">
         <section
           v-for="role in roles"
           :key="role.field"
@@ -279,28 +291,37 @@ function onDrop(t: DropTarget, e: DragEvent): void {
         >
           <p class="fb__zone-title">
             {{ role.label }}
-            <span v-if="role.required" class="fb__zone-required">*</span>
+            <span v-if="role.required" class="fb__required">*</span>
             <span class="fb__zone-types">{{ role.acceptedTypes.join(' / ') }}</span>
           </p>
-          <div v-if="fieldsOf(role).length" class="fb__chip-list">
-            <div v-for="(f, i) in fieldsOf(role)" :key="`${f.field}_${i}`" class="fb__chip"
+          <div v-if="fieldsOf(role).length" class="fb__chips">
+            <div
+              v-for="(f, i) in fieldsOf(role)"
+              :key="`${f.field}_${i}`"
+              class="fb__chip"
               :class="{ 'fb__chip--missing': isMissing(f.field) }"
-              :title="isMissing(f.field) ? `字段 ${f.field} 不在当前数据中，请重新选择` : undefined">
+              :title="isMissing(f.field) ? `字段 ${f.field} 不在当前数据中，请重新选择` : undefined"
+            >
               <span class="fb__chip-label">{{ labelOf(f.field) }}</span>
               <MSelect
                 v-if="roleIsMetric(role)"
                 :model-value="f.agg"
                 :options="AGG_OPTIONS"
                 size="small"
-                class="fb__chip-op"
+                class="fb__chip-agg"
                 @update:model-value="setAgg(role, i, $event as MetricAgg | 'none')"
               />
-              <button type="button" class="fb__chip-x" aria-label="移除" @click="removeFromRole(role, i)">
+              <button
+                type="button"
+                class="fb__chip-x"
+                aria-label="移除"
+                @click="removeFromRole(role, i)"
+              >
                 <SvgIcon name="x" :px="12" />
               </button>
             </div>
           </div>
-          <p v-else class="fb__zone-placeholder">拖拽字段到此处作为「{{ role.label }}」</p>
+          <p v-else class="text-helper">拖拽字段到此处作为「{{ role.label }}」</p>
         </section>
 
         <!-- 过滤条件 -->
@@ -315,13 +336,13 @@ function onDrop(t: DropTarget, e: DragEvent): void {
             过滤条件
             <span
               v-if="filters.some(f => !f.value.trim())"
-              class="fb__zone-warn"
+              class="fb__filter-hint"
               title="值为空的过滤条件不会生成过滤步骤，填入值后生效"
             >· 有条件未填值，暂不会生效</span>
           </p>
-          <div v-if="filters.length" class="fb__filter-list">
+          <div v-if="filters.length" class="fb__chips">
             <div v-for="(f, i) in filters" :key="i" class="fb__filter-row">
-              <MTag size="small" class="fb__filter-field">{{ labelOf(f.field) }}</MTag>
+              <MTag size="small" class="fb__filter-tag">{{ labelOf(f.field) }}</MTag>
               <MSelect
                 :model-value="f.op"
                 :options="FILTER_OPS"
@@ -337,12 +358,17 @@ function onDrop(t: DropTarget, e: DragEvent): void {
                 :class="{ 'fb__filter-value--empty': !f.value.trim() }"
                 @update:model-value="updateFilter(i, { value: $event as string })"
               />
-              <button type="button" class="fb__chip-x" aria-label="移除过滤" @click="removeFilter(i)">
+              <button
+                type="button"
+                class="fb__chip-x"
+                aria-label="移除过滤"
+                @click="removeFilter(i)"
+              >
                 <SvgIcon name="x" :px="12" />
               </button>
             </div>
           </div>
-          <p v-else class="fb__zone-placeholder">拖拽字段到此处添加过滤条件</p>
+          <p v-else class="text-helper">拖拽字段到此处添加过滤条件</p>
         </section>
 
         <MEmpty
@@ -352,283 +378,277 @@ function onDrop(t: DropTarget, e: DragEvent): void {
         />
 
         <!-- 数据内容：紧跟右侧入参（维度 / 数值 / 系列 / 过滤条件等）之后 -->
-        <div v-if="$slots.default" class="fb__content">
+        <div v-if="$slots.default" class="fb__extra">
           <slot />
         </div>
       </div>
     </div>
-  </div>
+  </MCard>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .fb {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  height: 100%;
-  min-height: 0;
-}
-
-.fb__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.fb__title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.fb__hint {
-  margin: 0;
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-}
-
-.fb__expr {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.fb__expr-text {
   width: 100%;
-  padding: 10px;
-  border: 1px solid var(--m-color-border);
-  border-radius: var(--m-radius-md);
-  background: var(--m-color-surface);
-  color: var(--m-color-text);
-  font-family: var(--m-font-mono, monospace);
-  font-size: 12px;
-  resize: vertical;
-}
+  height: 100%;
 
-.fb__body {
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  align-items: start;
-  gap: 14px;
-  min-height: 0;
-  flex: 1;
-}
+  &__title {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--m-color-text-muted);
+  }
 
-/* 过滤条件：值为空的条件不会生成过滤步骤（buildFilterExpr 跳过），行内给出警示 */
-.fb__zone-warn {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--m-color-warning);
-  text-transform: none;
-  letter-spacing: 0;
-}
+  &__expr {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 
-.fb__filter-value--empty {
-  --m-color-border: var(--m-color-warning);
-}
+  &__expr-input {
+    width: 100%;
+    resize: vertical;
+    border-radius: var(--m-radius-md);
+    border: 1px solid var(--m-color-border);
+    background: var(--m-color-surface);
+    padding: 0.625rem;
+    font-family: var(--m-font-mono, monospace);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--m-color-text);
+  }
 
-/* 字段列表 */
-.fb__fields {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  border: 1px solid var(--m-color-border);
-  border-radius: var(--m-radius-md);
-  background: var(--m-color-surface);
-  overflow: hidden;
-}
+  &__extra {
+    margin-top: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    border-top: 1px dashed var(--m-color-split);
+    padding-top: 0.75rem;
+  }
 
-.fb__fields-head {
-  padding: 10px 12px 6px;
-}
+  &__visual {
+    display: grid;
+    min-height: 0;
+    flex: 1;
+    grid-template-columns: 240px minmax(0, 1fr);
+    align-items: flex-start;
+    gap: 0.875rem;
+  }
 
-.fb__fields-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-text);
-}
+  &__aside {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: var(--m-radius-md);
+    border: 1px solid var(--m-color-border);
+    background: var(--m-color-surface);
+  }
 
-.fb__search {
-  padding: 0 10px 8px;
-  border-bottom: 1px solid var(--m-color-split);
-}
+  &__aside-head {
+    padding: 0.625rem 0.75rem 0.375rem;
+  }
 
-.fb__field-list {
-  flex: 1;
-  overflow: auto;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  &__aside-title {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    color: var(--m-color-text);
+  }
+
+  &__aside-search {
+    border-bottom: 1px solid var(--m-color-split);
+    padding: 0 0.625rem 0.5rem;
+  }
+
+  &__list {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.125rem;
+    overflow: auto;
+    padding: 0.375rem;
+  }
+
+  &__empty {
+    margin: 0.75rem;
+    text-align: center;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--m-color-text-muted);
+  }
+
+  &__main {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow: auto;
+  }
+
+  &__required {
+    color: var(--m-color-danger);
+  }
+
+  &__chips {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  &__filter-row {
+    display: grid;
+    grid-template-columns: auto 96px 1fr 22px;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__filter-tag {
+    flex: none;
+  }
+
+  &__filter-op {
+    width: 6rem;
+  }
+
+  &__filter-hint {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--m-color-warning);
+  }
 }
 
 .fb__field {
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: var(--m-radius-sm);
   cursor: grab;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: var(--m-radius-sm);
+  padding: 0.375rem 0.5rem;
   transition: background-color 0.12s;
-}
 
-.fb__field:hover {
-  background: var(--m-color-fill-light);
-}
+  &:hover {
+    background: var(--m-color-fill-light);
+  }
 
-.fb__field.is-dragging {
-  opacity: 0.5;
+  &.is-dragging {
+    opacity: 0.5;
+  }
 }
 
 .fb__field-icon {
   display: grid;
-  place-items: center;
-  width: 22px;
   height: 22px;
+  width: 22px;
+  flex: none;
+  place-items: center;
   border-radius: var(--m-radius-xs);
   background: var(--m-color-fill-lighter);
   color: var(--m-color-text-muted);
-  flex: none;
+
+  &[data-kind='number'] {
+    background: color-mix(in srgb, var(--m-color-primary) 12%, transparent);
+    color: var(--m-color-primary);
+  }
+
+  &[data-kind='date'] {
+    background: color-mix(in srgb, var(--m-color-info) 12%, transparent);
+    color: var(--m-color-info);
+  }
 }
 
-.fb__field-icon[data-kind='number'] {
-  background: color-mix(in srgb, var(--m-color-primary) 12%, transparent);
-  color: var(--m-color-primary);
-}
-
-.fb__field-icon[data-kind='date'] {
-  background: color-mix(in srgb, var(--m-color-info) 12%, transparent);
-  color: var(--m-color-info);
-}
-
-.fb__field-body {
+.fb__field-info {
   display: flex;
-  flex-direction: column;
   min-width: 0;
   flex: 1;
+  flex-direction: column;
 }
 
 .fb__field-label {
-  font-size: 12.5px;
-  color: var(--m-color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--m-color-text);
 }
 
 .fb__field-key {
-  font-size: 11px;
-  color: var(--m-color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 11px;
+  color: var(--m-color-text-muted);
 }
 
 .fb__field-add {
   display: grid;
+  height: 1.25rem;
+  width: 1.25rem;
+  flex: none;
+  cursor: pointer;
   place-items: center;
-  width: 20px;
-  height: 20px;
+  border-radius: 9999px;
   border: none;
-  border-radius: 50%;
   background: transparent;
   color: var(--m-color-text-muted);
-  cursor: pointer;
-  flex: none;
-}
 
-.fb__field-add:hover {
-  background: color-mix(in srgb, var(--m-color-primary) 14%, transparent);
-  color: var(--m-color-primary);
-}
-
-.fb__empty {
-  margin: 12px;
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-  text-align: center;
-}
-
-/* 入参放置区 */
-.fb__zones {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
-  overflow: auto;
-}
-
-.fb__content {
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--m-color-split);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  &:hover {
+    background: color-mix(in srgb, var(--m-color-primary) 14%, transparent);
+    color: var(--m-color-primary);
+  }
 }
 
 .fb__zone {
-  border: 1.5px dashed var(--m-color-border);
-  border-radius: var(--m-radius-md);
-  background: color-mix(in srgb, var(--m-color-fill-light) 55%, transparent);
-  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
+  border-radius: var(--m-radius-md);
+  border: 1.5px dashed var(--m-color-border);
+  background: color-mix(in srgb, var(--m-color-fill-light) 55%, transparent);
+  padding: 0.625rem 0.75rem;
   transition: border-color 0.12s, background-color 0.12s;
-}
 
-.fb__zone.is-over {
-  border-color: var(--m-color-primary);
-  background: color-mix(in srgb, var(--m-color-primary) 6%, transparent);
+  &.is-over {
+    border-color: var(--m-color-primary);
+    background: color-mix(in srgb, var(--m-color-primary) 6%, transparent);
+  }
 }
 
 .fb__zone-title {
   margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
   display: flex;
   align-items: baseline;
-  gap: 6px;
-}
-
-.fb__zone-required {
-  color: var(--m-color-danger);
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  color: var(--m-color-text-muted);
 }
 
 .fb__zone-types {
-  font-weight: 400;
   font-size: 11px;
+  font-weight: 400;
   color: var(--m-color-text-muted);
 }
 
-.fb__zone-placeholder {
-  margin: 0;
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-}
-
-.fb__chip-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* 过滤条件：空值不会生成过滤步骤，在行内提示。 */
+.fb__filter-value--empty {
+  --m-color-border: var(--m-color-warning);
 }
 
 .fb__chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   align-self: flex-start;
-  padding: 3px 6px 3px 10px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  background: var(--m-color-surface);
+  border-radius: 9999px;
   border: 1px solid var(--m-color-border);
+  background: var(--m-color-surface);
+  padding: 3px 0.375rem 3px 0.625rem;
+  font-size: 12.5px;
   color: var(--m-color-text);
 }
 
@@ -636,53 +656,32 @@ function onDrop(t: DropTarget, e: DragEvent): void {
   font-weight: 500;
 }
 
-/* 已绑字段不在当前数据中（换源 / 改加工后失配） */
+.fb__chip-agg {
+  width: 92px;
+}
+
+/* 已绑字段不在当前数据中（换源 / 改加工后失配）。 */
 .fb__chip--missing {
   border-color: var(--m-color-danger);
   background: color-mix(in srgb, var(--m-color-danger) 8%, var(--m-color-surface));
   color: var(--m-color-danger);
 }
 
-.fb__chip-op {
-  width: 92px;
-}
-
 .fb__chip-x {
   display: grid;
-  place-items: center;
-  width: 18px;
   height: 18px;
+  width: 18px;
+  flex: none;
+  cursor: pointer;
+  place-items: center;
+  border-radius: 9999px;
   border: none;
-  border-radius: 50%;
   background: transparent;
   color: var(--m-color-text-muted);
-  cursor: pointer;
-  flex: none;
-}
 
-.fb__chip-x:hover {
-  background: color-mix(in srgb, var(--m-color-danger) 14%, transparent);
-  color: var(--m-color-danger);
-}
-
-.fb__filter-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.fb__filter-row {
-  display: grid;
-  grid-template-columns: auto 96px 1fr 22px;
-  align-items: center;
-  gap: 8px;
-}
-
-.fb__filter-field {
-  flex: none;
-}
-
-.fb__filter-op {
-  width: 96px;
+  &:hover {
+    background: color-mix(in srgb, var(--m-color-danger) 14%, transparent);
+    color: var(--m-color-danger);
+  }
 }
 </style>

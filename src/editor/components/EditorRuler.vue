@@ -74,7 +74,7 @@ const vMarks = computed(() => {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .ruler {
   position: absolute;
   inset: 0;

@@ -58,7 +58,7 @@ function onSelect(item: { key?: string }) {
   </aside>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .app-sidebar {
   width: 76px;
   height: 100vh;
@@ -84,11 +84,11 @@ function onSelect(item: { key?: string }) {
   align-items: center;
   justify-content: center;
   border-radius: var(--m-radius-sm);
-}
 
-.sidebar-logo:focus-visible {
-  outline: 2px solid var(--m-color-primary);
-  outline-offset: 2px;
+  &:focus-visible {
+    outline: 2px solid var(--m-color-primary);
+    outline-offset: 2px;
+  }
 }
 
 .sidebar-nav {
@@ -96,83 +96,87 @@ function onSelect(item: { key?: string }) {
   width: 100%;
   padding: 0 16px;
   box-sizing: border-box;
-}
 
-/* Keep the current rail look on top of MMenu (morya-ui ≥ 0.5.5).
-   The library now renders collapsed items as grid with an inline
-   `padding-inline-start: collapsedWidth/2 - 10` for icon centering —
-   we keep that mechanism and only adjust geometry / colors. */
-.sidebar-nav :deep(.m-menu) {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 0;
-}
+  /* Keep the current rail look on top of MMenu (morya-ui ≥ 0.5.5).
+     The library now renders collapsed items as grid with an inline
+     `padding-inline-start: collapsedWidth/2 - 10` for icon centering —
+     we keep that mechanism and only adjust geometry / colors. */
+  :deep(.m-menu) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0;
+  }
 
-.sidebar-nav :deep(.m-menu__item) {
-  width: 44px;
-  height: 44px;
-  margin: 0 auto;
-  padding: 0;
-}
+  :deep(.m-menu__item) {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto;
+    padding: 0;
+  }
 
-.sidebar-nav :deep(.m-menu__item-content) {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  cursor: pointer;
-  color: var(--m-color-text-muted);
-  transition:
-    background-color 0.2s,
-    color 0.2s;
-}
+  :deep(.m-menu__item-content) {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    cursor: pointer;
+    color: var(--m-color-text-muted);
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+  }
 
-/* Library-inline padding-inline-start would double-center the icon;
-   zero it out and let grid place the icon dead-center instead. */
-.sidebar-nav :deep(.m-menu--collapsed .m-menu__item-content) {
-  padding-inline-start: 0 !important;
-  grid-template-columns: 1fr;
-  justify-items: center;
-}
+  /* Library-inline padding-inline-start would double-center the icon;
+     zero it out and let grid place the icon dead-center instead. */
+  :deep(.m-menu--collapsed .m-menu__item-content) {
+    padding-inline-start: 0 !important;
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
 
-/* Make the library-painted background surface fill the full 44×44 rail slot,
-   so hover / focus / active / selected all render with identical geometry. */
-.sidebar-nav :deep(.m-menu__item-content::before) {
-  inset: 0;
-  border-radius: 12px;
-}
+  /* Make the library-painted background surface fill the full 44×44 rail slot,
+     so hover / focus / active / selected all render with identical geometry. */
+  :deep(.m-menu__item-content::before) {
+    inset: 0;
+    border-radius: 12px;
+  }
 
-.sidebar-nav :deep(.m-menu__item-content:hover:not(.m-menu__item-content--disabled)) {
-  color: var(--m-color-text);
-}
-.sidebar-nav :deep(.m-menu__item-content:hover:not(.m-menu__item-content--disabled)::before),
-.sidebar-nav :deep(.m-menu__item-content--active:not(.m-menu__item-content--disabled)::before) {
-  background: var(--m-color-split) !important;
-}
+  :deep(.m-menu__item-content:hover:not(.m-menu__item-content--disabled)) {
+    color: var(--m-color-text);
+  }
 
-.sidebar-nav :deep(.m-menu__item-content:focus-visible) {
-  outline: 2px solid var(--m-color-primary);
-  outline-offset: 2px;
-}
+  :deep(.m-menu__item-content:hover:not(.m-menu__item-content--disabled)::before),
+  :deep(.m-menu__item-content--active:not(.m-menu__item-content--disabled)::before) {
+    background: var(--m-color-split) !important;
+  }
 
-.sidebar-nav :deep(.m-menu__item-content--selected) {
-  color: var(--m-color-surface);
-}
-.sidebar-nav :deep(.m-menu__item-content--selected::before) {
-  background: var(--m-color-text) !important;
-}
-.sidebar-nav :deep(.m-menu__item-content--selected:hover:not(.m-menu__item-content--disabled)::before) {
-  /* Keep dark bg on selected hover, just slightly lighter for feedback */
-  background: color-mix(in srgb, var(--m-color-text) 85%, var(--m-color-surface)) !important;
-}
-.sidebar-nav :deep(.m-menu__item-content--selected .m-menu__icon) {
-  color: var(--m-color-surface);
-}
+  :deep(.m-menu__item-content:focus-visible) {
+    outline: 2px solid var(--m-color-primary);
+    outline-offset: 2px;
+  }
 
-/* Collapsed rail: kill the icon's inline-end margin (label is hidden),
-   otherwise the icon gets pushed off-center. */
-.sidebar-nav :deep(.m-menu--collapsed .m-menu__icon) {
-  margin: 0;
-  margin-inline-end: 0;
+  :deep(.m-menu__item-content--selected) {
+    color: var(--m-color-surface);
+  }
+
+  :deep(.m-menu__item-content--selected::before) {
+    background: var(--m-color-text) !important;
+  }
+
+  :deep(.m-menu__item-content--selected:hover:not(.m-menu__item-content--disabled)::before) {
+    /* Keep dark bg on selected hover, just slightly lighter for feedback */
+    background: color-mix(in srgb, var(--m-color-text) 85%, var(--m-color-surface)) !important;
+  }
+
+  :deep(.m-menu__item-content--selected .m-menu__icon) {
+    color: var(--m-color-surface);
+  }
+
+  /* Collapsed rail: kill the icon's inline-end margin (label is hidden),
+     otherwise the icon gets pushed off-center. */
+  :deep(.m-menu--collapsed .m-menu__icon) {
+    margin: 0;
+    margin-inline-end: 0;
+  }
 }
 </style>

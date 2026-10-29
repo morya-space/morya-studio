@@ -19,27 +19,27 @@ const label = computed(() => (props.text ?? 'Morya').trim() || 'Morya')
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .watermark {
   position: absolute;
   inset: 0;
   z-index: 900;
-  pointer-events: none;
-  overflow: hidden;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-auto-rows: 1fr;
   align-items: center;
   justify-items: center;
-}
+  overflow: hidden;
+  pointer-events: none;
 
-.watermark__item {
-  transform: rotate(-22deg);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
-  opacity: 0.12;
-  white-space: nowrap;
-  user-select: none;
+  &__item {
+    transform: rotate(-22deg);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m-color-text-muted);
+    opacity: 0.12;
+    white-space: nowrap;
+    user-select: none;
+  }
 }
 </style>

@@ -118,7 +118,7 @@ onBeforeUnmount(() => {
   <div ref="container" class="earth-card" />
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .earth-card {
   height: 100%;
   width: 100%;

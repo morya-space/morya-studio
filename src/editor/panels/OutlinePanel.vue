@@ -173,7 +173,7 @@ function onDragEnd() {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .outline-panel {
   display: flex;
   flex-direction: column;
@@ -190,13 +190,13 @@ function onDragEnd() {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-}
 
-.outline-actions :deep(.m-button) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
+  :deep(.m-button) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
 }
 
 .panel-empty {
@@ -223,24 +223,28 @@ function onDragEnd() {
   border-radius: var(--m-radius-sm);
   cursor: pointer;
   color: var(--m-color-text);
-}
 
-.outline-item.muted {
-  opacity: 0.55;
-}
+  &.muted {
+    opacity: 0.55;
+  }
 
-.outline-item:hover {
-  background: var(--m-color-bg-hover, color-mix(in srgb, var(--m-color-primary) 6%, transparent));
-}
+  &:hover {
+    background: var(--m-color-bg-hover, color-mix(in srgb, var(--m-color-primary) 6%, transparent));
+  }
 
-.outline-item.active {
-  background: color-mix(in srgb, var(--m-color-primary) 10%, transparent);
-  color: var(--m-color-primary);
-}
+  &.active {
+    background: color-mix(in srgb, var(--m-color-primary) 10%, transparent);
+    color: var(--m-color-primary);
+  }
 
-.outline-item.drag-over {
-  outline: 2px dashed var(--m-color-primary);
-  outline-offset: -2px;
+  &.drag-over {
+    outline: 2px dashed var(--m-color-primary);
+    outline-offset: -2px;
+  }
+
+  &:hover .outline-grip {
+    opacity: 1;
+  }
 }
 
 .outline-grip {
@@ -248,10 +252,6 @@ function onDragEnd() {
   color: var(--m-color-text-muted);
   opacity: 0;
   cursor: grab;
-}
-
-.outline-item:hover .outline-grip {
-  opacity: 1;
 }
 
 .outline-label {
@@ -292,13 +292,13 @@ function onDragEnd() {
   background: transparent;
   color: var(--m-color-text-muted);
   cursor: pointer;
-}
 
-.outline-icon-btn:hover {
-  background: color-mix(in srgb, var(--m-color-text-muted) 12%, transparent);
-}
+  &:hover {
+    background: color-mix(in srgb, var(--m-color-text-muted) 12%, transparent);
+  }
 
-.outline-icon-btn.on {
-  color: var(--m-color-primary);
+  &.on {
+    color: var(--m-color-primary);
+  }
 }
 </style>

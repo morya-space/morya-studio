@@ -91,12 +91,16 @@ async function onSubmit(payload: { valid: boolean }) {
   </MConfigProvider>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .login-shell {
   display: grid;
   grid-template-columns: minmax(16rem, 0.95fr) minmax(20rem, 1.05fr);
   min-height: 100vh;
   background: var(--m-color-page-bg);
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .login-brand {
@@ -107,30 +111,34 @@ async function onSubmit(payload: { valid: boolean }) {
   padding: clamp(2rem, 6vw, 4.5rem);
   background: linear-gradient(135deg, var(--m-color-primary) 0%, var(--m-color-accent-blue) 100%);
   color: var(--m-color-surface);
-}
 
-.login-brand__mark {
-  margin: 0;
-  font-size: 13px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--m-color-surface) 78%, transparent);
-}
+  &__mark {
+    margin: 0;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--m-color-surface) 78%, transparent);
+  }
 
-.login-brand__title {
-  margin: 0;
-  font-size: clamp(1.75rem, 3vw, 2.25rem);
-  line-height: 1.2;
-  font-weight: 700;
-  color: var(--m-color-surface);
-}
+  &__title {
+    margin: 0;
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--m-color-surface);
+  }
 
-.login-brand__lead {
-  margin: 0;
-  max-width: 28rem;
-  color: color-mix(in srgb, var(--m-color-surface) 80%, transparent);
-  font-size: 15px;
-  line-height: 1.5;
+  &__lead {
+    margin: 0;
+    max-width: 28rem;
+    color: color-mix(in srgb, var(--m-color-surface) 80%, transparent);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 720px) {
+    min-height: 16rem;
+  }
 }
 
 .login-main {
@@ -149,20 +157,21 @@ async function onSubmit(payload: { valid: boolean }) {
   border-radius: var(--m-radius-lg);
   padding: 28px;
   box-shadow: var(--m-shadow-card);
+
+  &__top {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__header h2 {
+    margin: 0 0 4px;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--m-color-text);
+  }
 }
 
-.login-panel__top {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.login-panel__header h2 {
-  margin: 0 0 4px;
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--m-color-text);
-}
-
+/* 跨根逗号组保持平铺：嵌套会给 .login-hint 错误加上 .login-panel 前缀 */
 .login-panel__header p,
 .login-hint {
   margin: 0;
@@ -185,20 +194,10 @@ async function onSubmit(payload: { valid: boolean }) {
   text-align: center;
   font-size: 14px;
   color: var(--m-color-text-muted);
-}
 
-.login-link a {
-  color: var(--m-color-primary);
-  text-decoration: none;
-}
-
-@media (max-width: 720px) {
-  .login-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .login-brand {
-    min-height: 16rem;
+  a {
+    color: var(--m-color-primary);
+    text-decoration: none;
   }
 }
 </style>

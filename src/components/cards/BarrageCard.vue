@@ -28,22 +28,22 @@ const style = computed(() => {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .barrage-card {
   height: 100%;
   display: flex;
   align-items: center;
   overflow: hidden;
   white-space: nowrap;
-}
 
-.barrage-card__track {
-  display: inline-block;
-  padding-left: 100%;
-  will-change: transform;
-  animation-name: barrage-move;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+  &__track {
+    display: inline-block;
+    padding-left: 100%;
+    will-change: transform;
+    animation-name: barrage-move;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
 }
 
 @keyframes barrage-move {

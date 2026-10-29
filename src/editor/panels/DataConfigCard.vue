@@ -96,117 +96,124 @@ const emit = defineEmits<{ (e: 'edit'): void }>()
 </script>
 
 <template>
-  <button v-if="supportsDataConfig" type="button" class="data-card" aria-label="编辑数据配置" @click="emit('edit')">
+  <button
+    v-if="supportsDataConfig"
+    type="button"
+    class="data-card"
+    aria-label="编辑数据配置"
+    @click="emit('edit')"
+  >
     <div class="data-card__head">
       <span class="data-card__icon"><SvgIcon name="database" :px="16" /></span>
       <span class="data-card__title">数据配置</span>
-      <span class="data-card__tag">{{ SOURCE_LABEL[mode] }}</span>
+      <span class="data-card__mode">{{ SOURCE_LABEL[mode] }}</span>
       <span class="data-card__arrow"><SvgIcon name="arrow-up-right" :px="14" /></span>
     </div>
     <p class="data-card__primary">{{ primaryLine }}</p>
     <div v-if="chips.length" class="data-card__chips">
       <span v-for="c in chips" :key="c" class="data-card__chip">{{ c }}</span>
     </div>
-    <span class="data-card__action">编辑配置</span>
+    <span class="data-card__edit">编辑配置</span>
   </button>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .data-card {
   position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  padding: 14px;
-  border: 1px solid var(--m-color-border);
-  border-radius: var(--m-radius-lg, var(--m-radius-md));
-  background: var(--m-color-surface);
   width: 100%;
   cursor: pointer;
-  text-align: left;
-  font: inherit;
-  color: inherit;
   appearance: none;
-  -webkit-appearance: none;
-  transition: border-color var(--m-motion-fast, 150ms) var(--m-motion-ease, ease), box-shadow var(--m-motion-fast, 150ms) var(--m-motion-ease, ease), background-color var(--m-motion-fast, 150ms) var(--m-motion-ease, ease);
-}
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.375rem;
+  border-radius: var(--m-radius-lg, var(--m-radius-md));
+  border: 1px solid var(--m-color-border);
+  background: var(--m-color-surface);
+  padding: 0.875rem;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  transition-property: border-color, box-shadow, background-color;
+  transition-duration: var(--m-motion-fast, 150ms);
+  transition-timing-function: var(--m-motion-ease, ease);
 
-.data-card:hover {
-  border-color: var(--m-color-primary);
-  box-shadow: var(--m-shadow-card);
-  background: color-mix(in srgb, var(--m-color-primary) 4%, var(--m-color-surface));
-}
+  &:hover {
+    border-color: var(--m-color-primary);
+    box-shadow: var(--m-shadow-card);
+    background: color-mix(in srgb, var(--m-color-primary) 4%, var(--m-color-surface));
+  }
 
-.data-card:focus-visible {
-  outline: none;
-  box-shadow: var(--m-focus-shadow);
-}
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--m-focus-shadow);
+  }
 
-.data-card__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
 
-.data-card__icon {
-  display: inline-flex;
-  padding: 6px;
-  border-radius: var(--m-radius-sm);
-  background: color-mix(in srgb, var(--m-color-primary) 12%, transparent);
-  color: var(--m-color-primary);
-}
+  &__icon {
+    display: inline-flex;
+    border-radius: var(--m-radius-sm);
+    background: color-mix(in srgb, var(--m-color-primary) 12%, transparent);
+    padding: 0.375rem;
+    color: var(--m-color-primary);
+  }
 
-.data-card__title {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--m-color-text);
-}
+  &__title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--m-color-text);
+  }
 
-.data-card__tag {
-  margin-left: 2px;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--m-color-primary) 10%, transparent);
-  color: var(--m-color-primary);
-  font-size: 11px;
-  font-weight: 600;
-}
+  &__mode {
+    margin-left: 0.125rem;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--m-color-primary) 10%, transparent);
+    padding: 1px 0.5rem;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--m-color-primary);
+  }
 
-.data-card__arrow {
-  margin-left: auto;
-  color: var(--m-color-text-muted);
-}
+  &__arrow {
+    margin-left: auto;
+    color: var(--m-color-text-muted);
+  }
 
-.data-card__primary {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--m-color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
+  &__primary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--m-color-text);
+  }
 
-.data-card__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
 
-.data-card__chip {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--m-color-fill-light);
-  color: var(--m-color-text-muted);
-  font-size: 11px;
-}
+  &__chip {
+    border-radius: 9999px;
+    background: var(--m-color-fill-light);
+    padding: 1px 0.5rem;
+    font-size: 11px;
+    color: var(--m-color-text-muted);
+  }
 
-.data-card__action {
-  align-self: flex-start;
-  margin-top: 2px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-primary);
+  &__edit {
+    margin-top: 0.125rem;
+    align-self: flex-start;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    color: var(--m-color-primary);
+  }
 }
 </style>

@@ -54,7 +54,7 @@ function onCta() {
   </CardShell>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .banner-card {
   display: flex;
   align-items: center;
@@ -64,27 +64,27 @@ function onCta() {
   padding: 24px 28px;
   box-shadow: var(--m-shadow-banner);
   color: var(--m-color-text-on-primary, #fff);
-}
 
-.banner-card__content {
-  min-width: 0;
-}
+  &__content {
+    min-width: 0;
+  }
 
-.banner-card__title {
-  font-size: 17px;
-  font-weight: 700;
-  margin: 0;
-  color: inherit;
-}
+  &__title {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0;
+    color: inherit;
+  }
 
-.banner-card__desc {
-  font-size: 13px;
-  margin: 6px 0 0;
-  opacity: 0.85;
-  color: inherit;
-}
+  &__desc {
+    font-size: 13px;
+    margin: 6px 0 0;
+    opacity: 0.85;
+    color: inherit;
+  }
 
-.banner-card__cta {
-  flex-shrink: 0;
+  &__cta {
+    flex-shrink: 0;
+  }
 }
 </style>

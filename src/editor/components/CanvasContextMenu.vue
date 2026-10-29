@@ -165,7 +165,7 @@ onBeforeUnmount(() => {
   />
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .canvas-context-menu {
   position: fixed;
   z-index: 3000;
@@ -175,33 +175,33 @@ onBeforeUnmount(() => {
   border: 1px solid var(--m-color-border);
   border-radius: var(--m-radius-md);
   box-shadow: var(--m-shadow-card-hover);
-}
 
-.canvas-context-menu__item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 10px;
-  border: none;
-  border-radius: var(--m-radius-sm);
-  background: transparent;
-  color: var(--m-color-text);
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-}
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    border: none;
+    border-radius: var(--m-radius-sm);
+    background: transparent;
+    color: var(--m-color-text);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
 
-.canvas-context-menu__item:hover {
-  background: color-mix(in srgb, var(--m-color-primary) 8%, transparent);
-}
+    &:hover {
+      background: color-mix(in srgb, var(--m-color-primary) 8%, transparent);
+    }
 
-.canvas-context-menu__item.is-danger {
-  color: var(--m-color-danger);
-}
+    &.is-danger {
+      color: var(--m-color-danger);
+    }
 
-.canvas-context-menu__item.is-disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+    &.is-disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
 }
 </style>

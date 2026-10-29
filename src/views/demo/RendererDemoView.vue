@@ -168,11 +168,11 @@ function onCardAction(cardId: string, action: { label: string; action: string })
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .renderer-demo {
-  padding: 24px 32px;
-  background: var(--m-color-page-bg);
   height: 100%;
   overflow-y: auto;
+  background: var(--m-color-page-bg);
+  padding: 1.5rem 2rem;
 }
 </style>

@@ -530,7 +530,7 @@ function onInlineSave() {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .editor-canvas {
   flex: 1;
   min-width: 0;
@@ -547,14 +547,14 @@ function onInlineSave() {
   background-image: radial-gradient(circle, color-mix(in srgb, var(--m-color-text-muted) 18%, transparent) 1px, transparent 1px);
   background-size: 20px 20px;
   overflow: hidden;
-}
 
-.canvas-area.is-pan-ready {
-  cursor: grab;
-}
+  &.is-pan-ready {
+    cursor: grab;
+  }
 
-.canvas-area.is-panning {
-  cursor: grabbing;
+  &.is-panning {
+    cursor: grabbing;
+  }
 }
 
 .canvas-content {

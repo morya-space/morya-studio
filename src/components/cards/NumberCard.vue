@@ -62,18 +62,18 @@ const style = computed(() => ({
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .number-card {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
 
-.number-card__value {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-  line-height: 1.1;
+  &__value {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
 }
 </style>

@@ -15,7 +15,7 @@ import SvgIcon from '../../components/common/SvgIcon.vue'
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .no-data-placeholder {
   height: 100%;
   min-height: 72px;

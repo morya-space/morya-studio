@@ -28,7 +28,7 @@ const style = computed(() => ({
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .image-card {
   height: 100%;
   width: 100%;
@@ -36,25 +36,25 @@ const style = computed(() => ({
   align-items: center;
   justify-content: center;
   overflow: hidden;
-}
 
-.image-card__img {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
+  &__img {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
 
-.image-card__empty {
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1.5px dashed var(--m-color-border);
-  border-radius: var(--m-radius-md);
-  color: var(--m-color-text-muted);
-  font-size: 12px;
+  &__empty {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1.5px dashed var(--m-color-border);
+    border-radius: var(--m-radius-md);
+    color: var(--m-color-text-muted);
+    font-size: 12px;
+  }
 }
 </style>

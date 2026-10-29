@@ -54,23 +54,23 @@ const hoursDeg = computed(() => (date.value.getHours() % 12) * 30 + date.value.g
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .clock-card {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
 
-.clock-card__digital {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-}
+  &__digital {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
 
-.clock-card__analog {
-  height: 90%;
-  max-height: 100%;
-  aspect-ratio: 1;
+  &__analog {
+    height: 90%;
+    max-height: 100%;
+    aspect-ratio: 1;
+  }
 }
 </style>

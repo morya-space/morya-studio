@@ -28,17 +28,17 @@ watch(options, opts => {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .form-tabs-card {
   height: 100%;
   display: flex;
   align-items: center;
-}
 
-.form-tabs-card__empty {
-  width: 100%;
-  text-align: center;
-  color: var(--m-color-text-muted);
-  font-size: 12px;
+  &__empty {
+    width: 100%;
+    text-align: center;
+    color: var(--m-color-text-muted);
+    font-size: 12px;
+  }
 }
 </style>

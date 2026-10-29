@@ -67,38 +67,39 @@ const trend = computed(() => {
   </CardShell>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .stat-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  &__label {
+    font-size: 13px;
+    color: var(--m-color-text-muted);
+    margin: 0;
+  }
+
+  &__value-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--m-color-text);
+  }
+
+  &__trend {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: var(--m-radius-full, 999px);
+  }
 }
 
-.stat-card__label {
-  font-size: 13px;
-  color: var(--m-color-text-muted);
-  margin: 0;
-}
-
-.stat-card__value-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.stat-card__value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--m-color-text);
-}
-
-.stat-card__trend {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 10px;
-  border-radius: var(--m-radius-full, 999px);
-}
-
+/* 独立根类：与 .stat-card__trend 组合使用（trend--up / trend--down 挂在同一元素） */
 .trend--up {
   color: var(--m-color-success);
   background: color-mix(in srgb, var(--m-color-success) 12%, transparent);

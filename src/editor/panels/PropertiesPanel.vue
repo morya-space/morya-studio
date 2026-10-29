@@ -48,6 +48,7 @@ function onFieldChange(field: EditorFieldSchema, value: unknown) {
 }
 
 // 数据配置弹窗（草稿模式：编辑只写草稿，点「完成」才提交生效）
+const dataDialogFullscreen = ref(true)
 const dataDialog = ref(false)
 const draft = ref<DataConfigDraft | null>(null)
 const dataPanelRef = ref<{ validate: () => string | null } | null>(null)
@@ -101,15 +102,15 @@ function onDataDialogHide(): void {
 </script>
 
 <template>
-  <div v-if="card" class="properties-panel">
+  <div v-if="card" class="pp">
     <template v-if="mode === 'data' && supportsDataConfig">
-      <p class="properties-panel__section">数据</p>
-      <p class="properties-panel__hint">配置数据源、转换规则和字段映射。</p>
+      <p class="section-title">数据</p>
+      <p class="pp__hint">配置数据源、转换规则和字段映射。</p>
       <DataConfigCard @edit="openDataDialog" />
     </template>
 
     <template v-else-if="mode === 'content'">
-      <p class="properties-panel__section">内容</p>
+      <p class="pp__section">内容</p>
       <MForm>
         <MFormItem label="标题">
           <MInput
@@ -132,13 +133,14 @@ function onDataDialogHide(): void {
           />
         </MFormItem>
       </MForm>
-      <p v-if="!editorSchema.length" class="properties-panel__empty">该组件无可配置内容</p>
+      <p v-if="!editorSchema.length" class="pp__empty">该组件无可配置内容</p>
     </template>
 
     <MDialog
       v-model="dataDialog"
       class="data-dialog"
       maximizable
+      v-model:fullscreen="dataDialogFullscreen"
       title="数据配置"
       width="min(96vw, 100rem)"
       negative-text="取消"
@@ -150,6 +152,30 @@ function onDataDialogHide(): void {
     </MDialog>
   </div>
 </template>
+
+<style lang="scss" scoped>
+.pp {
+  display: flex;
+  flex-direction: column;
+
+  &__hint {
+    margin: -0.125rem 0 0.75rem;
+    line-height: 1.5;
+  }
+
+  &__section {
+    margin: 1rem 0 0.625rem;
+  }
+
+  &__empty {
+    padding: 1.25rem 0;
+    text-align: center;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--m-color-text-muted);
+  }
+}
+</style>
 
 <!--
   非 scoped：MDialog Teleport 到 body，scoped 选择器无法命中面板内部。
@@ -177,37 +203,4 @@ function onDataDialogHide(): void {
     overflow: hidden;
   }
 }
-</style>
-
-<style scoped>
-.properties-panel {
-  display: flex;
-  flex-direction: column;
-}
-
-.properties-panel__empty {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-  text-align: center;
-  padding: var(--m-space-5) 0;
-}
-
-.properties-panel__section {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: var(--m-space-4) 0 10px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--m-color-split);
-}
-
-.properties-panel__hint {
-  margin: -2px 0 var(--m-space-3);
-  color: var(--m-color-text-muted);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
 </style>

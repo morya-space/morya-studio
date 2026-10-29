@@ -306,7 +306,7 @@ function onToggleHide(e: MouseEvent) {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .free-card {
   position: absolute;
   background: var(--m-color-surface);
@@ -315,35 +315,105 @@ function onToggleHide(e: MouseEvent) {
   cursor: move;
   user-select: none;
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
-}
 
-.free-card:hover {
-  border-color: color-mix(in srgb, var(--m-select-color, var(--m-color-primary)) 60%, transparent);
-  box-shadow: var(--m-shadow-card);
-}
+  &:hover {
+    border-color: color-mix(in srgb, var(--m-select-color, var(--m-color-primary)) 60%, transparent);
+    box-shadow: var(--m-shadow-card);
+  }
 
-.free-card.selected {
-  border-color: var(--m-select-color, var(--m-color-primary));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--m-select-color, var(--m-color-primary)) 22%, transparent);
-}
+  &.selected {
+    border-color: var(--m-select-color, var(--m-color-primary));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--m-select-color, var(--m-color-primary)) 22%, transparent);
+  }
 
-.free-card.locked {
-  cursor: default;
-  border-style: dashed;
-}
+  &.locked {
+    cursor: default;
+    border-style: dashed;
+  }
 
-.free-card.hidden {
-  opacity: 0.35;
-  border-style: dashed;
-  pointer-events: none;
-}
+  &.hidden {
+    opacity: 0.35;
+    border-style: dashed;
+    pointer-events: none;
+  }
 
-.free-card__content {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  border-radius: inherit;
-  pointer-events: none;
+  &__content {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* 悬浮工具栏 */
+  &__toolbar {
+    position: absolute;
+    top: -34px;
+    left: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px 6px;
+    background: var(--m-select-color, var(--m-color-primary));
+    border-radius: var(--m-radius-sm);
+    box-shadow: var(--m-shadow-card);
+    z-index: 8;
+
+    button {
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: var(--m-radius-xs, 4px);
+      background: transparent;
+      color: var(--m-color-surface);
+      cursor: pointer;
+
+      &:hover {
+        background: color-mix(in srgb, var(--m-color-surface) 20%, transparent);
+      }
+
+      &.danger:hover {
+        background: var(--m-color-danger);
+      }
+    }
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--m-color-surface);
+    padding: 0 4px;
+  }
+
+  &__badge {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--m-select-color, var(--m-color-primary)) 14%, transparent);
+    color: var(--m-select-color, var(--m-color-primary));
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    z-index: 6;
+    pointer-events: none;
+  }
+
+  &__flag {
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    display: inline-flex;
+    padding: 2px;
+    border-radius: var(--m-radius-xs, 4px);
+    background: color-mix(in srgb, var(--m-color-text-muted) 20%, transparent);
+    color: var(--m-color-text-muted);
+    z-index: 6;
+    pointer-events: none;
+  }
 }
 
 /* 缩放手柄 */
@@ -356,84 +426,14 @@ function onToggleHide(e: MouseEvent) {
   border-radius: 2px;
   display: block;
   z-index: 6;
-}
 
-.handle--nw { left: -5px; top: -5px; cursor: nwse-resize; }
-.handle--n { left: 50%; top: -5px; margin-left: -5px; cursor: ns-resize; }
-.handle--ne { right: -5px; top: -5px; cursor: nesw-resize; }
-.handle--e { right: -5px; top: 50%; margin-top: -5px; cursor: ew-resize; }
-.handle--se { right: -5px; bottom: -5px; cursor: nwse-resize; }
-.handle--s { left: 50%; bottom: -5px; margin-left: -5px; cursor: ns-resize; }
-.handle--sw { left: -5px; bottom: -5px; cursor: nesw-resize; }
-.handle--w { left: -5px; top: 50%; margin-top: -5px; cursor: ew-resize; }
-
-/* 悬浮工具栏 */
-.free-card__toolbar {
-  position: absolute;
-  top: -34px;
-  left: 0;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 3px 6px;
-  background: var(--m-select-color, var(--m-color-primary));
-  border-radius: var(--m-radius-sm);
-  box-shadow: var(--m-shadow-card);
-  z-index: 8;
-}
-
-.free-card__toolbar button {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border: none;
-  border-radius: var(--m-radius-xs, 4px);
-  background: transparent;
-  color: var(--m-color-surface);
-  cursor: pointer;
-}
-
-.free-card__toolbar button:hover {
-  background: color-mix(in srgb, var(--m-color-surface) 20%, transparent);
-}
-
-.free-card__toolbar button.danger:hover {
-  background: var(--m-color-danger);
-}
-
-.free-card__label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--m-color-surface);
-  padding: 0 4px;
-}
-
-.free-card__badge {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--m-select-color, var(--m-color-primary)) 14%, transparent);
-  color: var(--m-select-color, var(--m-color-primary));
-  font-size: 11px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  z-index: 6;
-  pointer-events: none;
-}
-
-.free-card__flag {
-  position: absolute;
-  left: 6px;
-  top: 6px;
-  display: inline-flex;
-  padding: 2px;
-  border-radius: var(--m-radius-xs, 4px);
-  background: color-mix(in srgb, var(--m-color-text-muted) 20%, transparent);
-  color: var(--m-color-text-muted);
-  z-index: 6;
-  pointer-events: none;
+  &--nw { left: -5px; top: -5px; cursor: nwse-resize; }
+  &--n { left: 50%; top: -5px; margin-left: -5px; cursor: ns-resize; }
+  &--ne { right: -5px; top: -5px; cursor: nesw-resize; }
+  &--e { right: -5px; top: 50%; margin-top: -5px; cursor: ew-resize; }
+  &--se { right: -5px; bottom: -5px; cursor: nwse-resize; }
+  &--s { left: 50%; bottom: -5px; margin-left: -5px; cursor: ns-resize; }
+  &--sw { left: -5px; bottom: -5px; cursor: nesw-resize; }
+  &--w { left: -5px; top: 50%; margin-top: -5px; cursor: ew-resize; }
 }
 </style>

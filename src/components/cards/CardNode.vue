@@ -51,25 +51,25 @@ const contentClass = computed(() => (props.card.preview?.overflowHidden ? 'card-
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .card-node {
   height: 100%;
-}
 
-.card-node__inner {
-  height: 100%;
-}
+  &__inner {
+    height: 100%;
 
-.card-node__inner--clip {
-  overflow: hidden;
-}
+    &--clip {
+      overflow: hidden;
+    }
+  }
 
-.card-node__unknown {
-  padding: 24px;
-  background: var(--m-color-surface);
-  border-radius: var(--m-radius-lg);
-  color: var(--m-color-text-muted);
-  font-size: 13px;
-  text-align: center;
+  &__unknown {
+    padding: 24px;
+    background: var(--m-color-surface);
+    border-radius: var(--m-radius-lg);
+    color: var(--m-color-text-muted);
+    font-size: 13px;
+    text-align: center;
+  }
 }
 </style>

@@ -87,54 +87,54 @@ function goHome() {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .public-viewer {
   min-height: 100%;
   background: var(--m-color-page-bg);
-}
 
-.public-viewer__header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 24px;
-  background: var(--m-color-surface);
-  border-bottom: 1px solid var(--m-color-border);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
+  &__header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--m-color-border);
+    background: var(--m-color-surface);
+    padding: 0.75rem 1.5rem;
+  }
 
-.public-viewer__brand {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--m-color-primary);
-}
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--m-color-primary);
+  }
 
-.public-viewer__title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--m-color-text);
-  margin: 0;
-}
+  &__title {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 700;
+    color: var(--m-color-text);
+  }
 
-.public-viewer__spacer {
-  flex: 1;
-}
+  &__spacer {
+    flex: 1;
+  }
 
-.public-viewer__body {
-  padding: 24px 32px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
+  &__body {
+    margin-inline: auto;
+    max-width: 1400px;
+    padding: 1.5rem 2rem;
+  }
 
-.public-viewer__state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
+  &__state {
+    display: flex;
+    min-height: 60vh;
+    align-items: center;
+    justify-content: center;
+  }
 }
 </style>

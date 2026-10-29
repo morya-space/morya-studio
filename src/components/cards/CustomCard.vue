@@ -35,22 +35,22 @@ const propsJson = computed(() =>
   </CardShell>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .custom-card {
   font-size: 14px;
   line-height: 1.6;
   color: var(--m-color-text);
   word-break: break-word;
-}
 
-.custom-card__json {
-  margin: 0;
-  padding: 12px;
-  border-radius: var(--m-radius-sm);
-  background: var(--m-color-fill-light);
-  font-family: var(--m-font-mono, monospace);
-  font-size: 12px;
-  color: var(--m-color-text);
-  overflow: auto;
+  &__json {
+    margin: 0;
+    padding: 12px;
+    border-radius: var(--m-radius-sm);
+    background: var(--m-color-fill-light);
+    font-family: var(--m-font-mono, monospace);
+    font-size: 12px;
+    color: var(--m-color-text);
+    overflow: auto;
+  }
 }
 </style>

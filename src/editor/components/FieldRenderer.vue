@@ -51,7 +51,7 @@ const selectOptions = computed(() => {
   <p v-if="dataFieldHint" class="field-renderer__hint">{{ dataFieldHint }}</p>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .field-renderer__hint {
   margin: var(--m-space-1) 0 0;
   color: var(--m-color-text-muted);

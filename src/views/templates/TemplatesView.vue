@@ -178,7 +178,7 @@ function onDeleteCustom(tpl: PanelTemplate) {
   </WorkspacePage>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .templates__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -194,48 +194,48 @@ function onDeleteCustom(tpl: PanelTemplate) {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
 
-.template-card__thumb {
-  height: 110px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--m-radius-md);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--m-color-primary) 12%, transparent), color-mix(in srgb, var(--m-color-accent-blue) 12%, transparent));
-  color: var(--m-color-primary);
-  margin-bottom: 8px;
-}
+  &__thumb {
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--m-radius-md);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--m-color-primary) 12%, transparent), color-mix(in srgb, var(--m-color-accent-blue) 12%, transparent));
+    color: var(--m-color-primary);
+    margin-bottom: 8px;
+  }
 
-.template-card__title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--m-color-text);
-  margin: 0;
-}
+  &__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--m-color-text);
+    margin: 0;
+  }
 
-.template-card__desc {
-  font-size: 13px;
-  color: var(--m-color-text-muted);
-  margin: 0;
-  flex: 1;
-}
+  &__desc {
+    font-size: 13px;
+    color: var(--m-color-text-muted);
+    margin: 0;
+    flex: 1;
+  }
 
-.template-card__foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 8px;
-}
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
 
-.template-card__btns {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
+  &__btns {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
 
-.template-card__count {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
+  &__count {
+    font-size: 12px;
+    color: var(--m-color-text-muted);
+  }
 }
 </style>

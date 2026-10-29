@@ -63,7 +63,7 @@ function onSearch() {
   </header>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .app-header {
   height: 72px;
   display: flex;
@@ -91,10 +91,10 @@ function onSearch() {
   cursor: pointer;
   padding: 8px 4px;
   border-radius: 8px;
-}
 
-.team-selector:hover {
-  background: var(--m-color-split);
+  &:hover {
+    background: var(--m-color-split);
+  }
 }
 
 :deep(.m-dropdown__trigger:focus-visible) {

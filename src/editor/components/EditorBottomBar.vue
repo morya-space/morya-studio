@@ -88,7 +88,7 @@ function onFit() {
   </footer>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .editor-bottom {
   height: 40px;
   flex-shrink: 0;

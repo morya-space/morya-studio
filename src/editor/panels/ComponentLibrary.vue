@@ -71,7 +71,7 @@ function onClickAdd(type: CardType) {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .component-library {
   display: flex;
   flex-direction: column;
@@ -82,14 +82,14 @@ function onClickAdd(type: CardType) {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
 
-.comp-group__title {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
-  letter-spacing: 0.04em;
-  margin: 0 0 0 4px;
+  &__title {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--m-color-text-muted);
+    letter-spacing: 0.04em;
+    margin: 0 0 0 4px;
+  }
 }
 
 .comp-grid {
@@ -110,31 +110,31 @@ function onClickAdd(type: CardType) {
   cursor: grab;
   text-align: center;
   user-select: none;
-}
 
-.comp-item:hover {
-  border-color: var(--m-color-primary);
-  background: color-mix(in srgb, var(--m-color-primary) 6%, transparent);
-  box-shadow: var(--m-shadow-card-hover);
-}
+  &:hover {
+    border-color: var(--m-color-primary);
+    background: color-mix(in srgb, var(--m-color-primary) 6%, transparent);
+    box-shadow: var(--m-shadow-card-hover);
+  }
 
-.comp-item:active {
-  cursor: grabbing;
-}
+  &:active {
+    cursor: grabbing;
+  }
 
-.comp-item__icon {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--m-radius-sm);
-  background: color-mix(in srgb, var(--m-color-primary) 10%, transparent);
-  color: var(--m-color-primary);
-}
+  &__icon {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--m-radius-sm);
+    background: color-mix(in srgb, var(--m-color-primary) 10%, transparent);
+    color: var(--m-color-primary);
+  }
 
-.comp-item__label {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
+  &__label {
+    font-size: 12px;
+    color: var(--m-color-text-muted);
+  }
 }
 </style>

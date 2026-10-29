@@ -302,7 +302,7 @@ function onExport() {
   </header>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .editor-topbar {
   height: 52px;
   display: flex;
@@ -369,24 +369,24 @@ function onExport() {
   padding: 2px;
   border-radius: var(--m-radius-md);
   background: var(--m-color-fill-light);
-}
 
-.zoom-box :deep(.m-button) {
-  min-width: 26px;
-  height: 26px;
-  padding: 0;
-}
+  :deep(.m-button) {
+    min-width: 26px;
+    height: 26px;
+    padding: 0;
+  }
 
-.zoom-box :deep(.m-button:disabled) {
-  opacity: 0.35;
-}
+  :deep(.m-button:disabled) {
+    opacity: 0.35;
+  }
 
-.zoom-box__label {
-  font-size: 12px;
-  min-width: 44px;
-  text-align: center;
-  color: var(--m-color-text-muted);
-  font-variant-numeric: tabular-nums;
+  &__label {
+    font-size: 12px;
+    min-width: 44px;
+    text-align: center;
+    color: var(--m-color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* 分享面板 */
@@ -394,41 +394,41 @@ function onExport() {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
 
-.share-panel__desc {
-  font-size: 13px;
-  color: var(--m-color-text-muted);
-  margin: 0;
-}
+  &__desc {
+    font-size: 13px;
+    color: var(--m-color-text-muted);
+    margin: 0;
+  }
 
-.share-panel__actions {
-  display: flex;
-  justify-content: flex-start;
-}
+  &__actions {
+    display: flex;
+    justify-content: flex-start;
 
-.share-panel__actions--end {
-  justify-content: flex-end;
-  padding-top: 8px;
-  border-top: 1px solid var(--m-color-split);
+    &--end {
+      justify-content: flex-end;
+      padding-top: 8px;
+      border-top: 1px solid var(--m-color-split);
+    }
+  }
 }
 
 .share-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
 
-.share-field__label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
-  margin: 0;
-}
+  &__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--m-color-text-muted);
+    margin: 0;
+  }
 
-.share-field__row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 }
 </style>

@@ -395,9 +395,9 @@ const nextLabel = computed(() =>
   <WorkspacePage :title="t('pages.connectors.title')" :summary="t('pages.connectors.summary')">
     <!-- 快速接入 -->
     <section class="section">
-      <p class="section__title">{{ t('connectors.quickEntry') }}</p>
+      <p class="quick-title">{{ t('connectors.quickEntry') }}</p>
       <div class="entry-grid">
-        <MCard class="entry" shadow="always" :bordered="false" role="button" tabindex="0"
+        <MCard class="studio-card entry" shadow="always" :bordered="false" role="button" tabindex="0"
           :aria-label="t('connectors.entryFile')"
           @click="openWizard('file')" @keydown.enter="openWizard('file')">
           <span class="entry__icon">
@@ -406,7 +406,7 @@ const nextLabel = computed(() =>
           <span class="entry__name">{{ t('connectors.entryFile') }}</span>
           <span class="entry__desc">{{ t('connectors.entryFileDesc') }}</span>
         </MCard>
-        <MCard class="entry" shadow="always" :bordered="false" role="button" tabindex="0"
+        <MCard class="studio-card entry" shadow="always" :bordered="false" role="button" tabindex="0"
           :aria-label="t('connectors.entryDb')"
           @click="openWizard('db')" @keydown.enter="openWizard('db')">
           <span class="entry__icon">
@@ -415,7 +415,7 @@ const nextLabel = computed(() =>
           <span class="entry__name">{{ t('connectors.entryDb') }}</span>
           <span class="entry__desc">{{ t('connectors.entryDbDesc') }}</span>
         </MCard>
-        <MCard class="entry" shadow="always" :bordered="false" role="button" tabindex="0"
+        <MCard class="studio-card entry" shadow="always" :bordered="false" role="button" tabindex="0"
           :aria-label="t('connectors.entryApi')"
           @click="openWizard('api')" @keydown.enter="openWizard('api')">
           <span class="entry__icon">
@@ -428,7 +428,7 @@ const nextLabel = computed(() =>
     </section>
 
     <!-- 我的连接 -->
-    <MCard class="conn-panel" shadow="always" :bordered="false">
+    <MCard class="studio-card conn-panel" shadow="always" :bordered="false">
       <template #header>
         <div class="panel__head">
           <h2 class="panel__title">{{ t('connectors.myConns') }}</h2>
@@ -520,7 +520,7 @@ const nextLabel = computed(() =>
       <div v-else-if="step === 1" class="wizard-body">
         <div class="picked">
           <SvgIcon :name="currentSrc?.icon ?? 'plug'" :px="18" />
-          <span>{{ t('connectors.picked') }}：<b>{{ currentSrc?.name }}</b> · {{ CATEGORY_LABEL[cat] }}</span>
+          <span>{{ t('connectors.picked') }}：<b class="picked__name">{{ currentSrc?.name }}</b> · {{ CATEGORY_LABEL[cat] }}</span>
         </div>
 
         <!-- 数据库 -->
@@ -660,127 +660,135 @@ const nextLabel = computed(() =>
   </WorkspacePage>
 </template>
 
-<style scoped>
-.section__title {
+<style scoped lang="scss">
+.quick-title {
+  margin: 0 0 0.75rem;
   font-size: 13px;
   font-weight: 600;
   color: var(--m-color-text-muted);
-  margin: 0 0 12px;
 }
 
-/* 快速接入卡片 — 外观由 MCard + 全局 .m-card 承载，这里只留内部布局 */
 .entry-grid {
   display: grid;
+  gap: 1.25rem;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
 }
 
 .entry {
   display: flex;
+  cursor: pointer;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
-  cursor: pointer;
+  gap: 0.5rem;
   text-align: left;
+
+  &__icon {
+    margin-bottom: 0.25rem;
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border-radius: var(--m-radius-md);
+    background: color-mix(in srgb, var(--m-color-primary) 10%, transparent);
+    color: var(--m-color-primary);
+  }
+
+  &__name {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    color: var(--m-color-text);
+  }
+
+  &__desc {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--m-color-text-muted);
+  }
 }
 
-.entry__icon {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--m-radius-md);
-  background: color-mix(in srgb, var(--m-color-primary) 10%, transparent);
-  color: var(--m-color-primary);
-  margin-bottom: 4px;
-}
-
-.entry__name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--m-color-text);
-}
-
-.entry__desc {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-  line-height: 1.5;
-}
-
-/* 连接列表面板 — 卡片外观由 MCard 承载，这里只留头部布局 */
 .panel__head {
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  width: 100%;
+  gap: 1rem;
 }
 
 .panel__title {
-  font-size: 14px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   font-weight: 600;
   color: var(--m-color-text);
-  margin: 0;
 }
 
 .panel__actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .panel__search {
   width: 220px;
 }
 
+.panel__empty {
+  padding: 2.5rem 0;
+}
+
 .conn-skeleton {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
-.panel__empty {
-  padding: 40px 0;
-}
-
-/* 连接表格 */
 .conn-table__row {
   display: grid;
   grid-template-columns: 2fr 100px 100px 1fr 200px;
   align-items: center;
-  gap: 8px;
-  padding: 12px 18px;
+  gap: 0.5rem;
   border-bottom: 1px solid var(--m-color-split);
+  padding: 0.75rem 1.125rem;
   font-size: 13px;
-}
 
-.conn-table__row:last-child {
-  border-bottom: none;
-}
-
-.conn-table__row--head {
-  background: var(--m-color-fill-light);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-text-muted);
+  &--head {
+    background: var(--m-color-fill-light);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    color: var(--m-color-text-muted);
+  }
 }
 
 .col-name {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   font-weight: 500;
+}
+
+.col-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--m-color-text-muted);
+}
+
+.col-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.25rem;
 }
 
 .conn-avatar {
   display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
   place-items: center;
-  width: 28px;
-  height: 28px;
   border-radius: var(--m-radius-sm);
   background: var(--m-color-fill-lighter);
   color: var(--m-color-text-muted);
-  flex: none;
 }
 
 .conn-name {
@@ -789,97 +797,37 @@ const nextLabel = computed(() =>
   white-space: nowrap;
 }
 
-.col-detail {
-  color: var(--m-color-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.col-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-}
-
 .status-dot {
+  margin-right: 0.375rem;
   display: inline-block;
   width: 7px;
   height: 7px;
-  border-radius: 50%;
-  margin-right: 6px;
-}
-
-.status-dot--ok {
-  background: var(--m-color-success);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--m-color-success) 15%, transparent);
-}
-
-.status-dot--err {
-  background: var(--m-color-danger);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--m-color-danger) 15%, transparent);
-}
-
-.status-ok {
-  color: var(--m-color-success);
-  font-size: 12px;
-}
-
-.status-err {
-  color: var(--m-color-danger);
-  font-size: 12px;
+  border-radius: 9999px;
 }
 
 .status-unknown {
+  font-size: 0.75rem;
+  line-height: 1rem;
   color: var(--m-color-text-muted);
-  font-size: 12px;
 }
 
-/* 向导弹窗 — 更宽松的布局 */
 .conn-steps {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .wizard-body {
-  padding-top: 4px;
   min-height: 320px;
+  padding-top: 0.25rem;
 }
 
 .cat-tabs {
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 
-/* 数据源卡片 — 更大更舒适 */
 .src-grid {
   display: grid;
+  gap: 0.875rem;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 14px;
-}
-
-.src-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 18px 16px;
-  border: 1.5px solid var(--m-color-border);
-  border-radius: var(--m-radius-md);
-  background: var(--m-color-surface);
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
-}
-
-.src-card:hover {
-  border-color: var(--m-color-primary);
-  background: color-mix(in srgb, var(--m-color-primary) 5%, transparent);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--m-color-primary) 10%, transparent);
-}
-
-.src-card--selected {
-  border-color: var(--m-color-primary);
-  background: color-mix(in srgb, var(--m-color-primary) 8%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--m-color-primary) 15%, transparent);
 }
 
 .src-card__icon {
@@ -888,193 +836,237 @@ const nextLabel = computed(() =>
 }
 
 .src-card__name {
-  font-size: 14px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   font-weight: 600;
   color: var(--m-color-text);
 }
 
 .src-card__desc {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
+  font-size: 0.75rem;
   line-height: 1.4;
+  color: var(--m-color-text-muted);
 }
 
-/* 已选择类型条 — 更显眼 */
 .picked {
+  margin-bottom: 1.25rem;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--m-color-primary) 8%, transparent), color-mix(in srgb, var(--m-color-primary) 4%, transparent));
+  gap: 0.625rem;
   border: 1px solid color-mix(in srgb, var(--m-color-primary) 20%, transparent);
   border-radius: var(--m-radius-md);
-  margin-bottom: 20px;
-  font-size: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--m-color-primary) 8%, transparent), color-mix(in srgb, var(--m-color-primary) 4%, transparent));
+  padding: 0.875rem 1.125rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   color: var(--m-color-text-muted);
+
+  &__name {
+    font-weight: 600;
+    color: var(--m-color-text);
+  }
 }
 
-.picked b {
-  color: var(--m-color-text);
-  font-weight: 600;
-}
-
-/* 表单 */
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 0.875rem;
+
+  &__full {
+    grid-column: 1 / -1;
+  }
 }
 
-.form-grid__full {
-  grid-column: 1 / -1;
-}
-
-.file-header-check {
-  margin-top: 12px;
-}
-
-/* 测试连接 */
 .test-row {
+  margin-top: 1rem;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 0.75rem;
 }
 
 .test-msg {
-  font-size: 12px;
+  font-size: 0.75rem;
+  line-height: 1rem;
 }
 
-.test-msg--ok {
-  color: var(--m-color-success);
-}
-
-.test-msg--err {
-  color: var(--m-color-danger);
-}
-
-/* 文件上传 */
 .dropzone {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 36px 20px;
+  gap: 0.5rem;
+  padding: 2.25rem 1.25rem;
   text-align: center;
+
+  &__icon {
+    color: var(--m-color-primary);
+  }
+
+  &__text {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    color: var(--m-color-text);
+  }
+
+  &__tip {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--m-color-text-muted);
+  }
 }
 
-.dropzone__icon {
-  color: var(--m-color-primary);
+.file-header-check {
+  margin-top: 0.75rem;
 }
 
-.dropzone__text {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--m-color-text);
-  margin: 0;
-}
-
-.dropzone__tip {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-  margin: 0;
-}
-
-/* 数据预览 */
 .preview__title {
+  margin: 1rem 0 0.5rem;
   font-size: 13px;
   font-weight: 600;
   color: var(--m-color-text);
-  margin: 16px 0 8px;
 }
 
 .preview__table {
+  overflow: hidden;
   border: 1px solid var(--m-color-border);
   border-radius: var(--m-radius-md);
-  overflow: hidden;
 }
 
 .preview__row {
   display: grid;
   border-bottom: 1px solid var(--m-color-split);
-}
 
-.preview__row:last-child {
-  border-bottom: none;
-}
-
-.preview__row--head {
-  background: var(--m-color-fill-light);
-  font-weight: 600;
+  &--head {
+    background: var(--m-color-fill-light);
+    font-weight: 600;
+  }
 }
 
 .preview__cell {
-  padding: 8px 12px;
-  font-size: 12px;
-  color: var(--m-color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--m-color-text);
 }
 
-/* 完成页 — 更宽敞 */
 .done-wrap {
+  padding: 2rem 0 1rem;
   text-align: center;
-  padding: 32px 0 16px;
 }
 
 .done-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--m-color-success) 15%, transparent);
-  color: var(--m-color-success);
+  margin: 0 auto 1.25rem;
   display: grid;
+  width: 4rem;
+  height: 4rem;
   place-items: center;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--m-color-success) 15%, transparent);
   font-size: 30px;
-  margin: 0 auto 20px;
+  color: var(--m-color-success);
 }
 
 .done-title {
-  font-size: 18px;
+  margin: 0 0 0.625rem;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
   font-weight: 700;
   color: var(--m-color-text);
-  margin: 0 0 10px;
 }
 
 .done-desc {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   color: var(--m-color-text-muted);
-  font-size: 14px;
-  margin: 0;
 }
 
 .summary {
-  margin: 28px auto 0;
+  margin: 1.75rem auto 0;
   max-width: 420px;
-  text-align: left;
+  overflow: hidden;
   border: 1px solid var(--m-color-border);
   border-radius: var(--m-radius-md);
-  overflow: hidden;
+  text-align: left;
 }
 
 .summary__row {
   display: flex;
   justify-content: space-between;
-  padding: 12px 18px;
-  font-size: 14px;
   border-bottom: 1px solid var(--m-color-split);
-}
-
-.summary__row:last-child {
-  border-bottom: none;
-}
-
-.summary__row span:first-child {
-  color: var(--m-color-text-muted);
+  padding: 0.75rem 1.125rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 .footer-right {
   display: flex;
-  gap: 10px;
+  gap: 0.625rem;
+}
+
+.conn-table__row,
+.preview__row,
+.summary__row {
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.summary__row {
+  span:first-child {
+    color: var(--m-color-text-muted);
+  }
+}
+
+.status-dot {
+  &--ok {
+    background: var(--m-color-success);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--m-color-success) 15%, transparent);
+  }
+
+  &--err {
+    background: var(--m-color-danger);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--m-color-danger) 15%, transparent);
+  }
+}
+
+.status-ok,
+.test-msg--ok {
+  color: var(--m-color-success);
+  font-size: 12px;
+}
+
+.status-err,
+.test-msg--err {
+  color: var(--m-color-danger);
+  font-size: 12px;
+}
+
+.src-card {
+  display: flex;
+  cursor: pointer;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 1.5px solid var(--m-color-border);
+  border-radius: var(--m-radius-md);
+  background: var(--m-color-surface);
+  padding: 1.125rem 1rem;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+
+  &:hover {
+    border-color: var(--m-color-primary);
+    background: color-mix(in srgb, var(--m-color-primary) 5%, transparent);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--m-color-primary) 10%, transparent);
+  }
+
+  &--selected {
+    border-color: var(--m-color-primary);
+    background: color-mix(in srgb, var(--m-color-primary) 8%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--m-color-primary) 15%, transparent);
+  }
 }
 </style>

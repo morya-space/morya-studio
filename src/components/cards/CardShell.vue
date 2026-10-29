@@ -102,7 +102,7 @@ function onAction(action: ActionConfig) {
   </MCard>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .card-shell {
   border-radius: var(--m-radius-lg);
   box-shadow: var(--m-shadow-card);
@@ -111,80 +111,80 @@ function onAction(action: ActionConfig) {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
 
-.card-shell :deep(.m-card__header) {
-  padding: 20px 24px 0;
-  border-bottom: none;
-}
+  :deep(.m-card__header) {
+    padding: 20px 24px 0;
+    border-bottom: none;
+  }
 
-.card-shell :deep(.m-card__body) {
-  padding: 16px 24px 24px;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
+  :deep(.m-card__body) {
+    padding: 16px 24px 24px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
 
-.card-shell__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
 
-.card-shell__heading {
-  min-width: 0;
-}
+  &__heading {
+    min-width: 0;
+  }
 
-.card-shell__title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--m-color-text);
-  margin: 0;
-}
+  &__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--m-color-text);
+    margin: 0;
+  }
 
-.card-shell__subtitle {
-  font-size: 13px;
-  color: var(--m-color-text-muted);
-  margin: 4px 0 0;
-}
+  &__subtitle {
+    font-size: 13px;
+    color: var(--m-color-text-muted);
+    margin: 4px 0 0;
+  }
 
-.card-shell__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
 
-.card-shell__state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 24px 0;
-  min-height: 120px;
-}
+  &__state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px 0;
+    min-height: 120px;
+  }
 
-.card-shell__state-text {
-  font-size: 13px;
-  color: var(--m-color-text-muted);
-}
+  &__state-text {
+    font-size: 13px;
+    color: var(--m-color-text-muted);
+  }
 
-.card-shell__body {
-  min-width: 0;
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
+  &__body {
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
 
-/* 骨架屏 */
-.card-shell__skeleton {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  /* 骨架屏 */
+  &__skeleton {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 }
 
 .skeleton-line,
@@ -196,10 +196,10 @@ function onAction(action: ActionConfig) {
 
 .skeleton-line {
   height: 14px;
-}
 
-.skeleton-line.w-60 { width: 60%; }
-.skeleton-line.w-40 { width: 40%; }
+  &.w-60 { width: 60%; }
+  &.w-40 { width: 40%; }
+}
 
 .skeleton-block {
   height: 64px;

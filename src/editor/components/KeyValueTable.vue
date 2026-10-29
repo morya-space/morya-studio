@@ -68,7 +68,7 @@ function remove(index: number) {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .kv-table {
   display: flex;
   flex-direction: column;

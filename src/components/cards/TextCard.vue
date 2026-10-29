@@ -129,7 +129,7 @@ const textStyle = computed(() => {
   </CardShell>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .text-card {
   display: block;
   font-size: 14px;
@@ -137,46 +137,46 @@ const textStyle = computed(() => {
   color: var(--m-color-text);
   word-break: break-word;
   text-decoration: none;
-}
 
-.text-card--link:hover {
-  opacity: 0.85;
-}
+  &--link:hover {
+    opacity: 0.85;
+  }
 
-.text-card :deep(h1),
-.text-card :deep(h2),
-.text-card :deep(h3),
-.text-card :deep(h4) {
-  margin: 0.6em 0 0.3em;
-  font-weight: 700;
-  color: var(--m-color-text);
-}
+  :deep(h1),
+  :deep(h2),
+  :deep(h3),
+  :deep(h4) {
+    margin: 0.6em 0 0.3em;
+    font-weight: 700;
+    color: var(--m-color-text);
+  }
 
-.text-card :deep(h1) { font-size: 22px; }
-.text-card :deep(h2) { font-size: 18px; }
-.text-card :deep(h3) { font-size: 16px; }
-.text-card :deep(h4) { font-size: 14px; }
+  :deep(h1) { font-size: 22px; }
+  :deep(h2) { font-size: 18px; }
+  :deep(h3) { font-size: 16px; }
+  :deep(h4) { font-size: 14px; }
 
-.text-card :deep(p) {
-  margin: 0.4em 0;
-}
+  :deep(p) {
+    margin: 0.4em 0;
+  }
 
-.text-card :deep(ul),
-.text-card :deep(ol) {
-  margin: 0.4em 0;
-  padding-left: 1.4em;
-}
+  :deep(ul),
+  :deep(ol) {
+    margin: 0.4em 0;
+    padding-left: 1.4em;
+  }
 
-.text-card :deep(code) {
-  padding: 1px 6px;
-  border-radius: var(--m-radius-xs, 4px);
-  background: var(--m-color-fill-light);
-  color: var(--m-color-text);
-  font-family: var(--m-font-mono, monospace);
-  font-size: 0.9em;
-}
+  :deep(code) {
+    padding: 1px 6px;
+    border-radius: var(--m-radius-xs, 4px);
+    background: var(--m-color-fill-light);
+    color: var(--m-color-text);
+    font-family: var(--m-font-mono, monospace);
+    font-size: 0.9em;
+  }
 
-.text-card :deep(a) {
-  color: var(--m-color-primary);
+  :deep(a) {
+    color: var(--m-color-primary);
+  }
 }
 </style>

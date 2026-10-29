@@ -59,7 +59,7 @@ async function onSelect(item: { value?: string }) {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .user-section {
   display: flex;
   align-items: center;
@@ -75,6 +75,11 @@ async function onSelect(item: { value?: string }) {
   cursor: pointer;
   padding: 4px;
   border-radius: var(--m-radius-sm);
+
+  &:focus-visible {
+    outline: 2px solid var(--m-color-primary);
+    outline-offset: 2px;
+  }
 }
 
 .notification-dot {
@@ -97,11 +102,6 @@ async function onSelect(item: { value?: string }) {
   padding: 4px;
   border-radius: var(--m-radius-sm);
   color: inherit;
-}
-
-.user-notification:focus-visible {
-  outline: 2px solid var(--m-color-primary);
-  outline-offset: 2px;
 }
 
 :deep(.m-dropdown__trigger:focus-visible) {

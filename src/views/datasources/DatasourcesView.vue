@@ -396,7 +396,7 @@ async function onDialogTest() {
             </div>
           </template>
           <template #cell-detail="{ row }">
-            <span class="ds-detail" :title="detailOf(row as DataSourceConfig)">{{ detailOf(row as DataSourceConfig) }}</span>
+            <span class="ds-detail ds-mono" :title="detailOf(row as DataSourceConfig)">{{ detailOf(row as DataSourceConfig) }}</span>
           </template>
           <template #cell-actions="{ row }">
             <div class="ds-actions">
@@ -461,7 +461,7 @@ async function onDialogTest() {
             :help="t('datasources.mockTemplateHelp')"
           >
             <MTextarea v-model="mockTemplateText" :rows="8" fluid placeholder='{"name":"{{name}}","amount":"{{int 10 999}}","date":"{{date 2024-01-01 2024-12-31}}"}' />
-            <div class="flex justify-end">
+            <div class="ds-form-actions">
               <MButton type="default" size="small" :disabled="!mockTemplateText.trim()" @click="onFormatMockTemplate">
                 {{ t('datasources.format') }}
               </MButton>
@@ -475,7 +475,7 @@ async function onDialogTest() {
             :help="t('datasources.mockDataHelp')"
           >
             <MTextarea v-model="staticDataText" :rows="8" fluid placeholder='[{"x":"1月","y":100}]' />
-            <div class="flex justify-end">
+            <div class="ds-form-actions">
               <MButton type="default" size="small" :disabled="!staticDataText.trim()" @click="onFormatMockData">
                 {{ t('datasources.format') }}
               </MButton>
@@ -528,218 +528,190 @@ async function onDialogTest() {
   </WorkspacePage>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .datasources {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
   height: 100%;
   min-height: 0;
-}
+  flex-direction: column;
+  gap: 1rem;
 
-/* ========== 概览统计（紧凑单条） ========== */
-.datasources__stats {
-  flex-shrink: 0;
+  &__stats {
+    flex: none;
+  }
+
+  &__toolbar {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  &__filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  &__search {
+    width: 15rem;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  &__skeleton-stats {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  &__empty {
+    display: flex;
+    min-height: 320px;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--m-color-border);
+    border-radius: var(--m-radius-lg);
+    background: var(--m-color-surface);
+  }
 }
 
 .stats-bar {
-  padding: 12px 8px;
-}
+  padding: 0.75rem 0.5rem;
 
-.stats-bar :deep(.m-card__body) {
-  padding: 0;
-  display: flex;
-  align-items: stretch;
+  :deep(.m-card__body) {
+    display: flex;
+    align-items: stretch;
+    padding: 0;
+  }
 }
 
 .stat-item {
-  flex: 1 1 0;
-  min-width: 0;
   display: flex;
+  min-width: 0;
+  flex: 1;
   align-items: center;
-  gap: 10px;
-  padding: 2px 16px;
+  gap: 0.625rem;
+  padding: 0.125rem 1rem;
+
+  &__icon {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    place-items: center;
+    border-radius: var(--m-radius-md);
+    background: var(--m-color-fill-light);
+    color: var(--m-color-text-muted);
+  }
+
+  &__meta {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  &__value {
+    font-size: 1.25rem;
+    line-height: 1.15;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--m-color-text);
+  }
+
+  &__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--m-color-text-muted);
+  }
 }
 
 .stat-item--divider {
   border-left: 1px solid var(--m-color-split);
 }
 
-.stat-item__icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--m-radius-md);
-  background: var(--m-color-fill-light);
-  color: var(--m-color-text-muted);
-  flex: none;
-}
-
 .stat-item__icon--total {
   background: color-mix(in srgb, var(--m-color-text) 8%, transparent);
   color: var(--m-color-text);
 }
-.stat-item__icon--static {
+
+.stat-item__icon--static,
+.ds-type-icon--static {
   background: color-mix(in srgb, var(--m-color-primary) 12%, transparent);
   color: var(--m-color-primary);
 }
-.stat-item__icon--api {
+
+.stat-item__icon--api,
+.stat-item__icon--websocket,
+.ds-type-icon--api,
+.ds-type-icon--websocket {
   background: color-mix(in srgb, var(--m-color-info) 12%, transparent);
   color: var(--m-color-info);
 }
-.stat-item__icon--mock {
+
+.stat-item__icon--mock,
+.ds-type-icon--mock {
   background: color-mix(in srgb, var(--m-color-warning) 12%, transparent);
   color: var(--m-color-warning);
 }
-.stat-item__icon--websocket {
-  background: color-mix(in srgb, var(--m-color-info) 12%, transparent);
-  color: var(--m-color-info);
-}
-.stat-item__icon--sql {
+
+.stat-item__icon--sql,
+.ds-type-icon--sql {
   background: color-mix(in srgb, var(--m-color-success) 12%, transparent);
   color: var(--m-color-success);
 }
 
-.stat-item__meta {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.stat-item__value {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.15;
-  color: var(--m-color-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.stat-item__label {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ========== 工具栏 ========== */
-.datasources__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-
-.datasources__filters {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.datasources__search {
-  width: 240px;
-}
-
-.datasources__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* ========== 加载 / 空状态 ========== */
-.datasources__skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.datasources__skeleton-stats {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.datasources__empty {
-  flex: 1 1 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 320px;
-  background: var(--m-color-surface);
-  border-radius: var(--m-radius-lg);
-  border: 1px solid var(--m-color-border);
-}
-
-/* ========== 表格容器 ========== */
-.datasources__table {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
 /* 卡片内表格贴边铺满，body 撑满剩余高度供 MTable fill 使用 */
-.datasources__table :deep(.m-card__body) {
-  flex: 1 1 auto;
+.datasources__table {
+  display: flex;
   min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+
+  :deep(.m-card__body) {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
 }
 
-/* ========== 表格单元格 ========== */
 .ds-name-cell {
   display: flex;
   flex-direction: column;
 }
 
-.ds-id {
-  font-size: 11px;
-  color: var(--m-color-text-muted);
-  font-family: var(--m-font-mono, monospace);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .ds-type-cell {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .ds-type-icon {
   display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
   place-items: center;
-  width: 24px;
-  height: 24px;
   border-radius: var(--m-radius-sm);
   background: var(--m-color-fill-light);
   color: var(--m-color-text-muted);
-  flex: none;
-}
-
-.ds-type-icon--static {
-  background: color-mix(in srgb, var(--m-color-primary) 12%, transparent);
-  color: var(--m-color-primary);
-}
-.ds-type-icon--api {
-  background: color-mix(in srgb, var(--m-color-info) 12%, transparent);
-  color: var(--m-color-info);
-}
-.ds-type-icon--mock {
-  background: color-mix(in srgb, var(--m-color-warning) 12%, transparent);
-  color: var(--m-color-warning);
-}
-.ds-type-icon--websocket {
-  background: color-mix(in srgb, var(--m-color-info) 12%, transparent);
-  color: var(--m-color-info);
-}
-.ds-type-icon--sql {
-  background: color-mix(in srgb, var(--m-color-success) 12%, transparent);
-  color: var(--m-color-success);
 }
 
 .ds-type-label {
@@ -750,30 +722,41 @@ async function onDialogTest() {
 .ds-detail {
   display: inline-block;
   max-width: 100%;
-  font-size: 13px;
-  color: var(--m-color-text-muted);
-  font-family: var(--m-font-mono, monospace);
   overflow: hidden;
+  vertical-align: middle;
   text-overflow: ellipsis;
   white-space: nowrap;
-  vertical-align: middle;
+  font-size: 13px;
+  color: var(--m-color-text-muted);
 }
 
 .ds-actions {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  justify-content: flex-end;
+  gap: 0.125rem;
+}
+
+.ds-form-actions {
+  display: flex;
   justify-content: flex-end;
 }
 
-/* ========== 响应式 ========== */
+.ds-mono {
+  font-family: var(--m-font-mono, monospace);
+}
+
 @media (max-width: 1200px) {
-  .stats-bar :deep(.m-card__body) {
-    flex-wrap: wrap;
+  .stats-bar {
+    :deep(.m-card__body) {
+      flex-wrap: wrap;
+    }
   }
+
   .stat-item {
     flex: 1 1 30%;
   }
+
   .stat-item--divider {
     border-left: none;
   }
@@ -783,6 +766,7 @@ async function onDialogTest() {
   .datasources__skeleton-stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
   .datasources__search {
     width: 180px;
   }

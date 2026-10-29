@@ -136,12 +136,16 @@ async function onResetPassword(payload: { valid: boolean }) {
   </MConfigProvider>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .auth-shell {
   display: grid;
   grid-template-columns: minmax(16rem, 0.95fr) minmax(20rem, 1.05fr);
   min-height: 100vh;
   background: var(--m-color-page-bg);
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .auth-brand {
@@ -152,30 +156,34 @@ async function onResetPassword(payload: { valid: boolean }) {
   padding: clamp(2rem, 6vw, 4.5rem);
   background: linear-gradient(135deg, var(--m-color-primary) 0%, var(--m-color-accent-blue) 100%);
   color: var(--m-color-surface);
-}
 
-.auth-brand__mark {
-  margin: 0;
-  font-size: 13px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--m-color-surface) 78%, transparent);
-}
+  &__mark {
+    margin: 0;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--m-color-surface) 78%, transparent);
+  }
 
-.auth-brand__title {
-  margin: 0;
-  font-size: clamp(1.75rem, 3vw, 2.25rem);
-  line-height: 1.2;
-  font-weight: 700;
-  color: var(--m-color-surface);
-}
+  &__title {
+    margin: 0;
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--m-color-surface);
+  }
 
-.auth-brand__lead {
-  margin: 0;
-  max-width: 28rem;
-  color: color-mix(in srgb, var(--m-color-surface) 80%, transparent);
-  font-size: 15px;
-  line-height: 1.5;
+  &__lead {
+    margin: 0;
+    max-width: 28rem;
+    color: color-mix(in srgb, var(--m-color-surface) 80%, transparent);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 720px) {
+    min-height: 16rem;
+  }
 }
 
 .auth-main {
@@ -194,24 +202,26 @@ async function onResetPassword(payload: { valid: boolean }) {
   border-radius: var(--m-radius-lg);
   padding: 28px;
   box-shadow: var(--m-shadow-card);
-}
 
-.auth-panel__top {
-  display: flex;
-  justify-content: flex-end;
-}
+  &__top {
+    display: flex;
+    justify-content: flex-end;
+  }
 
-.auth-panel__header h2 {
-  margin: 0 0 4px;
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--m-color-text);
-}
+  &__header {
+    h2 {
+      margin: 0 0 4px;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--m-color-text);
+    }
 
-.auth-panel__header p {
-  margin: 0;
-  color: var(--m-color-text-muted);
-  font-size: 14px;
+    p {
+      margin: 0;
+      color: var(--m-color-text-muted);
+      font-size: 14px;
+    }
+  }
 }
 
 .auth-alert {
@@ -229,20 +239,10 @@ async function onResetPassword(payload: { valid: boolean }) {
   text-align: center;
   font-size: 14px;
   color: var(--m-color-text-muted);
-}
 
-.auth-link a {
-  color: var(--m-color-primary);
-  text-decoration: none;
-}
-
-@media (max-width: 720px) {
-  .auth-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .auth-brand {
-    min-height: 16rem;
+  a {
+    color: var(--m-color-primary);
+    text-decoration: none;
   }
 }
 </style>

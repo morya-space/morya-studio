@@ -20,13 +20,13 @@ withDefaults(defineProps<{
   </MIcon>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .svg-icon {
   width: 1em;
   height: 1em;
+  overflow: hidden;
   fill: none;
   stroke: currentColor;
   vertical-align: -0.15em;
-  overflow: hidden;
 }
 </style>

@@ -156,7 +156,7 @@ const OP_LABEL: Record<string, string> = {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .transform-editor {
   display: flex;
   flex-direction: column;
@@ -176,27 +176,27 @@ const OP_LABEL: Record<string, string> = {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
 
-.transform-item__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 
-.transform-item__op {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--m-color-primary);
-}
+  &__op {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--m-color-primary);
+  }
 
-.transform-item__btns {
-  display: flex;
-  gap: 2px;
-}
+  &__btns {
+    display: flex;
+    gap: 2px;
+  }
 
-.transform-item__body {
-  display: flex;
+  &__body {
+    display: flex;
+  }
 }
 
 .transform-row {

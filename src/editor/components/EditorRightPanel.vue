@@ -182,13 +182,13 @@ const sub = computed(() => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-}
 
-.op-row :deep(.m-button) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
+  :deep(.m-button) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
 }
 
 .panel-region,

@@ -28,7 +28,7 @@ function onRetry() {
   <slot v-else />
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .error-boundary {
   display: flex;
   flex-direction: column;

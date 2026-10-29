@@ -69,128 +69,130 @@ function insertField(index: number, key: string): void {
 
     <div v-if="!list.length" class="cf-editor__empty">暂无计算列，从模板添加或自定义</div>
 
-    <div v-for="(f, i) in list" :key="i" class="cf-editor__row">
-      <div class="cf-editor__name">
-        <span class="cf-editor__name-label">名称</span>
+    <div v-for="(f, i) in list" :key="i" class="cf-editor__item">
+      <div class="cf-editor__row">
+        <span class="cf-editor__label">名称</span>
         <input
           :value="f.name"
+          class="cf-editor__name-input"
           placeholder="新字段名"
           @input="patch(i, 'name', ($event.target as HTMLInputElement).value)"
         />
       </div>
-      <div class="cf-editor__expr">
+      <div>
         <textarea
           :value="f.expr"
+          class="cf-editor__expr-input"
           rows="2"
           placeholder="表达式，如 revenue - cost"
           @input="patch(i, 'expr', ($event.target as HTMLTextAreaElement).value)"
         />
       </div>
-      <div v-if="profiles?.length" class="cf-editor__fields">
+      <div v-if="profiles?.length" class="cf-editor__profiles">
         <button
           v-for="p in profiles.slice(0, 8)"
           :key="p.key"
           type="button"
-          class="cf-editor__field"
+          class="cf-editor__profile"
           @click="insertField(i, p.key)"
         >
           {{ p.key }}
         </button>
       </div>
-      <div class="cf-editor__row-actions">
+      <div class="cf-editor__footer">
         <MButton type="text" size="small" danger @click="remove(i)">删除</MButton>
       </div>
     </div>
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .cf-editor {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
+
+  &__templates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  &__empty {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--m-color-text-muted);
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    border-radius: var(--m-radius-md);
+    border: 1px solid var(--m-color-border);
+    background: var(--m-color-surface);
+    padding: 0.625rem;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__label {
+    flex: none;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--m-color-text-muted);
+  }
+
+  &__profiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  &__profile {
+    cursor: pointer;
+    border-radius: 9999px;
+    border: 1px solid var(--m-color-border);
+    background: var(--m-color-fill-light);
+    padding: 1px 0.5rem;
+    font-size: 11px;
+    color: var(--m-color-text);
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 
-.cf-editor__templates {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.cf-editor__empty {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-}
-
-.cf-editor__row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px;
+.cf-editor__name-input,
+.cf-editor__expr-input {
+  border-radius: var(--m-radius-sm);
   border: 1px solid var(--m-color-border);
-  border-radius: var(--m-radius-md);
-  background: var(--m-color-surface);
+  outline: none;
+
+  &:focus {
+    border-color: var(--m-color-primary);
+  }
 }
 
-.cf-editor__name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.cf-editor__name-label {
-  font-size: 12px;
-  color: var(--m-color-text-muted);
-  flex: none;
-}
-
-.cf-editor__name input {
-  flex: 1;
+.cf-editor__name-input {
   min-width: 0;
-  padding: 4px 8px;
-  border: 1px solid var(--m-color-border);
-  border-radius: var(--m-radius-sm);
+  flex: 1;
+  padding: 0.25rem 0.5rem;
   font-size: 12.5px;
-  outline: none;
 }
 
-.cf-editor__name input:focus {
-  border-color: var(--m-color-primary);
-}
-
-.cf-editor__expr textarea {
+.cf-editor__expr-input {
   width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--m-color-border);
-  border-radius: var(--m-radius-sm);
-  font-size: 12px;
-  font-family: var(--m-font-mono, monospace);
   resize: vertical;
-  outline: none;
-}
-
-.cf-editor__expr textarea:focus {
-  border-color: var(--m-color-primary);
-}
-
-.cf-editor__fields {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.cf-editor__field {
-  padding: 1px 8px;
-  border: 1px solid var(--m-color-border);
-  border-radius: 999px;
-  background: var(--m-color-fill-light);
-  font-size: 11px;
-  color: var(--m-color-text);
-  cursor: pointer;
-}
-
-.cf-editor__row-actions {
-  display: flex;
-  justify-content: flex-end;
+  padding: 0.375rem 0.5rem;
+  font-family: var(--m-font-mono, monospace);
+  font-size: 0.75rem;
+  line-height: 1rem;
 }
 </style>
